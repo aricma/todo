@@ -16,15 +16,18 @@ account, no sync — the data never leaves the machine.
 
 ## Commands
 
+All commands live in the [maskfile](./maskfile.md):
+
 ```
-cargo test                          # native unit tests (core logic)
-./build-css.sh                      # compile Tailwind (aricma-ui tokens, app accent) → public/styles.css
-trunk serve                         # dev server (http://localhost:8080)
-trunk build --release               # static SPA build → dist/
+mask build              # Tailwind bundle + release wasm build → dist/
+mask test               # fmt + clippy + native unit tests (core logic)
+mask serve              # dev server with the COOP/COEP headers the OPFS VFS needs
 ```
 
-CI (`aricma-todo` job): fmt check, clippy, tests, release build, and the
-Playwright smoke suite (integration-tests/).
+Preview the production build: `mask build && node serve.mjs` (serves `dist/`
+with the same headers). CI runs the unit gates plus the Playwright smoke
+suite (integration-tests/, which points at a running app via
+`ARICMA_TODO_APP_URL`).
 
 Design: [DOCS/DESIGN.md](../DOCS/DESIGN.md) + `aricma-ui` templates, with the
 app-domain blue accent.
