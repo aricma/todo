@@ -18,7 +18,7 @@ account, no sync — the data never leaves the machine.
 
 ```
 cargo test                          # native unit tests (core logic)
-npm run build:css                   # compile Tailwind (aricma-ui tokens, app accent) → public/styles.css
+./build-css.sh                      # compile Tailwind (aricma-ui tokens, app accent) → public/styles.css
 trunk serve                         # dev server (http://localhost:8080)
 trunk build --release               # static SPA build → dist/
 ```

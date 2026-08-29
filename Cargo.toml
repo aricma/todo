@@ -1,0 +1,38 @@
+[package]
+name = "aricma-todo"
+version = "0.1.0"
+edition = "2021"
+description = "Local-first todo SPA: Rust + Leptos wasm, SQLite on OPFS, OPS data model"
+
+[lib]
+name = "aricma_todo"
+path = "src/lib.rs"
+
+[[bin]]
+name = "aricma-todo"
+path = "src/main.rs"
+
+[dependencies]
+leptos = { version = "0.7", features = ["csr"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+time = { version = "0.3", default-features = false, features = ["std", "formatting"] }
+
+# The bin (src/main.rs) is wasm-only: it links sqlite-wasm + web-sys and is
+# built by trunk. The lib (src/lib.rs) is pure and testable via cargo test.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+sqlite-wasm = "0.1.4"
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+  "Blob", "Url", "FileReader", "File", "HtmlInputElement", "HtmlAnchorElement",
+  "Storage", "Window", "Document", "Navigator", "Crypto", "Element", "Event",
+  "EventTarget", "HtmlElement", "KeyboardEvent", "Location", "FileList", "VisibilityState",
+  "FileSystemDirectoryHandle", "FileSystemFileHandle", "FileSystemHandle", "FileSystemGetFileOptions"
+] }
+serde-wasm-bindgen = "0.6"
+console_error_panic_hook = "0.1"
+wasm-bindgen-futures = "0.4"
+
+[profile.release]
+opt-level = "s"
