@@ -34,11 +34,8 @@ trunk serve
 ```
 
 For the end-to-end smoke suite, keep this running and point it at the app
-from `../integration-tests`:
-
-```sh
-ARICMA_TODO_APP_URL=http://127.0.0.1:8080 mask test aricma-todo
-```
+from `../integration-tests` with
+`ARICMA_TODO_APP_URL=http://127.0.0.1:8080 mask test aricma-todo`.
 
 To preview the production build instead, serve `dist/` with the same headers
 (`node serve.mjs`, see README).
