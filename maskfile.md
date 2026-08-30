@@ -6,7 +6,7 @@ This mask file documents the actions you can run in `aricma-todo/`. Install
 ## build
 
 > Compile the Tailwind bundle (aricma-ui tokens, app-blue accent) and the
-> release wasm app into `dist/`.
+> release wasm app into `tmp/dist/`.
 
 ```bash
 ./build-css.sh
@@ -29,13 +29,20 @@ cargo test --lib
 > Start the dev server (auto-rebuilds on change). Sends the COOP/COEP
 > headers the sqlite-wasm OPFS VFS needs via Trunk.toml.
 
+**OPTIONS**
+
+- port
+  - flags: --port
+  - type: string
+  - desc: Port to serve on (default 8080)
+
 ```bash
-trunk serve
+trunk serve ${port:+--port "$port"}
 ```
 
 For the end-to-end smoke suite, keep this running and point it at the app
 from `../integration-tests` with
 `ARICMA_TODO_APP_URL=http://127.0.0.1:8080 mask test aricma-todo`.
 
-To preview the production build instead, serve `dist/` with the same headers
+To preview the production build instead, serve `tmp/dist/` with the same headers
 (`node serve.mjs`, see README).
