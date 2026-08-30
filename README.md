@@ -24,7 +24,7 @@ mask test               # fmt + clippy + native unit tests (core logic)
 mask serve              # dev server with the COOP/COEP headers the OPFS VFS needs
 ```
 
-Preview the production build: `mask build && mask serve-dist` (serves `dist/`
+Preview the production build: `mask build && mask serve dist` (serves `dist/`
 with the same headers via hugo.toml's `[server.headers]`). CI runs the unit
 gates plus the Playwright smoke suite (integration-tests/, which points at a
 running app via `ARICMA_TODO_APP_URL`).
