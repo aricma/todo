@@ -40,9 +40,26 @@ cargo test --lib
 trunk serve ${port:+--port "$port"}
 ```
 
+## serve-dist
+
+> Preview the production build: serves `tmp/dist/` with the COOP/COEP headers
+> the sqlite-wasm OPFS VFS needs (hugo.toml `[server.headers]`, same ones
+> `trunk serve` sends). Used locally and by CI.
+
+**OPTIONS**
+
+- port
+  - flags: --port
+  - type: string
+  - desc: Port to serve on (default 8080)
+
+```bash
+hugo server --port ${port:-8080} --bind 127.0.0.1
+```
+
 For the end-to-end smoke suite, keep this running and point it at the app
 from `../integration-tests` with
 `ARICMA_TODO_APP_URL=http://127.0.0.1:8080 mask test aricma-todo`.
 
 To preview the production build instead, serve `tmp/dist/` with the same headers
-(`node serve.mjs`, see README).
+(`mask serve-dist`, see README).
