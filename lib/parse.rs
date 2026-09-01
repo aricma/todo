@@ -179,6 +179,72 @@ pub fn task_to_line(t: &crate::model::Task) -> String {
     parts.join(" ")
 }
 
+// ── Parsed → Task (MVP.md §5.1: the string pipeline's second half) ────────
+
+/// The one wasm-touching step in the Parsed → Task pipeline: a local
+/// calendar date (+ optional explicit time) → UTC ISO instant. Injected so
+/// everything else is host-testable; the app passes `js_time::to_utc_iso`
+/// (js_sys date math), tests pass a stub.
+pub fn apply_parsed(
+    t: &mut crate::model::Task,
+    p: &Parsed,
+    now: &str,
+    to_utc_iso: &impl Fn(time::Date, Option<(u8, u8)>) -> String,
+) {
+    t.title = p.title.clone();
+    t.tags = p.tags.clone();
+    t.location = p.location.clone();
+    t.priority = p.priority.clone();
+    t.recurrence = p.recurrence.clone();
+    t.due_local = p.due.map(|d| d.to_string());
+    // due_date carries the explicit time when one was picked; otherwise the
+    // local-midnight sentinel. metadata.due_time mirrors the explicit time so
+    // "no time" and "00:00" stay distinguishable and the line round-trips.
+    t.due_date = match (p.due, p.time) {
+        (Some(d), Some((h, m))) => Some(to_utc_iso(d, Some((h, m)))),
+        (Some(d), None) => Some(to_utc_iso(d, None)),
+        _ => None,
+    };
+    match p.time {
+        Some((h, m)) => {
+            t.metadata["due_time"] = serde_json::json!(format!("{h:02}:{m:02}"));
+        }
+        None => {
+            if let Some(o) = t.metadata.as_object_mut() {
+                o.remove("due_time");
+            }
+        }
+    }
+    t.updated_at = now.to_string();
+}
+
+/// Build a fresh task from a parsed line (quick-add submit).
+pub fn task_from_parsed(
+    p: &Parsed,
+    now: &str,
+    to_utc_iso: &impl Fn(time::Date, Option<(u8, u8)>) -> String,
+) -> crate::model::Task {
+    let mut t = crate::model::Task {
+        id: crate::model::new_id(),
+        title: String::new(),
+        status: crate::model::Status::Open,
+        notes: None,
+        parent_id: None,
+        created_at: now.to_string(),
+        updated_at: now.to_string(),
+        completed_at: None,
+        due_date: None,
+        due_local: None,
+        priority: None,
+        location: None,
+        tags: Vec::new(),
+        recurrence: None,
+        metadata: serde_json::json!({}),
+    };
+    apply_parsed(&mut t, p, now, to_utc_iso);
+    t
+}
+
 /// Relative due-date chip label (MVP.md §5.5): today/tomorrow/weekday
 /// within a week, else `Mon Mar 14` (weekday included so far-out dates
 /// are readable in Upcoming).
@@ -996,5 +1062,92 @@ mod tests {
             .iter()
             .any(|s| s.kind == TokenKind::Tag && text(s) == "#ops"));
         assert_eq!(p.due.map(|d| d.to_string()).as_deref(), Some("2026-09-01"));
+    }
+
+    /// Deterministic UTC-ISO converter for host tests (the app injects
+    /// js_time::to_utc_iso; the real one is js_sys date math).
+    fn stub_to_utc_iso(d: Date, tm: Option<(u8, u8)>) -> String {
+        match tm {
+            Some((h, m)) => format!("{d}T{h:02}:{m:02}:00.000Z"),
+            None => format!("{d}T00:00:00.000Z"),
+        }
+    }
+
+    fn base_task() -> crate::model::Task {
+        crate::model::Task {
+            id: "x".into(),
+            title: "old".into(),
+            status: crate::model::Status::Open,
+            notes: None,
+            parent_id: None,
+            created_at: "2026-03-13T08:00:00.000Z".into(),
+            updated_at: "2026-03-13T08:00:00.000Z".into(),
+            completed_at: None,
+            due_date: None,
+            due_local: None,
+            priority: None,
+            location: None,
+            tags: Vec::new(),
+            recurrence: None,
+            metadata: serde_json::json!({ "keep": 1 }),
+        }
+    }
+
+    #[test]
+    fn apply_parsed_replaces_task_fields() {
+        let p = parse("Buy milk #errands @shop !high tomorrow", today());
+        let mut t = base_task();
+        apply_parsed(&mut t, &p, "2026-03-13T10:00:00.000Z", &stub_to_utc_iso);
+        assert_eq!(t.title, "Buy milk");
+        assert_eq!(t.tags, vec!["errands"]);
+        assert_eq!(t.location.as_deref(), Some("shop"));
+        assert_eq!(t.priority.as_deref(), Some("high"));
+        assert_eq!(t.due_local.as_deref(), Some("2026-03-14"));
+        assert_eq!(t.due_date.as_deref(), Some("2026-03-14T00:00:00.000Z"));
+        assert_eq!(t.updated_at, "2026-03-13T10:00:00.000Z");
+        // Unknown metadata rides along (OPS escape hatch).
+        assert_eq!(t.metadata["keep"], 1);
+    }
+
+    #[test]
+    fn apply_parsed_writes_and_clears_due_time() {
+        let p = parse("Ship it at 14:30 tomorrow", today());
+        let mut t = base_task();
+        apply_parsed(&mut t, &p, "now", &stub_to_utc_iso);
+        assert_eq!(t.due_date.as_deref(), Some("2026-03-14T14:30:00.000Z"));
+        assert_eq!(t.metadata["due_time"], "14:30");
+
+        // Removing the time token clears the metadata key and the sentinel.
+        let p = parse("Ship it tomorrow", today());
+        apply_parsed(&mut t, &p, "now", &stub_to_utc_iso);
+        assert!(t.metadata.get("due_time").is_none());
+        assert_eq!(t.due_date.as_deref(), Some("2026-03-14T00:00:00.000Z"));
+    }
+
+    #[test]
+    fn apply_parsed_without_due_clears_due() {
+        let p = parse("Just a title", today());
+        let mut t = base_task();
+        t.due_local = Some("2026-03-14".into());
+        t.due_date = Some("2026-03-14T00:00:00.000Z".into());
+        t.metadata["due_time"] = serde_json::json!("14:30");
+        apply_parsed(&mut t, &p, "now", &stub_to_utc_iso);
+        assert_eq!(t.due_local, None);
+        assert_eq!(t.due_date, None);
+        assert!(t.metadata.get("due_time").is_none());
+    }
+
+    #[test]
+    fn task_from_parsed_builds_fresh_task() {
+        let p = parse("New task #work tomorrow", today());
+        let t = task_from_parsed(&p, "2026-03-13T10:00:00.000Z", &stub_to_utc_iso);
+        assert!(!t.id.is_empty());
+        assert_eq!(t.status, crate::model::Status::Open);
+        assert_eq!(t.title, "New task");
+        assert_eq!(t.tags, vec!["work"]);
+        assert_eq!(t.created_at, "2026-03-13T10:00:00.000Z");
+        assert_eq!(t.updated_at, "2026-03-13T10:00:00.000Z");
+        assert_eq!(t.completed_at, None);
+        assert_eq!(t.due_local.as_deref(), Some("2026-03-14"));
     }
 }
