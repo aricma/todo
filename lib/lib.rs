@@ -2,6 +2,7 @@
 //! Everything browser-touching and presentational lives in the bin
 //! (app/main.rs) behind the wasm-only deps — see ADR-0009.
 
+pub mod datepicker;
 pub mod dates;
 pub mod model;
 pub mod ops;
