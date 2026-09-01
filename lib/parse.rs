@@ -357,6 +357,37 @@ pub fn parse_hhmm(t: &str) -> Option<(u8, u8)> {
     (h <= 23 && m <= 59).then_some((h, m))
 }
 
+/// Byte offsets of every non-overlapping case-insensitive occurrence of
+/// `needle` in `haystack` (inbox search highlighting). Empty needle → no
+/// matches. Offsets are byte ranges into the original string (char-indexed,
+/// so Unicode input stays sliceable).
+pub fn match_spans(haystack: &str, needle: &str) -> Vec<(usize, usize)> {
+    if needle.is_empty() {
+        return vec![];
+    }
+    let hay_chars: Vec<(usize, char)> = haystack.char_indices().collect();
+    let hay_lower: Vec<char> = haystack.to_lowercase().chars().collect();
+    let needle_lower: Vec<char> = needle.to_lowercase().chars().collect();
+    // A count-changing fold (e.g. İ U+0130 → two chars) desyncs hay_chars from
+    // hay_lower — skip highlighting rather than risk a wrong offset or a panic.
+    if hay_lower.len() != hay_chars.len() || needle_lower.len() > hay_lower.len() {
+        return vec![];
+    }
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i + needle_lower.len() <= hay_lower.len() {
+        if hay_lower[i..i + needle_lower.len()] == needle_lower[..] {
+            let (start_byte, _) = hay_chars[i];
+            let (end_byte, last_char) = hay_chars[i + needle_lower.len() - 1];
+            out.push((start_byte, end_byte + last_char.len_utf8()));
+            i += needle_lower.len();
+        } else {
+            i += 1;
+        }
+    }
+    out
+}
+
 pub fn parse(line: &str, today: Date) -> Parsed {
     let mut out = Parsed::default();
     let toks: Vec<&str> = line.split_whitespace().collect();
@@ -1149,5 +1180,40 @@ mod tests {
         assert_eq!(t.updated_at, "2026-03-13T10:00:00.000Z");
         assert_eq!(t.completed_at, None);
         assert_eq!(t.due_local.as_deref(), Some("2026-03-14"));
+    }
+
+    #[test]
+    fn match_spans_finds_case_insensitive_occurrences() {
+        assert_eq!(
+            match_spans("Buy MILK and milk", "milk"),
+            vec![(4, 8), (13, 17)]
+        );
+    }
+
+    #[test]
+    fn match_spans_empty_needle_or_no_match_is_empty() {
+        assert!(match_spans("anything", "").is_empty());
+        assert!(match_spans("Buy milk", "cheese").is_empty());
+    }
+
+    #[test]
+    fn match_spans_adjacent_occurrences_do_not_overlap() {
+        // Non-overlapping: the second "aa" is skipped ("aaa").
+        assert_eq!(match_spans("aaa", "aa"), vec![(0, 2)]);
+    }
+
+    #[test]
+    fn match_spans_offsets_are_byte_ranges_on_char_boundaries() {
+        // é is 2 UTF-8 bytes; the offsets slice the original string cleanly.
+        assert_eq!(match_spans("Café café", "café"), vec![(0, 5), (6, 11)]);
+        assert_eq!(&"Café café"[0..5], "Café");
+    }
+
+    #[test]
+    fn match_spans_count_changing_fold_is_skipped() {
+        // İ (U+0130) lowercases to two chars — a count-changing fold. Skipping
+        // (empty result) beats a panic or a wrong byte offset.
+        assert!(match_spans("İstanbul", "stanbul").is_empty());
+        assert!(match_spans("İ", "İ").is_empty());
     }
 }
