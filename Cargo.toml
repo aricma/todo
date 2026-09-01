@@ -6,11 +6,11 @@ description = "Local-first todo SPA: Rust + Leptos wasm, SQLite on OPFS, OPS dat
 
 [lib]
 name = "aricma_todo"
-path = "src/lib.rs"
+path = "lib/lib.rs"
 
 [[bin]]
 name = "aricma-todo"
-path = "src/main.rs"
+path = "app/main.rs"
 
 [dependencies]
 leptos = { version = "0.7", features = ["csr"] }
@@ -18,8 +18,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 time = { version = "0.3", default-features = false, features = ["std", "formatting"] }
 
-# The bin (src/main.rs) is wasm-only: it links sqlite-wasm + web-sys and is
-# built by trunk. The lib (src/lib.rs) is pure and testable via cargo test.
+# The bin (app/main.rs) is wasm-only: it links sqlite-wasm + web-sys and
+# is built by trunk. The lib (lib/lib.rs) is pure logic and testable via cargo test.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 sqlite-wasm = "0.1.4"
 wasm-bindgen = "0.2"
