@@ -27,7 +27,10 @@ cargo test --lib
 ## serve
 
 > Start the dev server (auto-rebuilds on change). Sends the COOP/COEP
-> headers the sqlite-wasm OPFS VFS needs via Trunk.toml.
+> headers the sqlite-wasm OPFS VFS needs via Trunk.toml. Pass
+> `--no-hot-reload` to freeze the served page at the last good build
+> while trunk keeps compiling in the background — e.g. while an agent is
+> editing the code, so its work never breaks your open session.
 
 **OPTIONS**
 
@@ -35,9 +38,12 @@ cargo test --lib
   - flags: --port
   - type: string
   - desc: Port to serve on (default 8080)
+- no_hot_reload
+  - flags: --no-hot-reload
+  - desc: Disable browser hot reload and the error overlay; the page keeps the last good build until you restart the server
 
 ```bash
-trunk serve ${port:+--port "$port"}
+trunk serve ${port:+--port "$port"} ${no_hot_reload:+--no-autoreload --no-error-reporting}
 ```
 
 ### dist
