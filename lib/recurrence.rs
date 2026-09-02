@@ -76,15 +76,15 @@ pub fn recurring_id_of(t: &Task) -> Option<String> {
 pub fn instance_seq_of(t: &Task) -> u32 {
     t.metadata
         .get(INSTANCE_SEQ)
-        .and_then(|v| v.as_str())
-        .and_then(|s| s.parse().ok())
+        .and_then(|v| v.as_u64())
+        .map(|n| n as u32)
         .unwrap_or(0)
 }
 
 pub fn stamp(t: &mut Task, id: &str, seq: u32) {
     if let Some(o) = t.metadata.as_object_mut() {
         o.insert(RECURRING_ID.into(), serde_json::json!(id));
-        o.insert(INSTANCE_SEQ.into(), serde_json::json!(seq.to_string()));
+        o.insert(INSTANCE_SEQ.into(), serde_json::json!(seq));
     }
 }
 
@@ -96,8 +96,8 @@ pub fn stamp(t: &mut Task, id: &str, seq: u32) {
 /// the open instance (title, recurrence, …) affect it and every future
 /// spawn, never the done rows behind it. The chain id is minted here when
 /// the row has none. Returns (done_instance, spawned_next); next is None
-/// only for a non-recurring task (defensive — the caller contract is a
-/// recurring one).
+/// for a non-recurring task or when no next occurrence is computable —
+/// both defensive, unreachable from the recurring-task caller contract.
 pub fn complete_occurrence(
     task: &Task,
     completed_at: &str,
@@ -253,10 +253,6 @@ mod tests {
 
     // ── instance chains (ADR-0013) ────────────────────────────────────────
 
-    fn chain_d(y: i32, m: time::Month, day: u8) -> Date {
-        Date::from_calendar_date(y, m, day).unwrap()
-    }
-
     fn stub_to_utc_iso(d: Date, tm: Option<(u8, u8)>) -> String {
         match tm {
             Some((h, m)) => format!("{d}T{h:02}:{m:02}:00.000Z"),
@@ -305,7 +301,7 @@ mod tests {
         let (done, next) = complete_occurrence(
             &t,
             "2026-09-02T09:05:00.000Z",
-            chain_d(2026, time::Month::September, 2),
+            d(2026, time::Month::September, 2),
             &stub_to_utc_iso,
         );
         let next = next.expect("recurring task spawns");
@@ -347,7 +343,7 @@ mod tests {
         let (done, next) = complete_occurrence(
             &t,
             "2026-09-09T09:05:00.000Z",
-            chain_d(2026, time::Month::September, 9),
+            d(2026, time::Month::September, 9),
             &stub_to_utc_iso,
         );
         assert_eq!(recurring_id_of(&done).as_deref(), Some("chain-7"));
@@ -365,11 +361,27 @@ mod tests {
         let (done, next) = complete_occurrence(
             &t,
             "2026-09-02T09:05:00.000Z",
-            chain_d(2026, time::Month::September, 2),
+            d(2026, time::Month::September, 2),
             &stub_to_utc_iso,
         );
         assert_eq!(done.status, Status::Done);
         // weekly → today + 7 (MVP §6 start rule).
         assert_eq!(next.unwrap().due_local.as_deref(), Some("2026-09-09"));
+    }
+    #[test]
+    fn spawn_without_due_time_defaults_to_midnight() {
+        let mut t = chain_task();
+        if let Some(o) = t.metadata.as_object_mut() {
+            o.remove("due_time");
+        }
+        let (done, next) = complete_occurrence(
+            &t,
+            "2026-09-02T09:05:00.000Z",
+            d(2026, time::Month::September, 2),
+            &stub_to_utc_iso,
+        );
+        assert_eq!(done.status, Status::Done);
+        let next = next.expect("recurring task spawns");
+        assert_eq!(next.due_date.as_deref(), Some("2026-09-09T00:00:00.000Z"));
     }
 }
