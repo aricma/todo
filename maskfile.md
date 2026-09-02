@@ -31,6 +31,14 @@ cargo test --lib
 > `--no-hot-reload` to freeze the served page at the last good build
 > while trunk keeps compiling in the background — e.g. while an agent is
 > editing the code, so its work never breaks your open session.
+>
+> Build isolation: each serve compiles into its own per-port dirs
+> (`tmp/serve-target-<port>` for cargo, `tmp/serve-dist-<port>` for the
+> served site), so concurrent servers — other agents, other ports — never
+> clobber each other's builds. The shared `target/` + `tmp/dist/` stay
+> reserved for `mask build`. Restart a server to move it to a new port's
+> dirs; point `--target-dir` at a custom cargo cache to reuse one across
+> ports.
 
 **OPTIONS**
 
@@ -41,9 +49,17 @@ cargo test --lib
 - no_hot_reload
   - flags: --no-hot-reload
   - desc: Disable browser hot reload and the error overlay; the page keeps the last good build until you restart the server
+- target_dir
+  - flags: --target-dir
+  - type: string
+  - desc: Cargo target directory for this server (default: tmp/serve-target-<port>) — isolate concurrent builds per port, or point at one dir to reuse a warm cache across ports
 
 ```bash
-trunk serve ${port:+--port "$port"} ${no_hot_reload:+--no-autoreload --no-error-reporting}
+port="${port:-8080}"
+target_dir="${target_dir:-$MASKFILE_DIR/tmp/serve-target-$port}"
+export CARGO_TARGET_DIR="$target_dir"
+trunk serve --port "$port" --dist "$MASKFILE_DIR/tmp/serve-dist-$port" \
+  ${no_hot_reload:+--no-autoreload --no-error-reporting}
 ```
 
 ### dist
