@@ -5,7 +5,7 @@
 use time::{Date, Duration};
 
 use crate::model::{Freq, Recurrence, WeekdayName};
-use crate::recurrence::{add_months_clamped, next_weekday};
+use crate::recurrence::{next_weekday, start_from_recurrence};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Parsed {
@@ -113,21 +113,6 @@ fn parse_every(toks: &[&str]) -> Option<(Recurrence, usize)> {
         ));
     }
     None
-}
-
-/// First occurrence from today when no explicit due token (MVP.md §6):
-/// weekday sets → next day in the set after today, otherwise today + interval.
-fn start_from_recurrence(today: Date, r: &Recurrence) -> Option<Date> {
-    let interval = r.interval.max(1);
-    match r.freq {
-        Freq::Daily => Some(today + Duration::days(interval as i64)),
-        Freq::Weekly => match &r.weekdays {
-            Some(days) => next_weekday(today, &days.iter().map(|d| d.time()).collect::<Vec<_>>()),
-            None => Some(today + Duration::days(7 * interval as i64)),
-        },
-        Freq::Monthly => add_months_clamped(today, interval),
-        Freq::Yearly => add_months_clamped(today, 12 * interval),
-    }
 }
 
 fn push_title(out: &mut Parsed, t: &str) {
