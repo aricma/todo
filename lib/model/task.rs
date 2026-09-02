@@ -90,7 +90,7 @@ pub struct Task {
 /// Reschedule: move this instance's due date (postpone). Touches only the
 /// due fields — recurrence is never read or written, so the schedule
 /// (freq/interval/weekdays) stays intact; only this instance moves
-/// (ADR-0006 rolls the next occurrence forward from the new due date).
+/// (ADR-0013 spawns the next occurrence from the new due date).
 /// Mirrors apply_parsed's injected tz seam so it is host-testable; the app
 /// passes js_time::to_utc_iso.
 impl Task {
