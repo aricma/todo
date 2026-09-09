@@ -35,4 +35,4 @@ web-sys = { version = "0.3", features = [
 serde-wasm-bindgen = "0.6"
 console_error_panic_hook = "0.1"
 wasm-bindgen-futures = "0.4"
-aricma-ui-leptos = { path = "../aricma-ui/leptos" }
+aricma-ui-leptos = { path = "../aricma-ui-leptos" }
