@@ -2,32 +2,33 @@
 //! plus the transition actions. The db round-trips stay in the app bin
 //! (db::open_flow); this module turns their results into the next state, so
 //! the machine is testable away from the UI (states-module inbox todo).
+//!
+//! There is one source at a fixed path (`app/constants.rs`), so no path is
+//! carried in the state: what varies is whether the local store exists yet — a
+//! fresh browser, or one whose data the user just deleted, starts at the start
+//! screen; otherwise the app opens the store it already has.
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppState {
     Booting,
+    /// The start screen: the providers to choose from, and the reason the
+    /// previous open failed when there was one.
     SourceSelect {
-        cached: Option<String>,
         warning: Option<String>,
     },
-    Opening {
-        path: String,
-    },
-    Ready {
-        path: String,
-    },
+    Opening,
+    Ready,
     Error(String),
 }
 
 impl AppState {
-    /// Booting → Opening (cached source) or SourceSelect (fresh browser).
-    pub fn boot(cached: Option<String>) -> AppState {
-        match cached {
-            Some(path) => AppState::Opening { path },
-            None => AppState::SourceSelect {
-                cached: None,
-                warning: None,
-            },
+    /// Booting → Opening (the source exists) or the start screen (it does not:
+    /// a fresh browser, or the data was deleted).
+    pub fn boot(source_exists: bool) -> AppState {
+        if source_exists {
+            AppState::Opening
+        } else {
+            AppState::SourceSelect { warning: None }
         }
     }
 
@@ -35,17 +36,20 @@ impl AppState {
     /// nothing to retry); back to SourceSelect with a warning for
     /// source-open/migration failures (the source may have been wiped).
     pub fn opening_finished(self, result: Result<(), String>) -> AppState {
-        let AppState::Opening { path } = self else {
+        let AppState::Opening = self else {
             return self; // not in Opening — no transition
         };
         match result {
-            Ok(()) => AppState::Ready { path },
+            Ok(()) => AppState::Ready,
             Err(e) if is_fatal_open_error(&e) => AppState::Error(e),
-            Err(e) => AppState::SourceSelect {
-                cached: Some(path),
-                warning: Some(e),
-            },
+            Err(e) => AppState::SourceSelect { warning: Some(e) },
         }
+    }
+
+    /// Ready → the start screen (the user asked for the data source, or
+    /// deleted the data).
+    pub fn source_select() -> AppState {
+        AppState::SourceSelect { warning: None }
     }
 }
 
@@ -61,59 +65,36 @@ mod tests {
     use super::*;
 
     #[test]
-    fn boot_with_cached_source_opens_it() {
-        assert_eq!(
-            AppState::boot(Some("work/todos.db".into())),
-            AppState::Opening {
-                path: "work/todos.db".into()
-            }
-        );
+    fn boot_with_an_existing_source_opens_it() {
+        assert_eq!(AppState::boot(true), AppState::Opening);
     }
 
     #[test]
-    fn boot_without_cache_shows_source_select() {
+    fn boot_without_a_source_shows_the_start_screen() {
         assert_eq!(
-            AppState::boot(None),
-            AppState::SourceSelect {
-                cached: None,
-                warning: None
-            }
+            AppState::boot(false),
+            AppState::SourceSelect { warning: None }
         );
     }
 
     #[test]
     fn opening_success_reaches_ready() {
-        let s = AppState::Opening {
-            path: "a/todos.db".into(),
-        };
-        assert_eq!(
-            s.opening_finished(Ok(())),
-            AppState::Ready {
-                path: "a/todos.db".into()
-            }
-        );
+        assert_eq!(AppState::Opening.opening_finished(Ok(())), AppState::Ready);
     }
 
     #[test]
     fn opening_sqlite_init_failure_is_fatal() {
-        let s = AppState::Opening {
-            path: "a/todos.db".into(),
-        };
         assert_eq!(
-            s.opening_finished(Err("sqlite init failed: worker timeout".into())),
+            AppState::Opening.opening_finished(Err("sqlite init failed: worker timeout".into())),
             AppState::Error("sqlite init failed: worker timeout".into())
         );
     }
 
     #[test]
     fn opening_source_failure_returns_to_select_with_warning() {
-        let s = AppState::Opening {
-            path: "a/todos.db".into(),
-        };
         assert_eq!(
-            s.opening_finished(Err("open failed: no such file".into())),
+            AppState::Opening.opening_finished(Err("open failed: no such file".into())),
             AppState::SourceSelect {
-                cached: Some("a/todos.db".into()),
                 warning: Some("open failed: no such file".into()),
             }
         );
@@ -125,6 +106,14 @@ mod tests {
             AppState::Booting.opening_finished(Ok(())),
             AppState::Booting
         );
+        assert_eq!(AppState::Ready.opening_finished(Ok(())), AppState::Ready);
+    }
+
+    /// Deleting the data lands on the start screen, which is also where a
+    /// fresh browser starts — one screen, both entries.
+    #[test]
+    fn the_start_screen_is_reachable_from_ready_and_from_boot() {
+        assert_eq!(AppState::source_select(), AppState::boot(false));
     }
 
     #[test]
