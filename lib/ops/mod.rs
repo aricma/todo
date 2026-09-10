@@ -47,12 +47,28 @@ pub struct OpsTask {
     pub metadata: Map<String, Value>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq, Eq)]
 pub struct ImportResult {
     pub imported: usize,
     pub updated: usize,
     pub skipped: usize,
     pub errors: Vec<String>,
+}
+
+impl ImportResult {
+    /// The one-line report the app shows: what the file became in the store.
+    pub fn summary(&self) -> String {
+        format!(
+            "imported {}, updated {}, skipped {}",
+            self.imported, self.updated, self.skipped
+        )
+    }
+
+    /// Whether the file brought nothing at all — an empty or all-duplicate
+    /// document, which is worth saying out loud but is not a failure.
+    pub fn is_empty(&self) -> bool {
+        self.imported == 0 && self.updated == 0
+    }
 }
 
 /// OPS rule 5: keys must match `^[a-z0-9_]{3,}$`. Shared by the JSON
@@ -189,4 +205,32 @@ pub(crate) fn fixture_task() -> Task {
         doc.tasks.into_iter().next().unwrap(),
         "2026-03-13T10:00:00.000Z",
     )
+}
+
+#[cfg(test)]
+mod import_result_tests {
+    use super::ImportResult;
+
+    /// The app shows this line verbatim, and reads `is_empty` to decide
+    /// between "imported" and "nothing was in that file".
+    #[test]
+    fn the_summary_counts_what_the_import_did() {
+        let result = ImportResult {
+            imported: 3,
+            updated: 1,
+            skipped: 0,
+            errors: Vec::new(),
+        };
+        assert_eq!(result.summary(), "imported 3, updated 1, skipped 0");
+        assert!(!result.is_empty());
+
+        assert!(ImportResult::default().is_empty());
+        // An update-only import still changed the store.
+        assert!(!ImportResult {
+            imported: 0,
+            updated: 2,
+            ..Default::default()
+        }
+        .is_empty());
+    }
 }
