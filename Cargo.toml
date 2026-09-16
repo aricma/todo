@@ -29,6 +29,7 @@ web-sys = { version = "0.3", features = [
   "Storage", "Window", "Document", "Navigator", "Crypto", "Element", "Event",
   "EventTarget", "HtmlElement", "KeyboardEvent", "Location", "FileList", "VisibilityState", "MediaQueryList",
   "Node", "NodeList", "Text", "Range", "Selection", "InputEvent", "HtmlDivElement",
+  "History", "CustomEvent", "PopStateEvent", "MouseEvent",
   "FileSystemRemoveOptions",
   "FileSystemDirectoryHandle", "FileSystemFileHandle", "FileSystemHandle", "FileSystemGetFileOptions"
 ] }
