@@ -1,7 +1,8 @@
 # Aricma Todo Actions
 
 This mask file documents the actions you can run in `aricma-todo/`. Install
-`mask` first (see the root repo README for the workflow).
+`mask` first (see the root repo README for the workflow), and follow the
+repo-wide command standard in `../DOCS/maskfile-spec.md`.
 
 ## build
 
@@ -13,23 +14,30 @@ This mask file documents the actions you can run in `aricma-todo/`. Install
 trunk build --release
 ```
 
-## test
+## lint
 
-> Run the native unit tests for the wasm-free core, plus the same
-> fmt/clippy gates CI enforces.
+> Run the static gates CI enforces on the core: rustfmt check, then clippy on
+> the wasm32 target the app compiles for.
 
 ```bash
 cargo fmt --check
 cargo clippy --target wasm32-unknown-unknown -- -D warnings
+```
+
+## test
+
+> Run the native unit tests for the wasm-free core.
+
+```bash
 cargo test --lib
 ```
 
-## serve
+## preview
 
-> Start the dev server (auto-rebuilds on change). Sends the COOP/COEP
+> Serve the app locally (dev server, auto-rebuilds on change). Sends the COOP/COEP
 > headers the sqlite-wasm OPFS VFS needs via Trunk.toml.
 >
-> Build isolation: each serve compiles into its own per-port dirs
+> Build isolation: each preview run compiles into its own per-port dirs
 > (`tmp/serve-target-<port>` for cargo, `tmp/serve-dist-<port>` for the
 > served site), so concurrent servers — other agents, other ports — never
 > clobber each other's builds. The shared `target/` + `tmp/dist/` stay
@@ -75,3 +83,14 @@ hugo server --port ${port:-8080} --bind 127.0.0.1
 For the end-to-end smoke suite, keep this running and point it at the app
 from `../integration-tests` with
 `ARICMA_TODO_APP_URL=http://127.0.0.1:8080 mask test aricma-todo`.
+
+## ci
+
+> Run the project's CI gate: lint, unit tests, then the release build.
+
+```bash
+set -euo pipefail
+$MASK lint
+$MASK test
+$MASK build
+```
