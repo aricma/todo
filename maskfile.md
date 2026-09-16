@@ -12,6 +12,11 @@ repo-wide command standard in `../DOCS/maskfile-spec.md`.
 ```bash
 ./build-css.sh
 trunk build --release
+# Path routing (ADR-0014) needs a fallback for deep links: a request for
+# /today must still boot the app. `trunk serve` falls back to index.html on its
+# own; hugo (preview and CI) serves 404.html, so ship one. A real host needs the
+# same rule — rewrite unknown paths to /index.html with a 200.
+cp tmp/dist/index.html tmp/dist/404.html
 ```
 
 ## lint
