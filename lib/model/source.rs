@@ -38,14 +38,29 @@ pub enum Provider {
 }
 
 impl Provider {
+    /// The provider opened when nothing (or garbage) is stored: a fresh
+    /// browser starts local, and the user opts into anything else explicitly.
+    pub const DEFAULT: Provider = Provider::Opfs;
+
     /// Every provider, in display order.
     pub const ALL: [Provider; 2] = [Provider::Opfs, Provider::GoogleDrive];
 
-    /// Stable id — the radio group's value, and the group's identity.
+    /// Stable id — the radio group's value, the stored preference and the
+    /// group's identity. The technical identity, not the label.
     pub fn id(self) -> &'static str {
         match self {
             Provider::Opfs => "opfs",
             Provider::GoogleDrive => "google-drive",
+        }
+    }
+
+    /// Stored value → provider. Unknown values are `None`: the caller falls
+    /// back to [`DEFAULT`] rather than guessing.
+    pub fn from_id(id: &str) -> Option<Provider> {
+        match id {
+            "opfs" => Some(Provider::Opfs),
+            "google-drive" => Some(Provider::GoogleDrive),
+            _ => None,
         }
     }
 
@@ -94,13 +109,6 @@ impl Provider {
             Provider::GoogleDrive => None,
         }
     }
-
-    /// The selectable provider — what the app opens today. The panel starts
-    /// its radio group here; when a second provider is enabled this becomes
-    /// the stored choice instead.
-    pub fn selected() -> Provider {
-        Provider::Opfs
-    }
 }
 
 #[cfg(test)]
@@ -117,7 +125,18 @@ mod tests {
             .filter(|p| p.availability() == Availability::Enabled)
             .count();
         assert_eq!(enabled, 1);
-        assert_eq!(Provider::selected().availability(), Availability::Enabled);
+        assert_eq!(Provider::DEFAULT.availability(), Availability::Enabled);
+    }
+
+    /// The stored preference round-trips; unknown/garbage values fall back to
+    /// the default instead of leaving the app with no provider.
+    #[test]
+    fn provider_id_round_trips_and_falls_back() {
+        for p in Provider::ALL {
+            assert_eq!(Provider::from_id(p.id()), Some(p));
+        }
+        assert_eq!(Provider::from_id("dropbox"), None);
+        assert_eq!(Provider::from_id(""), None);
     }
 
     /// Ids are the radio group's values and its `name` — duplicates would
