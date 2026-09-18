@@ -10,5 +10,8 @@ pub mod task;
 
 pub use capacity::{check_capacity, CapacityError};
 pub use message::Message;
-pub use storage::{enabled, Availability, Storage};
+pub use storage::{
+    enabled, messages, Availability, FieldKind, Storage, StorageContext, StorageField,
+    StorageMessage,
+};
 pub use task::{new_id, Freq, Recurrence, Status, Task, WeekdayName};
