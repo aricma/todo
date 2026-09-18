@@ -49,7 +49,7 @@ impl Provider {
 
     pub fn label(self) -> &'static str {
         match self {
-            Provider::Opfs => "OPFS",
+            Provider::Opfs => "Browser",
             Provider::GoogleDrive => "Google Drive",
         }
     }
@@ -72,6 +72,22 @@ impl Provider {
         match self {
             Provider::Opfs => Availability::Enabled,
             Provider::GoogleDrive => Availability::Locked,
+        }
+    }
+
+    /// A durability warning shown with the provider, or `None` when there is
+    /// nothing to warn about. The one place the caveat is written, so the
+    /// tile, the start screen and Settings cannot disagree. Generic on
+    /// purpose: more providers are coming, so it points at "a different data
+    /// source", never at one by name.
+    pub fn caveat(self) -> Option<&'static str> {
+        match self {
+            Provider::Opfs => Some(
+                "This browser can clear its storage at any time — clearing site data, \
+                 an incognito window or a new device starts empty. Choose a different \
+                 data source if you want the todos to last.",
+            ),
+            Provider::GoogleDrive => None,
         }
     }
 
@@ -102,6 +118,29 @@ mod tests {
 
     /// Ids are the radio group's values and its `name` — duplicates would
     /// make two tiles one option.
+    /// The user-facing name is Browser while the technical variant/key stay
+    /// Opfs — the storage engine is the developer's word, and localStorage or
+    /// IndexedDB would be Browser to the user too.
+    #[test]
+    fn the_local_provider_is_called_browser() {
+        assert_eq!(Provider::Opfs.label(), "Browser");
+        assert_eq!(Provider::Opfs.id(), "opfs");
+    }
+
+    /// Only the browser-backed provider warns that its storage is not
+    /// durable; the durable option must not carry the warning.
+    #[test]
+    fn only_the_browser_provider_warns_about_cleared_storage() {
+        let caveat = Provider::Opfs.caveat().expect("Browser caveat");
+        assert!(caveat.contains("clear"), "{caveat}");
+        assert!(caveat.contains("data source"), "{caveat}");
+        assert!(
+            !caveat.contains("Google"),
+            "names a specific provider: {caveat}"
+        );
+        assert_eq!(Provider::GoogleDrive.caveat(), None);
+    }
+
     #[test]
     fn provider_ids_and_labels_are_unique() {
         let mut ids: Vec<&str> = Provider::ALL.iter().map(|p| p.id()).collect();
