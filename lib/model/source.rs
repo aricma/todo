@@ -17,6 +17,8 @@
 //! how the one that is implemented is configured (its rows), because those are
 //! markup rather than data.
 
+use super::message::Message;
+
 /// Whether a provider can be selected today.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Availability {
@@ -75,18 +77,20 @@ impl Provider {
         }
     }
 
-    /// A durability warning shown with the provider, or `None` when there is
-    /// nothing to warn about. The one place the caveat is written, so the
-    /// tile, the start screen and Settings cannot disagree. Generic on
-    /// purpose: more providers are coming, so it points at "a different data
-    /// source", never at one by name.
-    pub fn caveat(self) -> Option<&'static str> {
+    /// What the provider wants the user to know, or `None` when there is
+    /// nothing to say. The one place the words and the tone are written, so
+    /// the tile, the start screen and Settings cannot disagree — and data
+    /// rather than markup, so a view picks the frame. Generic on purpose: more
+    /// providers are coming, so it points at "a different data source", never
+    /// at one by name.
+    pub fn message(self) -> Option<Message> {
         match self {
-            Provider::Opfs => Some(
+            Provider::Opfs => Some(Message::warning(
+                "Storage can be cleared",
                 "This browser can clear its storage at any time — clearing site data, \
                  an incognito window or a new device starts empty. Choose a different \
                  data source if you want the todos to last.",
-            ),
+            )),
             Provider::GoogleDrive => None,
         }
     }
@@ -131,14 +135,16 @@ mod tests {
     /// durable; the durable option must not carry the warning.
     #[test]
     fn only_the_browser_provider_warns_about_cleared_storage() {
-        let caveat = Provider::Opfs.caveat().expect("Browser caveat");
-        assert!(caveat.contains("clear"), "{caveat}");
-        assert!(caveat.contains("data source"), "{caveat}");
+        let msg = Provider::Opfs.message().expect("Browser message");
+        assert!(matches!(msg, Message::Warning { .. }));
+        let text = msg.text();
+        assert!(text.contains("clear"), "{text}");
+        assert!(text.contains("data source"), "{text}");
         assert!(
-            !caveat.contains("Google"),
-            "names a specific provider: {caveat}"
+            !text.contains("Google"),
+            "names a specific provider: {text}"
         );
-        assert_eq!(Provider::GoogleDrive.caveat(), None);
+        assert_eq!(Provider::GoogleDrive.message(), None);
     }
 
     #[test]
