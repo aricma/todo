@@ -5,10 +5,10 @@
 
 pub mod capacity;
 pub mod message;
-pub mod source;
+pub mod storage;
 pub mod task;
 
 pub use capacity::{check_capacity, CapacityError};
 pub use message::Message;
-pub use source::{Availability, Provider};
+pub use storage::{enabled, Availability, Storage};
 pub use task::{new_id, Freq, Recurrence, Status, Task, WeekdayName};
