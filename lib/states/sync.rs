@@ -1,7 +1,11 @@
-//! Sync state over the local store (ADR-0015). Pure and wasm-free: the
-//! browser half (`app/side_effects/sync.rs`) calls these rules and reports
-//! their results. The only concurrency token is Drive's `version` field —
-//! Drive v3 does not honour `If-Match`, so an ETag is not an option.
+//! Sync state over the local store (ADR-0015, ADR-0016). Pure and wasm-free:
+//! the browser half (`app/side_effects/sync.rs`) calls these rules and reports
+//! their results.
+//!
+//! The concurrency token is per transport: Drive's `version` field (v3 does
+//! not honour `If-Match`, so an ETag is not an option there), and WebDAV/S3's
+//! `ETag` — which those transports send back as `If-Match`, making the check
+//! and the write one atomic request.
 
 /// What the sync layer is doing / waiting on. Rendered by the shell and the
 /// Settings → Data source card.
@@ -11,6 +15,10 @@ pub enum SyncState {
     Disabled,
     /// Drive is selected but this browser has never signed in.
     NeedsSignIn,
+    /// A self-hosted remote (WebDAV, S3) is selected and its configuration is
+    /// incomplete. Distinct from `NeedsSignIn`: there is no grant to wait for,
+    /// only fields to fill in.
+    NeedsConfig,
     /// Signed in, connecting: finding the folder and file.
     Connecting,
     Pulling,
@@ -55,6 +63,13 @@ pub fn can_skip_pull(last_version: Option<&str>, remote_version: &str, dirty: bo
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The two "not ready yet" states mean different things: one waits for a
+    /// grant, the other for the user to fill in fields.
+    #[test]
+    fn needs_config_is_not_needs_sign_in() {
+        assert_ne!(SyncState::NeedsConfig, SyncState::NeedsSignIn);
+    }
 
     #[test]
     fn matching_versions_push() {
