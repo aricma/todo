@@ -17,6 +17,10 @@ leptos = { version = "0.7", features = ["csr"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 time = { version = "0.3", default-features = false, features = ["std", "formatting"] }
+# SigV4 signing for the S3 transport (ADR-0016). RustCrypto, no_std-friendly:
+# they build for wasm32 like the rest of the lib.
+sha2 = "0.10"
+hmac = "0.12"
 
 # The bin (app/main.rs) is wasm-only: it links sqlite-wasm + web-sys and
 # is built by trunk. The lib (lib/lib.rs) is pure logic and testable via cargo test.
