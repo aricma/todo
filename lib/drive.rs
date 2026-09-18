@@ -9,11 +9,9 @@ pub const DRIVE_UPLOAD: &str = "https://www.googleapis.com/upload/drive/v3";
 pub const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
 pub const DB_MIME: &str = "application/x-sqlite3";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FileRef {
-    pub id: String,
-    pub version: Option<String>,
-}
+/// A Drive file is a remote file: the shape (id + version token) is shared
+/// with the other transports (ADR-0016), so there is one type, not three.
+pub use crate::remote::RemoteFile as FileRef;
 
 #[derive(serde::Deserialize)]
 struct FileList {
@@ -110,8 +108,12 @@ pub fn update_media_url(file_id: &str) -> String {
     format!("{DRIVE_UPLOAD}/files/{file_id}?uploadType=media&fields=id,version")
 }
 
+/// Metadata for the version guard. `id` is requested alongside `version`
+/// because the response is parsed as a `FileRef` — `?fields=version` alone
+/// returns `{"version":…}` and parsing it fails on the missing `id`, which
+/// made every push after the first one fail.
 pub fn metadata_url(file_id: &str) -> String {
-    format!("{DRIVE_API}/files/{file_id}?fields=version")
+    format!("{DRIVE_API}/files/{file_id}?fields=id,version")
 }
 
 pub fn download_url(file_id: &str) -> String {
@@ -233,6 +235,15 @@ mod tests {
         assert!(!url.contains(' '), "spaces must be encoded: {url}");
         let with = list_url(&db_query("f", "todos.db"), true);
         assert!(with.contains("fields=files(id,version)"), "{with}");
+    }
+
+    #[test]
+    fn the_metadata_url_requests_everything_parse_file_needs() {
+        let url = metadata_url("f1");
+        assert!(url.contains("fields=id,version"), "{url}");
+        // The shape that URL produces must parse as the FileRef callers expect.
+        let parsed = parse_file(br#"{"id":"f1","version":"7"}"#).expect("parses");
+        assert_eq!(required_version(&parsed).unwrap(), "7");
     }
 
     #[test]
