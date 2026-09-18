@@ -57,7 +57,9 @@ impl AppState {
 /// — the worker is unusable, nothing to retry. Matches db::init's error
 /// prefix (contract: db.rs keeps it stable).
 pub fn is_fatal_open_error(e: &str) -> bool {
-    e.starts_with("sqlite init failed")
+    // sqlite-wasm init is terminal, and so is a non-isolated page: no OPFS
+    // VFS can install there, so retrying the open is pointless.
+    e.starts_with("sqlite init failed") || e.starts_with("local storage unavailable")
 }
 
 #[cfg(test)]
@@ -119,6 +121,9 @@ mod tests {
     #[test]
     fn fatal_error_classification() {
         assert!(is_fatal_open_error("sqlite init failed: boom"));
+        assert!(is_fatal_open_error(
+            "local storage unavailable: not cross-origin isolated"
+        ));
         assert!(!is_fatal_open_error("open failed: nope"));
     }
 }
