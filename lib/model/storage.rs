@@ -75,9 +75,9 @@ impl Eq for StorageMessage {}
 /// What the app knows about the browser it is running in.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StorageContext {
-    /// Whether there is a persistent local store here (OPFS). False in a
-    /// private window, and in a browser without the sync access handle.
-    pub persistent: bool,
+    /// Whether the OPFS store is available here. False in a private window,
+    /// and in a browser without the sync access handle (Safari).
+    pub opfs_available: bool,
 }
 
 /// How a storage's configuration field is drawn and validated.
@@ -143,7 +143,7 @@ mod tests {
                 description: "On this machine.",
                 availability: Availability::Enabled,
                 message: vec![StorageMessage {
-                    applies: |c| c.persistent,
+                    applies: |c| c.opfs_available,
                     message: Message::warning("Heads up", "Can be cleared."),
                 }],
                 metadata: BTreeMap::new(),
@@ -189,11 +189,11 @@ mod tests {
             availability: Availability::Enabled,
             message: vec![
                 StorageMessage {
-                    applies: |c| !c.persistent,
-                    message: Message::warning("Lost on close", "No persistent store."),
+                    applies: |c| !c.opfs_available,
+                    message: Message::warning("Lost on close", "No OPFS store."),
                 },
                 StorageMessage {
-                    applies: |c| c.persistent,
+                    applies: |c| c.opfs_available,
                     message: Message::warning("Can be cleared", "Clearing site data empties it."),
                 },
             ],
@@ -201,8 +201,8 @@ mod tests {
             fields: &[],
         };
 
-        let titles = |persistent| {
-            messages(&storage, &StorageContext { persistent })
+        let titles = |opfs_available| {
+            messages(&storage, &StorageContext { opfs_available })
                 .map(|m| m.title().unwrap_or_default().to_string())
                 .collect::<Vec<_>>()
         };
@@ -214,7 +214,9 @@ mod tests {
     #[test]
     fn a_storage_can_have_no_message() {
         let list = sample();
-        let ctx = StorageContext { persistent: true };
+        let ctx = StorageContext {
+            opfs_available: true,
+        };
         assert_eq!(
             messages(Storage::from_id(&list, "local").unwrap(), &ctx).count(),
             1
