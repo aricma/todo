@@ -9,4 +9,5 @@ pub mod model;
 pub mod ops;
 pub mod parse;
 pub mod recurrence;
+pub mod remote;
 pub mod states;
