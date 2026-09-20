@@ -6,11 +6,12 @@ repo-wide command standard in `../DOCS/maskfile-spec.md`.
 
 ## build
 
-> Compile the Tailwind bundle (aricma-ui tokens, app-blue accent) and the
-> release wasm app into `tmp/dist/`.
+> Compile the aricma-ui Tailwind bundle (app-blue accent) and the release wasm
+> app into `tmp/dist/`. The CSS step is not called here: `trunk build` runs
+> `build-css.sh` as its `pre_build` hook (Trunk.toml), so dev server and CI
+> cannot drift on a stale stylesheet.
 
 ```bash
-./build-css.sh
 trunk build --release
 # Path routing (ADR-0014) needs a fallback for deep links: a request for
 # /today must still boot the app. `trunk serve` falls back to index.html on its
