@@ -22,6 +22,9 @@ pub mod keys {
     /// named after the remote's root, so renaming never makes a second store.
     pub const NAME: &str = "name";
     pub const URL: &str = "url";
+    /// Optional: a path prefix under the root, *before* the app's namespace
+    /// folder (ADR-0019). Empty keeps the namespace directly under the root.
+    pub const PATH: &str = "path";
     pub const USER: &str = "user";
     pub const PASSWORD: &str = "password";
     pub const ENDPOINT: &str = "endpoint";
@@ -30,23 +33,46 @@ pub mod keys {
     pub const SECRET_KEY: &str = "secret_key";
 }
 
-/// The database file name inside a remote root. One name for every transport —
-/// what changes between them is the root, never the file (ADR-0016).
+/// The database file name inside a remote namespace. One name for every
+/// transport — what changes between them is the root, never the file
+/// (ADR-0016).
 pub const DB_FILE: &str = "todos.db";
 
-/// A WebDAV remote: the folder the app owns and the credentials for it.
+/// The app's namespace folder on a remote: everything the app keeps there —
+/// today `todos.db`, later attachments (ADR-0011) — lives under this one name,
+/// and the app creates it where the protocol allows (ADR-0019). It is the same
+/// name as the local OPFS source directory and Drive's folder (see
+/// `app::constants::SOURCE_DIR`, which points here).
+pub const SOURCE_DIR: &str = "aricma-todo";
+
+/// A WebDAV remote: the root, an optional path prefix, and the credentials.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WebDavConfig {
-    /// The root URL (a folder). The db lives at `<root>/todos.db`.
+    /// The root URL the user configured (a folder).
     pub url: String,
+    /// An optional path prefix under the root, before the app's namespace folder
+    /// (ADR-0019): `/some/path` gives `<root>/some/path/aricma-todo/todos.db`.
+    pub path: String,
     pub user: String,
     pub password: String,
 }
 
-/// The database's URL inside a WebDAV root. A trailing slash on the root is
-/// tolerated — users paste folder URLs both ways.
+/// The URL of the app's namespace folder inside a WebDAV root: the configured
+/// root, the optional path prefix, then [`SOURCE_DIR`]. Slashes and space
+/// around either half are tolerated — users paste folder URLs both ways.
+pub fn dir_url(config: &WebDavConfig) -> String {
+    let root = config.url.trim().trim_end_matches('/');
+    let path = config.path.trim().trim_matches('/');
+    if path.is_empty() {
+        format!("{root}/{SOURCE_DIR}")
+    } else {
+        format!("{root}/{path}/{SOURCE_DIR}")
+    }
+}
+
+/// The database's URL inside a WebDAV namespace: `<dir_url>/todos.db`.
 pub fn db_url(config: &WebDavConfig) -> String {
-    format!("{}/{DB_FILE}", config.url.trim_end_matches('/'))
+    format!("{}/{DB_FILE}", dir_url(config))
 }
 
 /// The `Authorization` header for the WebDAV credentials.
@@ -84,12 +110,16 @@ pub fn base64_encode(input: &[u8]) -> String {
     out
 }
 
-/// An S3 remote: a path-style endpoint, one bucket, and the keys for it.
+/// An S3 remote: a path-style endpoint, one bucket, an optional key prefix, and
+/// the keys for it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S3Config {
     /// The endpoint, no trailing slash and no bucket (`https://s3.example.com`).
     pub endpoint: String,
     pub bucket: String,
+    /// An optional key prefix under the bucket, before the app's namespace folder
+    /// (ADR-0019). Empty keeps the namespace directly in the bucket.
+    pub path: String,
     pub access_key: String,
     pub secret_key: String,
 }
@@ -108,7 +138,8 @@ pub const S3_ALGORITHM: &str = "AWS4-HMAC-SHA256";
 /// SHA-256 of the empty string — the payload hash for GET and HEAD.
 pub const EMPTY_SHA256: &str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-/// The app's object URL: path-style, `{endpoint}/{bucket}/todos.db`.
+/// The app's object URL: path-style,
+/// `{endpoint}/{bucket}/<path>/aricma-todo/todos.db`.
 pub fn object_url(config: &S3Config) -> String {
     format!(
         "{}{}",
@@ -117,9 +148,16 @@ pub fn object_url(config: &S3Config) -> String {
     )
 }
 
-/// The canonical URI for that object — what the signature covers.
+/// The canonical URI for that object — what the signature covers. `path` is the
+/// user's prefix; the app's namespace folder and the db file always follow it
+/// (ADR-0019).
 pub fn object_path(config: &S3Config) -> String {
-    format!("/{}/{}", config.bucket, DB_FILE)
+    let prefix = config.path.trim().trim_matches('/');
+    if prefix.is_empty() {
+        format!("/{}/{SOURCE_DIR}/{DB_FILE}", config.bucket)
+    } else {
+        format!("/{}/{}/{SOURCE_DIR}/{DB_FILE}", config.bucket, prefix)
+    }
 }
 
 /// The authority of an endpoint URL, which S3 signs as the `Host` header.
@@ -248,7 +286,8 @@ mod tests {
 
     fn config() -> WebDavConfig {
         WebDavConfig {
-            url: "http://localhost:8080/aricma-todo".to_string(),
+            url: "http://localhost:8080".to_string(),
+            path: String::new(),
             user: "u".to_string(),
             password: "p".to_string(),
         }
@@ -257,7 +296,7 @@ mod tests {
     #[test]
     fn a_store_name_separates_two_remotes_of_one_kind() {
         let other = WebDavConfig {
-            url: "http://localhost:8081/aricma-todo".to_string(),
+            url: "http://localhost:8081".to_string(),
             ..config()
         };
         let a = store_name("webdav", &db_url(&config()));
@@ -270,18 +309,41 @@ mod tests {
     }
 
     #[test]
-    fn webdav_db_url_joins_the_root_and_tolerates_a_trailing_slash() {
+    fn webdav_db_url_always_lands_in_the_apps_namespace_folder() {
         assert_eq!(
             db_url(&config()),
             "http://localhost:8080/aricma-todo/todos.db"
         );
+        assert_eq!(dir_url(&config()), "http://localhost:8080/aricma-todo");
         let with_slash = WebDavConfig {
-            url: "http://localhost:8080/aricma-todo/".to_string(),
+            url: "http://localhost:8080/".to_string(),
             ..config()
         };
         assert_eq!(
             db_url(&with_slash),
             "http://localhost:8080/aricma-todo/todos.db"
+        );
+    }
+
+    #[test]
+    fn webdav_path_is_a_prefix_before_the_namespace_folder() {
+        let prefixed = WebDavConfig {
+            path: "/some/path".to_string(),
+            ..config()
+        };
+        assert_eq!(
+            db_url(&prefixed),
+            "http://localhost:8080/some/path/aricma-todo/todos.db"
+        );
+        // Slashes and whitespace on either half are tolerated.
+        let messy = WebDavConfig {
+            url: "http://localhost:8080/".to_string(),
+            path: " /some/path/ ".to_string(),
+            ..config()
+        };
+        assert_eq!(
+            db_url(&messy),
+            "http://localhost:8080/some/path/aricma-todo/todos.db"
         );
     }
 
@@ -294,6 +356,7 @@ mod tests {
         S3Config {
             endpoint: "https://s3.example.com".to_string(),
             bucket: "aricma-todo-test".to_string(),
+            path: String::new(),
             access_key: "AKIDEXAMPLE".to_string(),
             secret_key: "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY".to_string(),
         }
@@ -303,16 +366,32 @@ mod tests {
     fn s3_object_url_and_path_are_path_style() {
         assert_eq!(
             object_url(&s3()),
-            "https://s3.example.com/aricma-todo-test/todos.db"
+            "https://s3.example.com/aricma-todo-test/aricma-todo/todos.db"
         );
-        assert_eq!(object_path(&s3()), "/aricma-todo-test/todos.db");
+        assert_eq!(object_path(&s3()), "/aricma-todo-test/aricma-todo/todos.db");
         let trailing = S3Config {
             endpoint: "https://s3.example.com/".to_string(),
             ..s3()
         };
         assert_eq!(
             object_url(&trailing),
-            "https://s3.example.com/aricma-todo-test/todos.db"
+            "https://s3.example.com/aricma-todo-test/aricma-todo/todos.db"
+        );
+    }
+
+    #[test]
+    fn s3_path_is_a_prefix_before_the_namespace_folder() {
+        let prefixed = S3Config {
+            path: "team".to_string(),
+            ..s3()
+        };
+        assert_eq!(
+            object_path(&prefixed),
+            "/aricma-todo-test/team/aricma-todo/todos.db"
+        );
+        assert_eq!(
+            object_url(&prefixed),
+            "https://s3.example.com/aricma-todo-test/team/aricma-todo/todos.db"
         );
     }
 

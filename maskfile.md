@@ -58,10 +58,10 @@ cargo test --lib
 >
 > | backend | app setting |
 > |---|---|
-> | nginx | WebDAV — `http://127.0.0.1:8081/aricma-todo` |
-> | apache | WebDAV — `http://127.0.0.1:8082/aricma-todo` |
-> | minio | S3 — endpoint `http://127.0.0.1:9100`, bucket `aricma-todo`, keys `aricma-test` / `aricma-test-secret` (console on 9101) |
-> | seaweedfs | S3 — endpoint `http://127.0.0.1:9200`, bucket `aricma-todo`, any keys |
+> | nginx | WebDAV — URL `http://127.0.0.1:8081` (the app uses its `aricma-todo/` folder) |
+> | apache | WebDAV — URL `http://127.0.0.1:8082` (the app uses its `aricma-todo/` folder) |
+> | minio | S3 — endpoint `http://127.0.0.1:9100`, bucket `my-bucket`, prefix blank, keys `aricma-test` / `aricma-test-secret` (console on 9101); the app writes `my-bucket/aricma-todo/todos.db` |
+> | seaweedfs | S3 — endpoint `http://127.0.0.1:9200`, bucket `my-bucket`, prefix blank, any keys; the app writes `my-bucket/aricma-todo/todos.db` |
 >
 > The buckets are created for you, and the data is bind-mounted under
 > `tmp/backends/<backend>/`, so the `todos.db` the app syncs can be inspected on
