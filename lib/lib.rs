@@ -4,6 +4,7 @@
 
 pub mod datepicker;
 pub mod dates;
+pub mod db_file;
 pub mod drive;
 pub mod model;
 pub mod ops;
