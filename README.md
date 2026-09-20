@@ -3,9 +3,17 @@
 Local-first todo SPA: Rust + Leptos compiled to wasm, with the todos in a
 SQLite database (through `sqlite-wasm`) that the app keeps in the browser when
 it can (OPFS) and in memory when it cannot, plus Inbox / Today / Upcoming views,
-natural-language quick-add, and OPS import/export. That database can also be
-mirrored to a remote the user owns — Google Drive, WebDAV, or S3 (ADR-0015,
-ADR-0016) — so nothing about the app requires a server of ours.
+natural-language quick-add, and OPS import/export. A **data source** is one store
+of todos (ADR-0017): the Browser's own database, or a remote the user owns —
+Google Drive, WebDAV, or S3 (ADR-0015, ADR-0016) — each keeping its own todos, so
+nothing about the app requires a server of ours and picking a source never
+uploads anything. Moving todos between sources is Export → Import.
+
+The header names the selected source (the name you gave it, else what identifies
+it — a WebDAV URL, an S3 bucket) and reports what sync is doing with it:
+connecting…, pulling…, pushing…, synced. Google Drive is implemented but **off the
+picker for now** — its sign-in cannot be automated, so it cannot be verified end
+to end (ADR-0015).
 
 **Status:** MVP in planning — see [MVP.md](./MVP.md) (spec),
 [PLAN.md](./PLAN.md) (implementation plan), and
