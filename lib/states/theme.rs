@@ -1,7 +1,7 @@
 //! Theme preference and the palette it resolves to (DESIGN.md §8, §11) — the
 //! pure half.
 //!
-//! `ThemePref` is what the user chose and `Theme` is what is on screen;
+//! `ThemePref` is what the user chose and `Theme` is what it resolves to;
 //! `resolve` is the only rule between them. System follows the OS, which the
 //! caller reports as a `bool`, so the decision is testable away from a
 //! browser. Everything that touches one — localStorage, `matchMedia`,

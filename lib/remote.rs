@@ -14,10 +14,13 @@ pub struct RemoteFile {
     pub version: Option<String>,
 }
 
-/// The configuration field keys, as one vocabulary. The view renders a form
-/// from the storages' `StorageField`s and the transports read the values back;
+/// The configuration field keys, as one vocabulary. A host renders a form
+/// from the storages' field lists (`model::form`) and the transports read them
 /// sharing the strings is what keeps those two from drifting apart.
 pub mod keys {
+    /// Optional: what the user calls this source. Purely a name — the store is
+    /// named after the remote's root, so renaming never makes a second store.
+    pub const NAME: &str = "name";
     pub const URL: &str = "url";
     pub const USER: &str = "user";
     pub const PASSWORD: &str = "password";
@@ -219,6 +222,17 @@ fn hmac(key: &[u8], data: &str) -> Vec<u8> {
 }
 
 /// Hex SHA-256 of `bytes` — the payload hash SigV4 signs.
+/// The name a source's local store goes by, given what identifies that source.
+///
+/// One store per source (ADR-0017), so the name has to separate two remotes of
+/// the *same* kind: a WebDAV server and its sibling are both storage id `webdav`,
+/// and only their roots differ. Which is why the identity is digested rather than
+/// sanitised — a URL is not a file name.
+pub fn store_name(id: &str, identity: &str) -> String {
+    let digest = sha256_hex(identity.as_bytes());
+    format!("{id}-{}", &digest[..8])
+}
+
 pub fn sha256_hex(bytes: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     hex(&Sha256::digest(bytes))
@@ -238,6 +252,21 @@ mod tests {
             user: "u".to_string(),
             password: "p".to_string(),
         }
+    }
+
+    #[test]
+    fn a_store_name_separates_two_remotes_of_one_kind() {
+        let other = WebDavConfig {
+            url: "http://localhost:8081/aricma-todo".to_string(),
+            ..config()
+        };
+        let a = store_name("webdav", &db_url(&config()));
+        let b = store_name("webdav", &db_url(&other));
+        assert_ne!(a, b, "two WebDAV roots are two stores");
+        assert_eq!(a, store_name("webdav", &db_url(&config())));
+        assert!(a.starts_with("webdav-"), "the kind stays readable: {a}");
+        // …and it is a name, not the URL.
+        assert!(!a.contains('/'));
     }
 
     #[test]

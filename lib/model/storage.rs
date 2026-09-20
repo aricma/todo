@@ -1,229 +1,79 @@
-//! Where todos live (MVP.md §4): a storage backend the app can keep todos in.
+//! A **storage**: one place todos are kept (ADR-0018).
 //!
-//! `Storage` is plain data — id, label, description, availability, messages,
-//! configuration fields. The lib does not know which storages exist: the app
-//! configures the options it offers (`app/constants.rs`) and the view renders
-//! the enabled ones.
+//! Created from a
+//! [`StorageConfiguration`](super::storage_configuration::StorageConfiguration) —
+//! or existing already: the default storages do, and the Browser store is a
+//! storage with nothing configured and no remote. A storage has an id of its own
+//! (the local db is named after it, so editing the remote keeps *this* store's
+//! todos), the kind it was created from, the name the user gave it, and its field
+//! values.
 //!
-//! The user picks a **storage**, never a path — the directory and the db file
-//! name are the app's. A storage's `message` carries what the app wants the
-//! user to know about it (why it is not durable, …), in a tone the view draws;
-//! each message says which browser contexts it applies in, so the same storage
-//! can warn about clearing and about losing everything on close.
+//! The user picks a storage, never a path — the directory and the db file name are
+//! the app's, and a storage's field values are the only thing about it the user
+//! supplies.
 
 use std::collections::BTreeMap;
 
-use super::message::Message;
-
-/// Whether a storage can be used in the app today.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Availability {
-    /// Shown and selectable: the backend exists and works.
-    Enabled,
-    /// Not shown: the backend is planned but does not work yet.
-    Disabled,
-}
-
-/// A storage backend, as data. The app configures the options.
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// A storage, as data — and as it is persisted: this is what a saved list holds,
+/// and what a transport, a store path and every name a host shows derive from.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct Storage {
-    /// Stable id — the radio group's value and the stored preference. The app
-    /// also uses it to tell backends apart (e.g. the syncing one).
-    pub id: &'static str,
-    /// The user-facing name.
-    pub label: &'static str,
-    /// The verb for the start screen's primary action on this storage
-    /// ("Open", "Connect", …).
-    pub action: &'static str,
-    /// What the storage is, shown under the tiles.
-    pub description: &'static str,
-    pub availability: Availability,
-    /// What to tell the user about this storage, when it applies.
-    pub message: Vec<StorageMessage>,
-    /// Structured detail about the backend (its folder, its provider, …).
-    /// Empty when the storage has nothing to say beyond the fields above.
-    pub metadata: BTreeMap<String, String>,
-    /// Configuration the user must supply before this storage can be used
-    /// (a WebDAV or S3 endpoint, credentials). Empty when there is nothing to
-    /// configure — the Browser store, and Drive (whose configuration is the
-    /// OAuth grant). See ADR-0016.
-    pub fields: &'static [StorageField],
-}
-
-/// A message that only applies in some browser contexts, so the start screen
-/// can say the right thing about a storage in the browser it is actually
-/// running in. Plain data plus a predicate — the rules stay testable without
-/// a browser.
-#[derive(Debug, Clone)]
-pub struct StorageMessage {
-    /// Whether this message applies in the given context.
-    pub applies: fn(&StorageContext) -> bool,
-    pub message: Message,
-}
-
-// Equality ignores nothing and invents nothing: the text must match, and two
-// distinct predicates are different. (A derived impl is impossible because a
-// fn pointer is not `PartialEq`; the address is the honest comparison.)
-impl PartialEq for StorageMessage {
-    fn eq(&self, other: &Self) -> bool {
-        self.message == other.message && self.applies as usize == other.applies as usize
-    }
-}
-
-impl Eq for StorageMessage {}
-
-/// What the app knows about the browser it is running in.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct StorageContext {
-    /// Whether the OPFS store is available here. False in a private window,
-    /// and in a browser without the sync access handle (Safari).
-    pub opfs_available: bool,
-}
-
-/// How a storage's configuration field is drawn and validated.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FieldKind {
-    Text,
-    Password,
-    Url,
-    Number,
-}
-
-/// One configuration field a storage needs before it can be used. The view
-/// renders a form from these; the app stores the values against the storage
-/// id, never in the model.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StorageField {
-    /// Stable key the value is stored under (`endpoint`, `secret_key`, …).
-    pub key: &'static str,
-    pub label: &'static str,
-    pub kind: FieldKind,
-    /// Whether the storage cannot be used until this has a value.
-    pub required: bool,
-    pub placeholder: Option<&'static str>,
-}
-
-/// The storage's messages that apply in `ctx`, in declaration order.
-pub fn messages<'a>(
-    storage: &'a Storage,
-    ctx: &StorageContext,
-) -> impl Iterator<Item = &'a Message> {
-    let ctx = *ctx;
-    storage
-        .message
-        .iter()
-        .filter(move |m| (m.applies)(&ctx))
-        .map(|m| &m.message)
+    /// Stable and generated. The local store is named after it, so editing the
+    /// remote later keeps *this* storage's todos (ADR-0017).
+    pub id: String,
+    /// Which configuration this storage was created from: a
+    /// [`StorageConfiguration`](super::storage_configuration::StorageConfiguration)
+    /// id (`opfs`, `webdav`, `s3`). It is what the app looks a storage's fields and
+    /// transport up by, so it never changes.
+    pub kind: String,
+    /// What the user calls it. **Required** — it is the only name this storage has,
+    /// wherever it is named, and a chain of fallbacks to the URL, then to the kind,
+    /// was three ways to say the same thing badly. Creating one asks for it;
+    /// migration names what predates that.
+    pub name: String,
+    /// The configured fields, keyed by `remote::keys`.
+    pub fields: BTreeMap<String, String>,
 }
 
 impl Storage {
-    /// The storage with this id, or `None`. Ids are the app's vocabulary.
-    pub fn from_id<'a>(storages: &'a [Storage], id: &str) -> Option<&'a Storage> {
-        storages.iter().find(|s| s.id == id)
+    /// What identifies the **remote this points at** — its root, never the name
+    /// the user gave it. Two storages with the same identity are the same data;
+    /// when this changes the remote changed, and the user has to decide what
+    /// happens to the two sets of todos (ADR-0018). The caller supplies the root
+    /// because only the app knows which fields address a given kind.
+    pub fn identity(&self, root: &str) -> String {
+        format!("{}:{}", self.kind, root.trim())
     }
-}
-
-/// The storages the app should offer, in display order.
-pub fn enabled(storages: &[Storage]) -> impl Iterator<Item = &Storage> {
-    storages
-        .iter()
-        .filter(|s| s.availability == Availability::Enabled)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    fn sample() -> Vec<Storage> {
-        vec![
-            Storage {
-                id: "local",
-                label: "Browser",
-                action: "Open",
-                description: "On this machine.",
-                availability: Availability::Enabled,
-                message: vec![StorageMessage {
-                    applies: |c| c.opfs_available,
-                    message: Message::warning("Heads up", "Can be cleared."),
-                }],
-                metadata: BTreeMap::new(),
-                fields: &[],
-            },
-            Storage {
-                id: "remote",
-                label: "Remote",
-                action: "Connect",
-                description: "Somewhere else.",
-                availability: Availability::Disabled,
-                message: vec![],
-                metadata: BTreeMap::new(),
-                fields: &[],
-            },
-        ]
+    fn storage(name: &str, url: &str) -> Storage {
+        let mut fields = BTreeMap::new();
+        fields.insert("url".to_string(), url.to_string());
+        Storage {
+            id: "webdav-1a2b3c4d".to_string(),
+            kind: "webdav".to_string(),
+            name: name.to_string(),
+            fields,
+        }
     }
 
+    /// The name is metadata: renaming a storage must not look like pointing it
+    /// somewhere else, or every rename would ask the user to reconcile two sets of
+    /// todos that never diverged.
     #[test]
-    fn from_id_finds_or_returns_none() {
-        let list = sample();
-        assert_eq!(
-            Storage::from_id(&list, "local").map(|s| s.label),
-            Some("Browser")
-        );
-        assert_eq!(Storage::from_id(&list, "nope"), None);
-    }
-
-    #[test]
-    fn enabled_filters_out_disabled() {
-        let list = sample();
-        let ids: Vec<&str> = enabled(&list).map(|s| s.id).collect();
-        assert_eq!(ids, vec!["local"]);
-    }
-
-    #[test]
-    fn a_message_only_applies_in_its_context() {
-        let storage = Storage {
-            id: "browser",
-            label: "Browser",
-            action: "Open",
-            description: "On this machine.",
-            availability: Availability::Enabled,
-            message: vec![
-                StorageMessage {
-                    applies: |c| !c.opfs_available,
-                    message: Message::warning("Lost on close", "No OPFS store."),
-                },
-                StorageMessage {
-                    applies: |c| c.opfs_available,
-                    message: Message::warning("Can be cleared", "Clearing site data empties it."),
-                },
-            ],
-            metadata: BTreeMap::new(),
-            fields: &[],
-        };
-
-        let titles = |opfs_available| {
-            messages(&storage, &StorageContext { opfs_available })
-                .map(|m| m.title().unwrap_or_default().to_string())
-                .collect::<Vec<_>>()
-        };
-
-        assert_eq!(titles(true), vec!["Can be cleared"]);
-        assert_eq!(titles(false), vec!["Lost on close"]);
-    }
-
-    #[test]
-    fn a_storage_can_have_no_message() {
-        let list = sample();
-        let ctx = StorageContext {
-            opfs_available: true,
-        };
-        assert_eq!(
-            messages(Storage::from_id(&list, "local").unwrap(), &ctx).count(),
-            1
-        );
-        assert_eq!(
-            messages(Storage::from_id(&list, "remote").unwrap(), &ctx).count(),
-            0
-        );
+    fn identity_ignores_the_name_and_follows_the_root() {
+        let home = storage("Home", "https://cloud.example.com/dav/todo");
+        let renamed = storage("Laptop", "https://cloud.example.com/dav/todo");
+        assert_eq!(home.identity("/dav/todo"), renamed.identity("/dav/todo"));
+        // Pointing at another root is exactly a different remote.
+        assert_ne!(home.identity("/dav/todo"), home.identity("/dav/other"));
+        // And two kinds at the same root are two storages.
+        let mut s3 = home.clone();
+        s3.kind = "s3".to_string();
+        assert_ne!(home.identity("/x"), s3.identity("/x"));
     }
 }

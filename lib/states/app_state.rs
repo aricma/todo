@@ -5,8 +5,8 @@
 //!
 //! There is one source at a fixed path (`app/constants.rs`), so no path is
 //! carried in the state: what varies is whether the local store exists yet — a
-//! fresh browser, or one whose data the user just deleted, starts at the start
-//! screen; otherwise the app opens the store it already has.
+//! fresh browser, or one whose data the user just deleted, has nothing to open
+//! and asks; otherwise the app opens the store it already has.
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum AppState {

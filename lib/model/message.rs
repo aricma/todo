@@ -1,10 +1,10 @@
-//! A tone-coded message (DESIGN.md §7): what a provider or a view wants to
-//! tell the user, without prescribing how it is drawn. The view picks a tone
+//! A tone-coded message (DESIGN.md §7): what a provider wants to tell the user,
+//! without prescribing how it is drawn. The host picks a tone
 //! from the variant and renders the parts: an optional title, the text itself,
-//! and optional metadata (structured detail a view may show or log).
+//! and optional metadata (structured detail a host may show or log).
 //!
 //! Deliberately data, not markup: the lib owns the words and the tone, the UI
-//! owns the frame (banner, alert, toast).
+//! owns the presentation.
 
 use std::collections::BTreeMap;
 
@@ -113,9 +113,9 @@ mod tests {
 
     #[test]
     fn constructors_and_accessors_round_trip() {
-        let m = Message::warning("Heads up", "Storage can be cleared.");
+        let m = Message::warning("Heads up", "StorageConfiguration can be cleared.");
         assert_eq!(m.title(), Some("Heads up"));
-        assert_eq!(m.text(), "Storage can be cleared.");
+        assert_eq!(m.text(), "StorageConfiguration can be cleared.");
         assert_eq!(m.metadata(), None);
         assert!(matches!(m, Message::Warning { .. }));
     }

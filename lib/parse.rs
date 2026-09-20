@@ -255,8 +255,8 @@ pub fn due_label(due_local: &str, today: Date) -> String {
     )
 }
 
-/// Heading for an Upcoming-view day group: title case (like the Today
-/// view's "Today (N)"), with the weekday always present — a raw ISO date is
+/// Heading for a day group: title case ("Today (N)"), with the weekday always
+/// present — a raw ISO date is
 /// not the best reference at a glance (inbox todo). Near dates get the full
 /// "Weekday Mon DD" too, not a bare weekday.
 pub fn upcoming_heading(due_local: &str, today: Date) -> String {

@@ -1,22 +1,22 @@
-//! Quick-add submission state (MVP.md §5.1): the parse → view-default →
-//! build action plus the rendered error state. The async db write stays in
+//! Quick-add submission state (MVP.md §5.1): the parse → default-due → build
+//! action, plus the error state for a host to show. The async db write stays in
 //! the component (sqlite-wasm futures are !Send, ADR-0009) — `build` is the
-//! host-testable action, `error` the state the input renders.
+//! host-testable action, `error` what the caller reports.
 
 use time::Date;
 
 use crate::model::Task;
 use crate::parse::{parse, task_from_parsed};
 
-/// State the quick-add input renders after a submission.
+/// The state a quick-add submission leaves behind.
 #[derive(Debug, Clone, PartialEq, Default)]
 pub struct AddTodoState {
-    /// Persist error to show under the input (capacity limit, db failure).
+    /// Persist error for the caller to show (capacity limit, db failure).
     pub error: Option<String>,
 }
 
-/// The quick-add action: parse the line, apply the dated view's default due
-/// date when the line has none, build the Task. Persisting is the caller's
+/// The quick-add action: parse the line, apply the day the caller is looking at
+/// as the default due date when the line has none, build the Task. Persisting is the caller's
 /// async db write; the result lands in [`AddTodoState`] via
 /// [`AddTodoState::record_persist`].
 pub fn build(
