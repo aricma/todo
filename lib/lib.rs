@@ -6,6 +6,10 @@ pub mod datepicker;
 pub mod dates;
 pub mod db_file;
 pub mod drive;
+/// FTP — a **host-only** transport: a browser cannot open a TCP socket, so this
+/// is not compiled into the wasm app. See the module docs in `ftp`.
+#[cfg(not(target_arch = "wasm32"))]
+pub mod ftp;
 pub mod model;
 pub mod ops;
 pub mod parse;

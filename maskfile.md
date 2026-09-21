@@ -63,6 +63,7 @@ cargo test --lib
 > | apache | WebDAV — URL `http://127.0.0.1:8082` (the app uses its `aricma-todo/` folder) |
 > | minio | S3 — endpoint `http://127.0.0.1:9100`, bucket `my-bucket`, prefix blank, keys `aricma-test` / `aricma-test-secret` (console on 9101); the app writes `my-bucket/aricma-todo/todos.db` |
 > | seaweedfs | S3 — endpoint `http://127.0.0.1:9200`, bucket `my-bucket`, prefix blank, any keys; the app writes `my-bucket/aricma-todo/todos.db` |
+> | ftp | FTP — **host test only, not the app** (a browser cannot open a TCP socket). `ARICMA_FTP_URL` defaults to `ftp://127.0.0.1:2121`, user `aricma-test` / `aricma-test-secret`. Run it with `docker compose up -d ftp && cargo test --lib ftp -- --ignored`. |
 >
 > The buckets are created for you, and the data is bind-mounted under
 > `tmp/backends/<backend>/`, so the `todos.db` the app syncs can be inspected on
