@@ -1,23 +1,23 @@
-//! A **storage configuration**: the template a storage is created from.
+//! A **data source configuration**: the template a data source is created from.
 //!
-//! Browser, WebDAV, S3, Drive — each is plain data: what a storage of that kind
-//! needs (its `fields`), what to call it, what to say about it (`message`, per
-//! browser context) and whether the host offers it at all (`availability`). The
-//! lib does not know which ones exist: the host configures the list
+//! Browser, WebDAV, S3, Drive — each is plain data: what a data source of that
+//! kind needs (its `fields`), what to call it, what to say about it (`message`,
+//! per browser context) and whether the host offers it at all (`availability`).
+//! The lib does not know which ones exist: the host configures the list
 //! (`app/constants.rs`), and offers the ones it declares.
 //!
-//! The other half of this pair is [`Storage`](super::storage::Storage): one place
-//! todos are kept, created from one of these — or, for the default storages,
-//! existing already.
+//! The other half of this pair is [`DataSource`](super::data_source::DataSource):
+//! one place todos are kept, created from one of these — or, for the default data
+//! sources, existing already.
 //!
 //! A configuration's `message` list says what the app wants the user to know about
 //! it (why it is not durable, …), per browser context — see
-//! [`storage_message`](super::storage_message).
+//! [`data_source_message`](super::data_source_message).
 
 use std::collections::BTreeMap;
 
+use super::data_source_message::DataSourceMessage;
 use super::form::Field;
-use super::storage_message::StorageMessage;
 
 /// Whether this app offers a configuration: the host's control over its options.
 ///
@@ -30,47 +30,47 @@ use super::storage_message::StorageMessage;
 /// still a configuration — looking it up by id finds it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Availability {
-    /// Offered: a choice the user can make, and a storage can be created from it.
-    /// What a host does with that — this app leaves the rest out of the list it
-    /// offers — is the host's business, not the model's.
+    /// Offered: a choice the user can make, and a data source can be created from
+    /// it. What a host does with that — this app leaves the rest out of the list
+    /// it offers — is the host's business, not the model's.
     Enabled,
     /// Not offered by this app. Drive is the current case: its sign-in flow cannot
     /// be verified end to end, so this build does not offer it (ADR-0015).
     Disabled,
 }
 
-/// A storage configuration, as data: the template a storage is created from. The
-/// host declares the ones it offers.
+/// A data source configuration, as data: the template a data source is created
+/// from. The host declares the ones it offers.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct StorageConfiguration {
+pub struct DataSourceConfiguration {
     /// Stable id: what a host refers to this configuration by, and stores a
-    /// preference under. It is also how a [`Storage`](super::storage::Storage) in
-    /// the app says which configuration it was created from.
+    /// preference under. It is also how a [`DataSource`](super::data_source::DataSource)
+    /// in the app says which configuration it was created from.
     pub id: &'static str,
     /// What this configuration is called (Browser, WebDAV, S3) — a name, not a
     /// label: how the user sees it is the host's business.
     pub name: &'static str,
-    /// What this kind of storage is, in one sentence, for the user.
+    /// What this kind of data source is, in one sentence, for the user.
     pub description: &'static str,
     pub availability: Availability,
-    /// What to tell the user about this storage, when it applies.
-    pub message: Vec<StorageMessage>,
+    /// What to tell the user about this data source, when it applies.
+    pub message: Vec<DataSourceMessage>,
     /// Structured detail about the backend (its folder, its provider, …).
-    /// Empty when the storage has nothing to say beyond the fields above.
+    /// Empty when the data source has nothing to say beyond the fields above.
     pub metadata: BTreeMap<String, String>,
-    /// Configuration the user must supply before this storage can be used
+    /// Configuration the user must supply before this data source can be used
     /// (a WebDAV or S3 endpoint, credentials). Empty when there is nothing to
     /// configure — the Browser store, and Drive (whose configuration is the
     /// OAuth grant). See ADR-0016.
     pub fields: &'static [Field],
 }
 
-impl StorageConfiguration {
+impl DataSourceConfiguration {
     /// The configuration with this id, or `None`.
     pub fn from_id<'a>(
-        configurations: &'a [StorageConfiguration],
+        configurations: &'a [DataSourceConfiguration],
         id: &str,
-    ) -> Option<&'a StorageConfiguration> {
+    ) -> Option<&'a DataSourceConfiguration> {
         configurations.iter().find(|s| s.id == id)
     }
 }
@@ -80,21 +80,21 @@ mod tests {
     use super::*;
     use crate::model::Message;
 
-    fn sample() -> Vec<StorageConfiguration> {
+    fn sample() -> Vec<DataSourceConfiguration> {
         vec![
-            StorageConfiguration {
+            DataSourceConfiguration {
                 id: "local",
                 name: "Browser",
                 description: "On this machine.",
                 availability: Availability::Enabled,
-                message: vec![StorageMessage {
+                message: vec![DataSourceMessage {
                     applies: |c| c.opfs_available,
                     message: Message::warning("Heads up", "Can be cleared."),
                 }],
                 metadata: BTreeMap::new(),
                 fields: &[],
             },
-            StorageConfiguration {
+            DataSourceConfiguration {
                 id: "remote",
                 name: "Remote",
                 description: "Somewhere else.",
@@ -110,9 +110,9 @@ mod tests {
     fn from_id_finds_or_returns_none() {
         let list = sample();
         assert_eq!(
-            StorageConfiguration::from_id(&list, "local").map(|s| s.name),
+            DataSourceConfiguration::from_id(&list, "local").map(|s| s.name),
             Some("Browser")
         );
-        assert_eq!(StorageConfiguration::from_id(&list, "nope"), None);
+        assert_eq!(DataSourceConfiguration::from_id(&list, "nope"), None);
     }
 }

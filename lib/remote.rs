@@ -15,7 +15,7 @@ pub struct RemoteFile {
 }
 
 /// The configuration field keys, as one vocabulary. A host renders a form
-/// from the storages' field lists (`model::form`) and the transports read them
+/// from the data_sources' field lists (`model::form`) and the transports read them
 /// sharing the strings is what keeps those two from drifting apart.
 pub mod keys {
     /// Optional: what the user calls this source. Purely a name — the store is

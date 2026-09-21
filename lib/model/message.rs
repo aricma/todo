@@ -113,9 +113,9 @@ mod tests {
 
     #[test]
     fn constructors_and_accessors_round_trip() {
-        let m = Message::warning("Heads up", "StorageConfiguration can be cleared.");
+        let m = Message::warning("Heads up", "DataSourceConfiguration can be cleared.");
         assert_eq!(m.title(), Some("Heads up"));
-        assert_eq!(m.text(), "StorageConfiguration can be cleared.");
+        assert_eq!(m.text(), "DataSourceConfiguration can be cleared.");
         assert_eq!(m.metadata(), None);
         assert!(matches!(m, Message::Warning { .. }));
     }

@@ -9,7 +9,7 @@
 
 /// What the sync layer is doing / waiting on, for a host to draw.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum StorageSyncState {
+pub enum DataSourceSyncState {
     /// The OPFS provider is selected: there is nothing to sync.
     Disabled,
     /// Drive is selected but this browser has never signed in.
@@ -39,17 +39,17 @@ pub enum StorageSyncState {
 /// One word for this state: the host pairs it with the storage's name, where
 /// there is no room for a sentence. Every state says something: "nothing to sync"
 /// and "waiting for a grant" are as worth showing as "pushing".
-pub fn status_label(state: &StorageSyncState) -> &'static str {
+pub fn status_label(state: &DataSourceSyncState) -> &'static str {
     match state {
-        StorageSyncState::Disabled => "in this browser",
-        StorageSyncState::NeedsSignIn => "sign in",
-        StorageSyncState::NeedsConfig => "settings needed",
-        StorageSyncState::Connecting => "connecting…",
-        StorageSyncState::Pulling => "pulling…",
-        StorageSyncState::Pushing => "pushing…",
-        StorageSyncState::Idle => "synced",
-        StorageSyncState::Conflict { .. } => "conflict",
-        StorageSyncState::Error(_) => "error",
+        DataSourceSyncState::Disabled => "in this browser",
+        DataSourceSyncState::NeedsSignIn => "sign in",
+        DataSourceSyncState::NeedsConfig => "settings needed",
+        DataSourceSyncState::Connecting => "connecting…",
+        DataSourceSyncState::Pulling => "pulling…",
+        DataSourceSyncState::Pushing => "pushing…",
+        DataSourceSyncState::Idle => "synced",
+        DataSourceSyncState::Conflict { .. } => "conflict",
+        DataSourceSyncState::Error(_) => "error",
     }
 }
 
@@ -101,33 +101,45 @@ mod tests {
     /// yet" ones stay distinct there too.
     #[test]
     fn every_state_has_a_status() {
-        assert_eq!(status_label(&StorageSyncState::Disabled), "in this browser");
-        assert_eq!(status_label(&StorageSyncState::Idle), "synced");
-        assert_eq!(status_label(&StorageSyncState::Pushing), "pushing…");
-        assert_eq!(status_label(&StorageSyncState::Pulling), "pulling…");
-        assert_eq!(status_label(&StorageSyncState::Connecting), "connecting…");
         assert_eq!(
-            status_label(&StorageSyncState::NeedsConfig),
+            status_label(&DataSourceSyncState::Disabled),
+            "in this browser"
+        );
+        assert_eq!(status_label(&DataSourceSyncState::Idle), "synced");
+        assert_eq!(status_label(&DataSourceSyncState::Pushing), "pushing…");
+        assert_eq!(status_label(&DataSourceSyncState::Pulling), "pulling…");
+        assert_eq!(
+            status_label(&DataSourceSyncState::Connecting),
+            "connecting…"
+        );
+        assert_eq!(
+            status_label(&DataSourceSyncState::NeedsConfig),
             "settings needed"
         );
         assert_ne!(
-            status_label(&StorageSyncState::NeedsConfig),
-            status_label(&StorageSyncState::NeedsSignIn)
+            status_label(&DataSourceSyncState::NeedsConfig),
+            status_label(&DataSourceSyncState::NeedsSignIn)
         );
         assert_eq!(
-            status_label(&StorageSyncState::Conflict {
+            status_label(&DataSourceSyncState::Conflict {
                 remote_version: "9".into()
             }),
             "conflict"
         );
-        assert_eq!(status_label(&StorageSyncState::Error("x".into())), "error");
+        assert_eq!(
+            status_label(&DataSourceSyncState::Error("x".into())),
+            "error"
+        );
     }
 
     /// The two "not ready yet" states mean different things: one waits for a
     /// grant, the other for the user to fill in fields.
     #[test]
     fn needs_config_is_not_needs_sign_in() {
-        assert_ne!(StorageSyncState::NeedsConfig, StorageSyncState::NeedsSignIn);
+        assert_ne!(
+            DataSourceSyncState::NeedsConfig,
+            DataSourceSyncState::NeedsSignIn
+        );
     }
 
     #[test]

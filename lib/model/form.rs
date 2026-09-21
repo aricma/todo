@@ -1,6 +1,6 @@
 //! A form, as data: the fields a host has to fill in before it can be used.
 //!
-//! This is not about storages. A storage happens to be the first thing the app
+//! This is not about data_sources. A storage happens to be the first thing the app
 //! configures — its endpoint, its credentials — but what is modelled here is a
 //! dynamic form: a list of fields with a label, a kind and whether they must have
 //! a value. A host renders a field per entry; whoever owns the form stores the
