@@ -110,8 +110,25 @@ pub fn base64_encode(input: &[u8]) -> String {
     out
 }
 
-/// An S3 remote: a path-style endpoint, one bucket, an optional key prefix, and
-/// the keys for it.
+/// How an S3 source addresses a bucket.
+///
+/// **Path-style** puts the bucket in the URL path (`{endpoint}/{bucket}/…`) and is
+/// what a self-hosted endpoint with no wildcard DNS can resolve (MinIO, SeaweedFS
+/// on a bare IP). **Virtual-hosted** puts it in the host (`{bucket}.{host}/…`),
+/// which AWS prefers. The canonical URI the signature covers and the `Host`
+/// header both differ, so this is a per-source fact, not a detail the transport
+/// can choose.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum S3Addressing {
+    /// `{endpoint}/{bucket}/{path}/aricma-todo/todos.db`.
+    #[default]
+    Path,
+    /// `{bucket}.{host}/{path}/aricma-todo/todos.db`.
+    VirtualHosted,
+}
+
+/// An S3 remote: an endpoint, one bucket, an optional key prefix, the addressing
+/// form, and the keys for it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S3Config {
     /// The endpoint, no trailing slash and no bucket (`https://s3.example.com`).
@@ -120,6 +137,8 @@ pub struct S3Config {
     /// An optional key prefix under the bucket, before the app's namespace folder
     /// (ADR-0019). Empty keeps the namespace directly in the bucket.
     pub path: String,
+    /// Whether the bucket is addressed as a path segment or a subdomain.
+    pub addressing: S3Addressing,
     pub access_key: String,
     pub secret_key: String,
 }
@@ -138,25 +157,36 @@ pub const S3_ALGORITHM: &str = "AWS4-HMAC-SHA256";
 /// SHA-256 of the empty string — the payload hash for GET and HEAD.
 pub const EMPTY_SHA256: &str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-/// The app's object URL: path-style,
-/// `{endpoint}/{bucket}/<path>/aricma-todo/todos.db`.
+/// The app's object URL: `{endpoint}/{bucket}/<path>/aricma-todo/todos.db` for
+/// path-style, `https://{bucket}.{host}/<path>/aricma-todo/todos.db` for
+/// virtual-hosted.
 pub fn object_url(config: &S3Config) -> String {
-    format!(
-        "{}{}",
-        config.endpoint.trim_end_matches('/'),
-        object_path(config)
-    )
+    match config.addressing {
+        S3Addressing::Path => format!(
+            "{}{}",
+            config.endpoint.trim_end_matches('/'),
+            object_path(config)
+        ),
+        S3Addressing::VirtualHosted => format!(
+            "{}://{}{}",
+            scheme_of(&config.endpoint),
+            host_header(config),
+            object_path(config)
+        ),
+    }
 }
 
 /// The canonical URI for that object — what the signature covers. `path` is the
 /// user's prefix; the app's namespace folder and the db file always follow it
-/// (ADR-0019).
+/// (ADR-0019). Only path-style carries the bucket in the URI.
 pub fn object_path(config: &S3Config) -> String {
     let prefix = config.path.trim().trim_matches('/');
-    if prefix.is_empty() {
-        format!("/{}/{SOURCE_DIR}/{DB_FILE}", config.bucket)
-    } else {
-        format!("/{}/{}/{SOURCE_DIR}/{DB_FILE}", config.bucket, prefix)
+    let namespace = format!("{SOURCE_DIR}/{DB_FILE}");
+    match config.addressing {
+        S3Addressing::Path if prefix.is_empty() => format!("/{}/{namespace}", config.bucket),
+        S3Addressing::Path => format!("/{}/{prefix}/{namespace}", config.bucket),
+        S3Addressing::VirtualHosted if prefix.is_empty() => format!("/{namespace}"),
+        S3Addressing::VirtualHosted => format!("/{prefix}/{namespace}"),
     }
 }
 
@@ -170,6 +200,23 @@ pub fn host_of(endpoint: &str) -> String {
         .next()
         .unwrap_or_default()
         .to_string()
+}
+
+/// The scheme of an endpoint URL, defaulting to `https` when it carries none.
+fn scheme_of(endpoint: &str) -> &str {
+    endpoint
+        .split_once("://")
+        .map(|(scheme, _)| scheme)
+        .unwrap_or("https")
+}
+
+/// The `Host` header a request carries. Path-style signs and sends the endpoint's
+/// authority; virtual-hosted carries the bucket as a subdomain.
+pub fn host_header(config: &S3Config) -> String {
+    match config.addressing {
+        S3Addressing::Path => host_of(&config.endpoint),
+        S3Addressing::VirtualHosted => format!("{}.{}", config.bucket, host_of(&config.endpoint)),
+    }
 }
 
 /// The SigV4 canonical request. Byte-exact matters: every line ends with a
@@ -218,7 +265,7 @@ pub fn sign_request(
     payload_sha256: &str,
     amz_date: &str,
 ) -> Vec<(String, String)> {
-    let host = host_of(&config.endpoint);
+    let host = host_header(config);
     let date = amz_date.get(..8).unwrap_or_default();
     let canonical = canonical_request(method, canonical_uri, &host, payload_sha256, amz_date);
     let to_sign = string_to_sign(&canonical, amz_date);
@@ -357,6 +404,7 @@ mod tests {
             endpoint: "https://s3.example.com".to_string(),
             bucket: "aricma-todo-test".to_string(),
             path: String::new(),
+            addressing: S3Addressing::Path,
             access_key: "AKIDEXAMPLE".to_string(),
             secret_key: "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY".to_string(),
         }
@@ -393,6 +441,53 @@ mod tests {
             object_url(&prefixed),
             "https://s3.example.com/aricma-todo-test/team/aricma-todo/todos.db"
         );
+    }
+
+    #[test]
+    fn s3_virtual_hosted_puts_the_bucket_in_the_host() {
+        let virtual_hosted = S3Config {
+            addressing: S3Addressing::VirtualHosted,
+            ..s3()
+        };
+        assert_eq!(object_path(&virtual_hosted), "/aricma-todo/todos.db");
+        assert_eq!(
+            object_url(&virtual_hosted),
+            "https://aricma-todo-test.s3.example.com/aricma-todo/todos.db"
+        );
+        assert_eq!(
+            host_header(&virtual_hosted),
+            "aricma-todo-test.s3.example.com"
+        );
+
+        let prefixed = S3Config {
+            path: "team".to_string(),
+            ..virtual_hosted
+        };
+        assert_eq!(object_path(&prefixed), "/team/aricma-todo/todos.db");
+        assert_eq!(
+            object_url(&prefixed),
+            "https://aricma-todo-test.s3.example.com/team/aricma-todo/todos.db"
+        );
+    }
+
+    #[test]
+    fn s3_signs_the_host_it_addresses_the_bucket_with() {
+        let virtual_hosted = S3Config {
+            addressing: S3Addressing::VirtualHosted,
+            ..s3()
+        };
+        let headers = sign_request(
+            &virtual_hosted,
+            "GET",
+            &object_path(&virtual_hosted),
+            EMPTY_SHA256,
+            "20260921T000000Z",
+        );
+        let host = headers
+            .iter()
+            .find(|(name, _)| name == "Host")
+            .map(|(_, value)| value.as_str());
+        assert_eq!(host, Some("aricma-todo-test.s3.example.com"));
     }
 
     #[test]
