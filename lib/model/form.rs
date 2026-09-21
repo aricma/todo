@@ -22,9 +22,15 @@ pub struct Field {
     /// Stable key the value is stored under (`endpoint`, `secret_key`, …).
     pub key: &'static str,
     pub label: &'static str,
+    /// One line of help rendered under the input. Empty means no help.
+    pub description: &'static str,
     pub kind: FieldKind,
     /// Whether the form is incomplete until this has a value. The view marks the
     /// input `required`, so the browser enforces it.
     pub required: bool,
     pub placeholder: Option<&'static str>,
+    /// The value a fresh form starts with, and the one saved when the user
+    /// leaves the field alone. Empty means blank. A placeholder only hints at
+    /// the shape; this is real data the form submits.
+    pub default: &'static str,
 }

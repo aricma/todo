@@ -29,6 +29,9 @@ pub mod keys {
     pub const PASSWORD: &str = "password";
     pub const ENDPOINT: &str = "endpoint";
     pub const BUCKET: &str = "bucket";
+    /// The SigV4 region. Defaults to `us-east-1` (MinIO/SeaweedFS accept it for
+    /// any bucket; it is AWS's own default).
+    pub const REGION: &str = "region";
     pub const ACCESS_KEY: &str = "access_key";
     pub const SECRET_KEY: &str = "secret_key";
 }
@@ -110,42 +113,28 @@ pub fn base64_encode(input: &[u8]) -> String {
     out
 }
 
-/// How an S3 source addresses a bucket.
-///
-/// **Path-style** puts the bucket in the URL path (`{endpoint}/{bucket}/…`) and is
-/// what a self-hosted endpoint with no wildcard DNS can resolve (MinIO, SeaweedFS
-/// on a bare IP). **Virtual-hosted** puts it in the host (`{bucket}.{host}/…`),
-/// which AWS prefers. The canonical URI the signature covers and the `Host`
-/// header both differ, so this is a per-source fact, not a detail the transport
-/// can choose.
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
-pub enum S3Addressing {
-    /// `{endpoint}/{bucket}/{path}/aricma-todo/todos.db`.
-    #[default]
-    Path,
-    /// `{bucket}.{host}/{path}/aricma-todo/todos.db`.
-    VirtualHosted,
-}
-
-/// An S3 remote: an endpoint, one bucket, an optional key prefix, the addressing
-/// form, and the keys for it.
+/// An S3 remote, addressed **path-style** (`{endpoint}/{bucket}/…`): an endpoint,
+/// one bucket, the region the signature claims, an optional key prefix, and the
+/// keys for it. Path-style is what a self-hosted endpoint on a bare IP or with
+/// no per-bucket DNS can resolve (MinIO, SeaweedFS), and every S3 interface
+/// supports it.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct S3Config {
     /// The endpoint, no trailing slash and no bucket (`https://s3.example.com`).
     pub endpoint: String,
     pub bucket: String,
+    /// The region the signature claims. `us-east-1` unless the bucket lives
+    /// elsewhere on AWS.
+    pub region: String,
     /// An optional key prefix under the bucket, before the app's namespace folder
     /// (ADR-0019). Empty keeps the namespace directly in the bucket.
     pub path: String,
-    /// Whether the bucket is addressed as a path segment or a subdomain.
-    pub addressing: S3Addressing,
     pub access_key: String,
     pub secret_key: String,
 }
 
-/// The region the signature claims. MinIO and SeaweedFS accept `us-east-1` for
-/// any bucket, and a self-hosted remote is the whole point of this transport;
-/// a real AWS bucket elsewhere would need this to become a configuration field.
+/// The default region the signature claims when a configuration leaves it blank.
+/// MinIO and SeaweedFS accept it for any bucket, and it is AWS's own default.
 pub const S3_REGION: &str = "us-east-1";
 
 /// The SigV4 service name.
@@ -157,36 +146,27 @@ pub const S3_ALGORITHM: &str = "AWS4-HMAC-SHA256";
 /// SHA-256 of the empty string — the payload hash for GET and HEAD.
 pub const EMPTY_SHA256: &str = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-/// The app's object URL: `{endpoint}/{bucket}/<path>/aricma-todo/todos.db` for
-/// path-style, `https://{bucket}.{host}/<path>/aricma-todo/todos.db` for
-/// virtual-hosted.
+/// The app's object URL: `{endpoint}/{bucket}/<path>/aricma-todo/todos.db`.
 pub fn object_url(config: &S3Config) -> String {
-    match config.addressing {
-        S3Addressing::Path => format!(
-            "{}{}",
-            config.endpoint.trim_end_matches('/'),
-            object_path(config)
-        ),
-        S3Addressing::VirtualHosted => format!(
-            "{}://{}{}",
-            scheme_of(&config.endpoint),
-            host_header(config),
-            object_path(config)
-        ),
-    }
+    format!(
+        "{}{}",
+        config.endpoint.trim_end_matches('/'),
+        object_path(config)
+    )
 }
 
 /// The canonical URI for that object — what the signature covers. `path` is the
 /// user's prefix; the app's namespace folder and the db file always follow it
-/// (ADR-0019). Only path-style carries the bucket in the URI.
+/// (ADR-0019). The bucket is the URI's first segment: path-style reaches a
+/// self-hosted endpoint with no per-bucket DNS, and every S3 interface supports
+/// it.
 pub fn object_path(config: &S3Config) -> String {
     let prefix = config.path.trim().trim_matches('/');
     let namespace = format!("{SOURCE_DIR}/{DB_FILE}");
-    match config.addressing {
-        S3Addressing::Path if prefix.is_empty() => format!("/{}/{namespace}", config.bucket),
-        S3Addressing::Path => format!("/{}/{prefix}/{namespace}", config.bucket),
-        S3Addressing::VirtualHosted if prefix.is_empty() => format!("/{namespace}"),
-        S3Addressing::VirtualHosted => format!("/{prefix}/{namespace}"),
+    if prefix.is_empty() {
+        format!("/{}/{namespace}", config.bucket)
+    } else {
+        format!("/{}/{prefix}/{namespace}", config.bucket)
     }
 }
 
@@ -202,21 +182,10 @@ pub fn host_of(endpoint: &str) -> String {
         .to_string()
 }
 
-/// The scheme of an endpoint URL, defaulting to `https` when it carries none.
-fn scheme_of(endpoint: &str) -> &str {
-    endpoint
-        .split_once("://")
-        .map(|(scheme, _)| scheme)
-        .unwrap_or("https")
-}
-
-/// The `Host` header a request carries. Path-style signs and sends the endpoint's
-/// authority; virtual-hosted carries the bucket as a subdomain.
+/// The `Host` header a request carries: path-style signs and sends the endpoint's
+/// authority.
 pub fn host_header(config: &S3Config) -> String {
-    match config.addressing {
-        S3Addressing::Path => host_of(&config.endpoint),
-        S3Addressing::VirtualHosted => format!("{}.{}", config.bucket, host_of(&config.endpoint)),
-    }
+    host_of(&config.endpoint)
 }
 
 /// The SigV4 canonical request. Byte-exact matters: every line ends with a
@@ -243,11 +212,10 @@ pub const SIGNED_HEADERS: &str = "host;x-amz-content-sha256;x-amz-date";
 
 /// The SigV4 string to sign: algorithm, timestamp, scope, then the hash of the
 /// canonical request.
-pub fn string_to_sign(canonical_request: &str, amz_date: &str) -> String {
+pub fn string_to_sign(canonical_request: &str, amz_date: &str, region: &str) -> String {
     let date = amz_date.get(..8).unwrap_or_default();
     format!(
-        "{S3_ALGORITHM}\n{amz_date}\n{date}/{}/{S3_SERVICE}/aws4_request\n{}",
-        S3_REGION,
+        "{S3_ALGORITHM}\n{amz_date}\n{date}/{region}/{S3_SERVICE}/aws4_request\n{}",
         sha256_hex(canonical_request.as_bytes())
     )
 }
@@ -268,12 +236,15 @@ pub fn sign_request(
     let host = host_header(config);
     let date = amz_date.get(..8).unwrap_or_default();
     let canonical = canonical_request(method, canonical_uri, &host, payload_sha256, amz_date);
-    let to_sign = string_to_sign(&canonical, amz_date);
-    let signature = hex(&hmac(&signing_key(&config.secret_key, date), &to_sign));
+    let to_sign = string_to_sign(&canonical, amz_date, &config.region);
+    let signature = hex(&hmac(
+        &signing_key(&config.secret_key, date, &config.region),
+        &to_sign,
+    ));
     let authorization = format!(
         "{S3_ALGORITHM} Credential={}/{date}/{}/{S3_SERVICE}/aws4_request, \
          SignedHeaders={SIGNED_HEADERS}, Signature={signature}",
-        config.access_key, S3_REGION
+        config.access_key, config.region
     )
     .replace("         ", "");
 
@@ -291,9 +262,9 @@ pub fn sign_request(
 /// The SigV4 signing key: the secret through four HMACs (date, region,
 /// service, terminator). Deriving it once per request is what the algorithm
 /// specifies; it is cheap.
-fn signing_key(secret: &str, date: &str) -> Vec<u8> {
+fn signing_key(secret: &str, date: &str, region: &str) -> Vec<u8> {
     let k_date = hmac(format!("AWS4{secret}").as_bytes(), date);
-    let k_region = hmac(&k_date, S3_REGION);
+    let k_region = hmac(&k_date, region);
     let k_service = hmac(&k_region, S3_SERVICE);
     hmac(&k_service, "aws4_request")
 }
@@ -403,8 +374,8 @@ mod tests {
         S3Config {
             endpoint: "https://s3.example.com".to_string(),
             bucket: "aricma-todo-test".to_string(),
+            region: S3_REGION.to_string(),
             path: String::new(),
-            addressing: S3Addressing::Path,
             access_key: "AKIDEXAMPLE".to_string(),
             secret_key: "wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY".to_string(),
         }
@@ -444,50 +415,35 @@ mod tests {
     }
 
     #[test]
-    fn s3_virtual_hosted_puts_the_bucket_in_the_host() {
-        let virtual_hosted = S3Config {
-            addressing: S3Addressing::VirtualHosted,
-            ..s3()
-        };
-        assert_eq!(object_path(&virtual_hosted), "/aricma-todo/todos.db");
-        assert_eq!(
-            object_url(&virtual_hosted),
-            "https://aricma-todo-test.s3.example.com/aricma-todo/todos.db"
-        );
-        assert_eq!(
-            host_header(&virtual_hosted),
-            "aricma-todo-test.s3.example.com"
-        );
-
-        let prefixed = S3Config {
-            path: "team".to_string(),
-            ..virtual_hosted
-        };
-        assert_eq!(object_path(&prefixed), "/team/aricma-todo/todos.db");
-        assert_eq!(
-            object_url(&prefixed),
-            "https://aricma-todo-test.s3.example.com/team/aricma-todo/todos.db"
-        );
-    }
-
-    #[test]
-    fn s3_signs_the_host_it_addresses_the_bucket_with() {
-        let virtual_hosted = S3Config {
-            addressing: S3Addressing::VirtualHosted,
+    fn s3_signs_the_endpoint_authority_and_the_configured_region() {
+        // Frankfurt, not the default: the scope and the derived key both carry
+        // the region, so a hardcoded one would be wrong for any AWS bucket that
+        // is not in us-east-1.
+        let frankfurt = S3Config {
+            region: "eu-central-1".to_string(),
             ..s3()
         };
         let headers = sign_request(
-            &virtual_hosted,
+            &frankfurt,
             "GET",
-            &object_path(&virtual_hosted),
+            &object_path(&frankfurt),
             EMPTY_SHA256,
-            "20260921T000000Z",
+            "20130524T000000Z",
         );
         let host = headers
             .iter()
             .find(|(name, _)| name == "Host")
             .map(|(_, value)| value.as_str());
-        assert_eq!(host, Some("aricma-todo-test.s3.example.com"));
+        assert_eq!(host, Some("s3.example.com"));
+        let auth = &headers
+            .iter()
+            .find(|(n, _)| n == "Authorization")
+            .unwrap()
+            .1;
+        assert!(
+            auth.contains("Credential=AKIDEXAMPLE/20130524/eu-central-1/s3/aws4_request"),
+            "{auth}"
+        );
     }
 
     #[test]
@@ -534,7 +490,7 @@ mod tests {
     fn the_string_to_sign_carries_the_scope_and_the_request_hash() {
         let canonical =
             canonical_request("GET", "/b/todos.db", "h", EMPTY_SHA256, "20130524T000000Z");
-        let to_sign = string_to_sign(&canonical, "20130524T000000Z");
+        let to_sign = string_to_sign(&canonical, "20130524T000000Z", S3_REGION);
         let mut lines = to_sign.lines();
         assert_eq!(lines.next(), Some(S3_ALGORITHM));
         assert_eq!(lines.next(), Some("20130524T000000Z"));
