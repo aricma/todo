@@ -15,6 +15,6 @@ pub use capacity::{check_capacity, CapacityError};
 pub use data_source::DataSource;
 pub use data_source_configuration::{Availability, DataSourceConfiguration};
 pub use data_source_message::{messages, DataSourceContext, DataSourceMessage};
-pub use form::{Field, FieldKind};
+pub use form::{Field, FieldKind, FieldValue};
 pub use message::Message;
 pub use task::{new_id, Freq, Recurrence, Status, Task, WeekdayName};
