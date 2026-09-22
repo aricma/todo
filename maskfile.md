@@ -65,6 +65,14 @@ cargo test --lib
 > | seaweedfs | S3 — endpoint `http://127.0.0.1:9200`, bucket `my-bucket`, prefix blank, any keys; the app writes `my-bucket/aricma-todo/todos.db` |
 > | ftp | FTP — **host test only, not the app** (a browser cannot open a TCP socket). `ARICMA_FTP_URL` defaults to `ftp://127.0.0.1:2121`, user `aricma-test` / `aricma-test-secret`. Run it with `docker compose up -d ftp && cargo test --lib ftp -- --ignored`. |
 >
+>
+> A **dev build** already has the first four as tiles — `Local nginx (WebDAV)`,
+> `Local apache (WebDAV)`, `Local MinIO (S3)`, `Local SeaweedFS (S3)` — with the
+> address and the credentials filled in, so none of the table above has to be
+> typed. They come from `app/constants/dev.rs` and are in debug builds only
+> (`mask preview`, not `mask build --release`); a port you overrode is a job for
+> the generic blueprint, which asks for it.
+>
 > The buckets are created for you, and the data is bind-mounted under
 > `tmp/backends/<backend>/`, so the `todos.db` the app syncs can be inspected on
 > disk. Ports are overridable (`NGINX_PORT=8090 mask preview -b nginx`).
