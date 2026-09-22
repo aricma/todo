@@ -10,6 +10,7 @@ pub mod drive;
 /// is not compiled into the wasm app. See the module docs in `ftp`.
 #[cfg(not(target_arch = "wasm32"))]
 pub mod ftp;
+pub mod local_place;
 pub mod model;
 pub mod ops;
 pub mod parse;
