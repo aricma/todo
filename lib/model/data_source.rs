@@ -31,6 +31,12 @@ pub struct DataSource {
     /// to the kind, was three ways to say the same thing badly. Creating one asks
     /// for it; migration names what predates that.
     pub name: String,
+    /// A line about what this source is. Empty for one the user created: its
+    /// kind's configuration is what describes it. Set only on a source the app
+    /// defines itself (the default dev backends), where there is no configuration
+    /// to ask.
+    #[serde(default)]
+    pub description: String,
     /// The configured fields, keyed by `remote::keys`.
     pub fields: BTreeMap<String, String>,
 }
@@ -57,6 +63,7 @@ mod tests {
             id: "webdav-1a2b3c4d".to_string(),
             kind: "webdav".to_string(),
             name: name.to_string(),
+            description: String::new(),
             fields,
         }
     }
