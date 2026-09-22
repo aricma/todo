@@ -39,7 +39,11 @@ web-sys = { version = "0.3", features = [
   "FileSystemRemoveOptions",
   "Headers", "Request", "RequestInit", "RequestMode", "Response",
   "FileSystemWritableFileStream", "FileSystemCreateWritableOptions",
-  "FileSystemDirectoryHandle", "FileSystemFileHandle", "FileSystemHandle", "FileSystemGetFileOptions"
+  "FileSystemDirectoryHandle", "FileSystemFileHandle", "FileSystemHandle", "FileSystemGetFileOptions",
+  "FileSystemGetDirectoryOptions",
+  "IdbFactory", "IdbDatabase", "IdbObjectStore", "IdbTransaction", "IdbTransactionMode",
+  "IdbRequest", "IdbOpenDbRequest", "DomStringList", "DomException",
+  "StorageManager", "StorageEstimate"
 ] }
 serde-wasm-bindgen = "0.6"
 console_error_panic_hook = "0.1"

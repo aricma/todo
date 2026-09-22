@@ -42,6 +42,10 @@ pub struct DataSourceContext {
     /// Whether the OPFS store is available here. False in a private window,
     /// and in a browser without the sync access handle (Safari).
     pub opfs_available: bool,
+    /// Whether a whole-file IndexedDB mirror is available here. It survives a
+    /// reload, so it is the middle answer between OPFS and a page-lifetime
+    /// store: present wherever OPFS is not, including private windows.
+    pub indexed_db_available: bool,
 }
 
 /// The configuration's messages that apply in `ctx`, in declaration order.
@@ -75,6 +79,13 @@ mod tests {
         }
     }
 
+    fn context(opfs_available: bool, indexed_db_available: bool) -> DataSourceContext {
+        DataSourceContext {
+            opfs_available,
+            indexed_db_available,
+        }
+    }
+
     #[test]
     fn a_message_only_applies_in_its_context() {
         let configuration = browser(vec![
@@ -88,21 +99,47 @@ mod tests {
             },
         ]);
 
-        let titles = |opfs_available| {
-            messages(&configuration, &DataSourceContext { opfs_available })
+        let titles = |c| {
+            messages(&configuration, &c)
                 .map(|m| m.title().unwrap_or_default().to_string())
                 .collect::<Vec<_>>()
         };
 
-        assert_eq!(titles(true), vec!["Can be cleared"]);
-        assert_eq!(titles(false), vec!["Lost on close"]);
+        assert_eq!(titles(context(true, true)), vec!["Can be cleared"]);
+        assert_eq!(titles(context(false, false)), vec!["Lost on close"]);
+    }
+
+    #[test]
+    fn the_browser_copy_is_three_way() {
+        let configuration = browser(vec![
+            DataSourceMessage {
+                applies: |c| c.opfs_available,
+                message: Message::warning("Can be cleared", "OPFS."),
+            },
+            DataSourceMessage {
+                applies: |c| !c.opfs_available && c.indexed_db_available,
+                message: Message::warning("Kept in this browser", "IndexedDB."),
+            },
+            DataSourceMessage {
+                applies: |c| !c.opfs_available && !c.indexed_db_available,
+                message: Message::warning("Lost on close", "Memory."),
+            },
+        ]);
+
+        let titles = |c| {
+            messages(&configuration, &c)
+                .map(|m| m.title().unwrap_or_default().to_string())
+                .collect::<Vec<_>>()
+        };
+
+        assert_eq!(titles(context(true, true)), vec!["Can be cleared"]);
+        assert_eq!(titles(context(false, true)), vec!["Kept in this browser"]);
+        assert_eq!(titles(context(false, false)), vec!["Lost on close"]);
     }
 
     #[test]
     fn a_configuration_can_have_no_message() {
-        let ctx = DataSourceContext {
-            opfs_available: true,
-        };
+        let ctx = context(true, true);
         let with = browser(vec![DataSourceMessage {
             applies: |c| c.opfs_available,
             message: Message::warning("Heads up", "Can be cleared."),
