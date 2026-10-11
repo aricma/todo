@@ -16,6 +16,9 @@ path = "app/main.rs"
 leptos = { version = "0.7", features = ["csr"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_yaml = "0.9"
+# The OPS reference reader/writer, pinned in its own repository.
+ops-lib = { git = "https://github.com/aricma/open-productivity-standard", rev = "1dbb9acce05c7cd6555b1a238ace9298b201ef1f" }
 time = { version = "0.3", default-features = false, features = ["std", "formatting"] }
 # SigV4 signing for the S3 transport (ADR-0016). RustCrypto, no_std-friendly:
 # they build for wasm32 like the rest of the lib.

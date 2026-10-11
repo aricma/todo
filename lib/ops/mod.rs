@@ -1,50 +1,75 @@
-//! OPS import/export (MVP.md §8, ADR-0007) — one module per serialization:
-//! [`json`] (tree JSON + JSONL), [`csv`] (the spec's flat dialect),
-//! [`markdown`] (checklist with metadata comments). The shared pieces live
-//! here: the OPS document types, general parsing helpers, and the
-//! Task ↔ OpsTask mapping every format's import and export routes through.
-//! `metadata` is preserved verbatim so round-trips are lossless (OPS
-//! conformance); `due_local` rides along so local calendar dates survive
-//! (ADR-0004).
+//! OPS import/export (MVP.md §8, ADR-0007): the app's `Task` converted to and
+//! from the OPS task and read/written by the reference `ops-lib` crate
+//! (submodule: `open-productivity-standard/ops`). The serializations live in
+//! that library; this module is the app-side seam — the mapping, format
+//! detection, and the metadata-key [`repair`] that makes foreign files
+//! importable.
+//!
+//! Formats: JSON, YAML, JSONL, CSV. Markdown is a draft in the standard and
+//! not claimed by `ops-lib`, so the app neither imports nor exports it.
+//!
+//! `metadata` rides verbatim so a round trip keeps what the app does not
+//! understand (OPS conformance). App fields the standard recommends a key for
+//! become metadata on export and typed fields on import; see `to_metadata` /
+//! `flatten`.
 
-mod csv;
-mod json;
-mod markdown;
+mod repair;
 
-pub use csv::{parse_csv_doc, serialize_csv};
-pub use json::{parse_jsonl_doc, serialize_export, serialize_jsonl, validate_doc};
-pub use markdown::{parse_markdown_doc, serialize_markdown};
+#[cfg(test)]
+mod tests;
 
-use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
+pub use repair::Repair;
 
-use crate::model::{new_id, Status, Task};
+use repair::valid_key;
 
-/// The OPS Specifications version this app's exports declare (spec rule 6:
-/// roots carry the version their subtree is modeled after; every task in
-/// this app's flat exports is a root). Mirrors the draft spec's frontmatter
-/// (`version: "0"`, status: draft) — bump when the spec releases.
-pub const OPS_VERSION: &str = "0";
+use std::collections::{HashMap, HashSet};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct OpsDoc {
-    pub tasks: Vec<OpsTask>,
+use ops_lib::v0::{self, Format, Metadata, Task as OpsTask};
+use serde_json::Value;
+
+use crate::model::{new_id, Recurrence, Status, Task};
+
+/// The OPS Specifications version this app writes (spec: roots carry the
+/// version their subtree is modeled after).
+const OPS_VERSION: &str = "0";
+
+/// An export format: the name the UI and `ops-lib` share, plus its file type.
+pub struct ExportFormat {
+    pub name: &'static str,
+    pub extension: &'static str,
+    pub mime: &'static str,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct OpsTask {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub version: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub id: Option<String>,
-    pub title: String,
-    pub status: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub notes: Option<String>,
-    #[serde(default)]
-    pub subtasks: Vec<Value>,
-    #[serde(default)]
-    pub metadata: Map<String, Value>,
+/// The formats the export offers; JSON first (the default).
+pub const EXPORT_FORMATS: &[ExportFormat] = &[
+    ExportFormat {
+        name: "json",
+        extension: "json",
+        mime: "application/json",
+    },
+    ExportFormat {
+        name: "yaml",
+        extension: "yaml",
+        mime: "application/yaml",
+    },
+    ExportFormat {
+        name: "jsonl",
+        extension: "jsonl",
+        mime: "application/jsonl",
+    },
+    ExportFormat {
+        name: "csv",
+        extension: "csv",
+        mime: "text/csv",
+    },
+];
+
+/// What one file became in the store, plus the key renames the import applied
+/// so the UI can say what it fixed.
+#[derive(Debug)]
+pub struct ImportOutcome {
+    pub tasks: Vec<Task>,
+    pub repairs: Vec<String>,
 }
 
 #[derive(Debug, Default, PartialEq, Eq)]
@@ -53,6 +78,7 @@ pub struct ImportResult {
     pub updated: usize,
     pub skipped: usize,
     pub errors: Vec<String>,
+    pub repairs: Vec<String>,
 }
 
 impl ImportResult {
@@ -71,166 +97,235 @@ impl ImportResult {
     }
 }
 
-/// OPS rule 5: keys must match `^[a-z0-9_]{3,}$`. Shared by the JSON
-/// validator and the CSV extra-column path.
-pub(crate) fn valid_metadata_key(k: &str) -> bool {
-    k.len() >= 3
-        && k.chars()
-            .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+/// Read a document in any supported format: detect, repair invalid metadata
+/// keys, read with `ops-lib`, convert to the app's tasks.
+pub fn read_tasks(text: &str, now: &str) -> Result<ImportOutcome, String> {
+    let format = detect_format(text);
+    let (repaired, repairs) = repair::repair(format, text)?;
+    let tasks = v0::read(format, &repaired).map_err(|e| e.to_string())?;
+    Ok(ImportOutcome {
+        tasks: from_ops(tasks, now),
+        repairs: repairs.iter().map(Repair::describe).collect(),
+    })
 }
 
-fn set_meta(m: &mut Map<String, Value>, k: &str, v: Option<&String>) {
-    match v {
-        Some(v) => {
-            m.insert(k.into(), Value::String(v.clone()));
+/// Write the app's tasks as an OPS document in `format`.
+pub fn write_tasks(format: &str, tasks: &[Task]) -> Result<String, String> {
+    let format =
+        Format::from_name(format).ok_or_else(|| format!("unsupported format `{format}`"))?;
+    v0::write(format, &to_ops(tasks)).map_err(|e| e.to_string())
+}
+
+// ── Format detection ────────────────────────────────────────────────────────
+
+fn detect_format(text: &str) -> Format {
+    if looks_like_csv(text) {
+        return Format::Csv;
+    }
+    let trimmed = text.trim();
+    if trimmed.starts_with('{') || trimmed.starts_with('[') {
+        if serde_json::from_str::<Value>(trimmed).is_ok() {
+            return Format::Json;
+        }
+        if text
+            .lines()
+            .filter(|line| !line.trim().is_empty())
+            .all(|line| serde_json::from_str::<Value>(line).is_ok())
+        {
+            return Format::Jsonl;
+        }
+    }
+    Format::Yaml
+}
+
+/// A first line with a `status` cell is a CSV header (the OPS dialect or a
+/// foreign one).
+fn looks_like_csv(text: &str) -> bool {
+    text.lines()
+        .next()
+        .map(|header| {
+            header
+                .split(',')
+                .any(|cell| cell.trim().eq_ignore_ascii_case("status"))
+        })
+        .unwrap_or(false)
+}
+
+// ── Task → OPS ──────────────────────────────────────────────────────────────
+
+fn to_ops(tasks: &[Task]) -> Vec<OpsTask> {
+    let ids: HashSet<&str> = tasks.iter().map(|task| task.id.as_str()).collect();
+    let mut children: HashMap<&str, Vec<&Task>> = HashMap::new();
+    let mut roots: Vec<&Task> = Vec::new();
+    for task in tasks {
+        match task.parent_id.as_deref() {
+            Some(parent) if parent != task.id.as_str() && ids.contains(parent) => {
+                children.entry(parent).or_default().push(task);
+            }
+            _ => roots.push(task),
+        }
+    }
+    roots
+        .iter()
+        .map(|task| build_ops(task, &children, true))
+        .collect()
+}
+
+fn build_ops(task: &Task, children: &HashMap<&str, Vec<&Task>>, root: bool) -> OpsTask {
+    let subtasks = children
+        .get(task.id.as_str())
+        .map(|kids| {
+            kids.iter()
+                .map(|kid| build_ops(kid, children, false))
+                .collect()
+        })
+        .unwrap_or_default();
+    OpsTask {
+        title: task.title.clone(),
+        status: match task.status {
+            Status::Open => v0::Status::Open,
+            Status::Done => v0::Status::Done,
+        },
+        id: Some(task.id.clone()).filter(|id| !id.is_empty()),
+        version: root.then(|| OPS_VERSION.to_string()),
+        notes: task
+            .notes
+            .as_deref()
+            .filter(|notes| !notes.is_empty())
+            .map(str::to_string),
+        metadata: to_metadata(task),
+        subtasks,
+    }
+}
+
+/// The app fields as OPS metadata: the spec's recommended keys, plus the app's
+/// own `metadata` (kept verbatim, except keys that break the OPS charset and
+/// so cannot be written at all).
+fn to_metadata(task: &Task) -> Option<Metadata> {
+    let mut map = task.metadata.as_object().cloned().unwrap_or_default();
+    map.retain(|key, _| valid_key(key));
+
+    let mut set = |key: &str, value: Option<&String>| match value {
+        Some(value) => {
+            map.insert(key.to_string(), Value::String(value.clone()));
         }
         None => {
-            m.remove(k);
+            map.remove(key);
         }
-    }
-}
-
-/// OPS JSON doc — flat MVP tasks, `metadata` preserved verbatim so
-/// round-trips are lossless (OPS conformance). Child-id lists (flat-format
-/// `subtasks`) ride in metadata through the MVP-flat app.
-pub fn task_to_ops(t: &Task) -> OpsTask {
-    let mut metadata: Map<String, Value> = t.metadata.as_object().cloned().unwrap_or_default();
-    // Child-id lists are an OPS column in flat formats, not metadata — but
-    // the MVP app is flat, so they live in metadata; export them as the
-    // column so flat round-trips stay lossless.
-    let subtasks = metadata
-        .remove("subtasks")
-        .and_then(|v| v.as_array().cloned())
-        .unwrap_or_default();
-    set_meta(&mut metadata, "due_date", t.due_date.as_ref());
-    // due_local rides along so local-calendar dates survive round trips
-    // (re-deriving from the UTC instant would shift a day for non-UTC users).
-    set_meta(&mut metadata, "due_local", t.due_local.as_ref());
-    set_meta(&mut metadata, "priority", t.priority.as_ref());
-    set_meta(&mut metadata, "location", t.location.as_ref());
-    metadata.insert(
-        "tags".into(),
-        Value::Array(t.tags.iter().map(|s| Value::String(s.clone())).collect()),
-    );
-    if let Some(r) = &t.recurrence {
-        metadata.insert(
-            "recurrence".into(),
-            serde_json::to_value(r).expect("recurrence"),
+    };
+    set("due_date", task.due_date.as_ref());
+    set("due_local", task.due_local.as_ref());
+    set("priority", task.priority.as_ref());
+    set("location", task.location.as_ref());
+    set("completed_at", task.completed_at.as_ref());
+    map.insert("created_at".into(), Value::String(task.created_at.clone()));
+    map.insert("updated_at".into(), Value::String(task.updated_at.clone()));
+    if !task.tags.is_empty() {
+        map.insert(
+            "tags".into(),
+            Value::Array(task.tags.iter().cloned().map(Value::String).collect()),
         );
     }
-    set_meta(&mut metadata, "created_at", Some(&t.created_at));
-    set_meta(&mut metadata, "updated_at", Some(&t.updated_at));
-    set_meta(&mut metadata, "completed_at", t.completed_at.as_ref());
-    OpsTask {
-        version: Some(OPS_VERSION.to_string()),
-        id: Some(t.id.clone()),
-        title: t.title.clone(),
-        status: t.status.as_str().to_string(),
-        notes: t.notes.clone(),
-        subtasks,
-        metadata,
+    if let Some(value) = task
+        .recurrence
+        .as_ref()
+        .and_then(|recurrence| serde_json::to_value(recurrence).ok())
+    {
+        map.insert("recurrence".into(), value);
     }
+
+    let metadata: Metadata = serde_json::from_value(Value::Object(map)).ok()?;
+    (!metadata.is_empty()).then_some(metadata)
 }
 
-/// Map a validated OPS task to a DB Task; unknown metadata rides along verbatim.
-pub fn ops_to_task(ops: OpsTask, now: &str) -> Task {
-    let mut meta = ops.metadata;
-    // Flat-format child-id lists ride along verbatim (OPS Transformer: keep
-    // the graph even when the MVP doesn't render it).
-    if !ops.subtasks.is_empty() {
-        meta.insert("subtasks".into(), Value::Array(ops.subtasks));
+// ── OPS → Task ──────────────────────────────────────────────────────────────
+
+fn from_ops(tasks: Vec<OpsTask>, now: &str) -> Vec<Task> {
+    let mut out = Vec::new();
+    for task in tasks {
+        flatten(task, None, now, &mut out);
     }
-    let s = |k: &str| meta.get(k).and_then(|v| v.as_str()).map(str::to_string);
-    let tags = meta
-        .get("tags")
-        .and_then(|v| match v {
-            Value::Array(a) => Some(
-                a.iter()
-                    .filter_map(|v| v.as_str().map(str::to_string))
-                    .collect(),
-            ),
-            // Foreign/legacy CSVs carry tags as a comma-separated string.
-            Value::String(s) => Some(
-                s.split(',')
-                    .filter(|t| !t.is_empty())
-                    .map(str::to_string)
-                    .collect(),
-            ),
+    out
+}
+
+/// One OPS task and its subtree, pre-order: the tree becomes flat tasks with
+/// `parent_id`, which is what the app stores.
+fn flatten(task: OpsTask, parent_id: Option<&str>, now: &str, out: &mut Vec<Task>) {
+    let OpsTask {
+        title,
+        status,
+        id,
+        version: _,
+        notes,
+        metadata,
+        subtasks,
+    } = task;
+    let id = id.filter(|id| !id.is_empty()).unwrap_or_else(new_id);
+    let mut meta = metadata
+        .and_then(|metadata| serde_json::to_value(&metadata).ok())
+        .and_then(|value| match value {
+            Value::Object(map) => Some(map),
             _ => None,
         })
         .unwrap_or_default();
-    Task {
-        id: ops.id.filter(|s| !s.is_empty()).unwrap_or_else(new_id),
-        title: ops.title,
-        status: Status::parse(&ops.status),
-        notes: ops.notes,
-        parent_id: None,
-        created_at: s("created_at").unwrap_or_else(|| now.to_string()),
-        updated_at: s("updated_at").unwrap_or_else(|| now.to_string()),
-        completed_at: s("completed_at"),
-        due_date: s("due_date"),
-        due_local: s("due_local")
-            .or_else(|| s("due_date").and_then(|d| d.get(..10).map(str::to_string))),
-        priority: s("priority"),
-        location: s("location"),
+
+    let due_date = take_string(&mut meta, "due_date");
+    let due_local = take_string(&mut meta, "due_local").or_else(|| {
+        due_date
+            .as_deref()
+            .and_then(|date| date.get(..10))
+            .map(str::to_string)
+    });
+    let priority = take_string(&mut meta, "priority");
+    let location = take_string(&mut meta, "location");
+    let completed_at = take_string(&mut meta, "completed_at");
+    let created_at = take_string(&mut meta, "created_at").unwrap_or_else(|| now.to_string());
+    let updated_at = take_string(&mut meta, "updated_at").unwrap_or_else(|| now.to_string());
+    let tags = meta
+        .remove("tags")
+        .map(|value| match value {
+            Value::Array(items) => items
+                .iter()
+                .filter_map(|item| item.as_str().map(str::to_string))
+                .collect(),
+            // Foreign CSVs carry tags as a comma-separated string.
+            Value::String(text) => text
+                .split(',')
+                .map(str::trim)
+                .filter(|tag| !tag.is_empty())
+                .map(str::to_string)
+                .collect(),
+            _ => Vec::new(),
+        })
+        .unwrap_or_default();
+    let recurrence = meta
+        .remove("recurrence")
+        .and_then(|value| serde_json::from_value::<Recurrence>(value).ok());
+
+    out.push(Task {
+        id: id.clone(),
+        title,
+        status: Status::parse(status.as_str()),
+        notes,
+        parent_id: parent_id.map(str::to_string),
+        created_at,
+        updated_at,
+        completed_at,
+        due_date,
+        due_local,
+        priority,
+        location,
         tags,
-        recurrence: meta
-            .get("recurrence")
-            .and_then(|v| serde_json::from_value(v.clone()).ok()),
+        recurrence,
         metadata: Value::Object(meta),
+    });
+
+    for child in subtasks {
+        flatten(child, Some(&id), now, out);
     }
 }
 
-// ── shared test fixture (used by the domain test modules) ────────────────
-
-#[cfg(test)]
-const EXPORT_FIXTURE: &str = r#"{
-  "tasks": [{
-    "id": "t1", "title": "Buy milk", "status": "open",
-    "notes": null, "subtasks": [],
-    "metadata": { "due_date": "2026-03-14T23:00:00.000Z", "due_local": "2026-03-15",
-      "priority": "high", "tags": ["errands"], "location": "shop",
-      "recurrence": { "freq": "weekly", "interval": 1 },
-      "created_at": "2026-03-13T10:00:00.000Z", "updated_at": "2026-03-13T10:00:00.000Z",
-      "completed_at": null }
-  }]
-}"#;
-
-/// A task decoded from the shared export fixture, with every typed field
-/// populated — the round-trip baseline for all format tests.
-#[cfg(test)]
-pub(crate) fn fixture_task() -> Task {
-    let doc = json::validate_doc(EXPORT_FIXTURE).unwrap();
-    ops_to_task(
-        doc.tasks.into_iter().next().unwrap(),
-        "2026-03-13T10:00:00.000Z",
-    )
-}
-
-#[cfg(test)]
-mod import_result_tests {
-    use super::ImportResult;
-
-    /// The app shows this line verbatim, and reads `is_empty` to decide
-    /// between "imported" and "nothing was in that file".
-    #[test]
-    fn the_summary_counts_what_the_import_did() {
-        let result = ImportResult {
-            imported: 3,
-            updated: 1,
-            skipped: 0,
-            errors: Vec::new(),
-        };
-        assert_eq!(result.summary(), "imported 3, updated 1, skipped 0");
-        assert!(!result.is_empty());
-
-        assert!(ImportResult::default().is_empty());
-        // An update-only import still changed the store.
-        assert!(!ImportResult {
-            imported: 0,
-            updated: 2,
-            ..Default::default()
-        }
-        .is_empty());
-    }
+fn take_string(map: &mut serde_json::Map<String, Value>, key: &str) -> Option<String> {
+    map.remove(key)
+        .and_then(|value| value.as_str().map(str::to_string))
 }
