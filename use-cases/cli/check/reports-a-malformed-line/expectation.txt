@@ -1,0 +1,2 @@
+exit: 1
+stdout: :2: malformed task line

@@ -1,0 +1,6 @@
+wait: pay rent
+key: e
+key: home
+text: big 
+key: enter
+wait: big pay rent

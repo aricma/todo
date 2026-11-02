@@ -1,0 +1,28 @@
+---
+source: tui/src/ui/mod.rs
+expression: "screen(&app).join(\"\\n\")"
+---
+╭ files ─────────────────────╮  ╭ a/TODOs.md ──────────────────────────────────╮
+│ ▸ a/TODOs.md  2/2          │  │ # inbox                                      │
+│   b/TASKS.md  0/1          │  │                                              │
+│                            │  │ [ ] (A) pay rent #home @sam                  │
+│                            │  │ [x] ship it                                  │
+│                            │  │                                              │
+╰────────────────────────────╯  │ ## later                                     │
+╭ outline ───────────────────╮  │                                              │
+│ # inbox                    │  │                                              │
+│   ## later                 │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+╰────────────────────────────╯  │                                              │
+╭ history ───────────────────╮  │                                              │
+│ [ ] check · pay rent       │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+╰────────────────────────────╯  ╰──────────────────────────────────────────────╯
+ 2/2  ▸ history · tab files · shift+tab outline · → a/TODOs.md · r reload · q qu
+ ↑/↓ entry · x/space undo/redo · d forget

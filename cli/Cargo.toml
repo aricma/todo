@@ -1,0 +1,26 @@
+[package]
+name = "aricma-todo-cli"
+version.workspace = true
+edition.workspace = true
+description = "Check, format, export and import todo lines in markdown files"
+
+[[bin]]
+name = "aricma-todo"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+aricma-todo-lib = { path = "../lib" }
+
+[dev-dependencies]
+testkit = { path = "../../testkit" }
+datatest-stable = "0.3"
+tempfile = "3"
+
+[[test]]
+name = "cases"
+path = "tests/cases.rs"
+harness = false

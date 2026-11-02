@@ -1,0 +1,15 @@
+[package]
+name = "aricma-todo-lib"
+version.workspace = true
+edition.workspace = true
+description = "Read and edit todo lines in markdown files"
+
+[lints]
+workspace = true
+
+[dependencies]
+ops-lib = { git = "https://github.com/aricma/open-productivity-standard", rev = "1dbb9acce05c7cd6555b1a238ace9298b201ef1f" }
+
+[dev-dependencies]
+serde_json = "1"
+tempfile = "3"

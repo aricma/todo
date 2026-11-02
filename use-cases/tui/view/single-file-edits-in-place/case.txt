@@ -1,0 +1,1 @@
+A file argument opens single-file mode: the index is full width and checking still writes.

@@ -1,0 +1,1 @@
+x checks the selected todo and writes it straight back.

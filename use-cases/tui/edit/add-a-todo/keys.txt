@@ -1,0 +1,5 @@
+wait: first
+key: a
+text: ship it #infra @dave
+key: enter
+wait: ship it #infra

@@ -1,0 +1,1 @@
+format does not write a file that is already canonical: the bytes stay the same.

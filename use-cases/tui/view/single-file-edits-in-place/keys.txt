@@ -1,0 +1,3 @@
+wait: todos
+key: x
+wait: [x] (A) pay rent

@@ -1,0 +1,7 @@
+wait: second
+key: down
+key: down
+key: up
+key: G
+key: g
+wait: third

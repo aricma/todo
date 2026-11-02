@@ -1,0 +1,1 @@
+check with no path checks the current directory.

@@ -1,0 +1,1 @@
+Unchecking the history entry undoes the check, writing the original line back.

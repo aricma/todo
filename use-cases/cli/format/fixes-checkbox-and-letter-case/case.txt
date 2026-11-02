@@ -1,0 +1,1 @@
+format lowercases the checkbox and uppercases the priority letter, nothing else.

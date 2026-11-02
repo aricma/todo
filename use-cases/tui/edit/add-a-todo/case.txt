@@ -1,0 +1,1 @@
+a opens one text field; Enter appends the todo with its tags and assignee.

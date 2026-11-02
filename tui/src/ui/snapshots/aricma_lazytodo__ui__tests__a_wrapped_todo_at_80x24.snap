@@ -1,0 +1,28 @@
+---
+source: tui/src/ui/mod.rs
+expression: "screen(&app).join(\"\\n\")"
+---
+╭ todos ───────────────────────────────────────────────────────────────────────╮
+│ [ ] (A) @dave fix the worst bug of the century before the release #bug       │
+│     #infra                                                                   │
+│ [x] short one                                                                │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭ history ─────────────────────────────────────────────────────────────────────╮
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰──────────────────────────────────────────────────────────────────────────────╯
+ 1/2  ▸ todos · tab history · shift+tab history · r reload · q quit             
+ ↑/↓ todo · x/space check · d delete · a add · e edit · A-D prio (again clears)

@@ -1,0 +1,1 @@
+A clean file has no findings and prints nothing.

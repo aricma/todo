@@ -1,0 +1,1 @@
+A todo with nothing left for a title after its tokens is reported.

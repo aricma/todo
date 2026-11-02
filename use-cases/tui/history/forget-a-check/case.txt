@@ -1,0 +1,1 @@
+d on a history entry undoes the write and forgets the entry, without asking.

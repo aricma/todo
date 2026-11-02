@@ -1,0 +1,1 @@
+d asks first: y deletes exactly that line.

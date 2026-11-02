@@ -1,0 +1,28 @@
+---
+source: tui/src/ui/mod.rs
+expression: "screen(&app).join(\"\\n\")"
+---
+╭ files ─────────────────────╮  ╭ TODOs.md ────────────────────────────────────╮
+│ ▸ TODOs.md  1/2            │  │ # inbox                                      │
+│                            │  │                                              │
+│                            │  │ [ ] (A) pay rent #home @sam                  │
+│                            │  │ [x] ship it                                  │
+│                            │  │                                              │
+╰────────────────────────────╯  │ ## later                                     │
+╭ outline ───────────────────╮  │                                              │
+│ # inbox                    │  │                                              │
+│   ## later                 │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+╰────────────────────────────╯  │                                              │
+╭ history ───────────────────╮  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+│                            │  │                                              │
+╰────────────────────────────╯  ╰──────────────────────────────────────────────╯
+ 1/2  ▸ view · ← files · r reload · q quit                                      
+ ↑/↓ todo · x/space check · d delete · a add · e edit · A-D prio (again clears)

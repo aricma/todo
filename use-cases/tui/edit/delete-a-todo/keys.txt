@@ -1,0 +1,5 @@
+wait: keep me
+key: right
+key: d
+key: y
+wait: 0/1
