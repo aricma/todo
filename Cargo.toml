@@ -1,54 +1,27 @@
-[package]
-name = "aricma-todo"
+[workspace]
+# One project, three native surfaces: the markdown rules in `lib/` and the two
+# clients over them — `aricma-todo` (cli) and `aricma-lazytodo` (tui).
+#
+# `web/` is deliberately NOT a member. It builds for wasm32 only and carries its
+# own [workspace] table, so a native `cargo build` here never tries to compile it
+# for the host (same arrangement as aricma-moth/ui).
+members = ["lib", "cli", "tui"]
+exclude = ["web"]
+resolver = "2"
+
+[workspace.package]
 version = "0.1.0"
 edition = "2021"
-description = "Local-first todo SPA: Rust + Leptos wasm, SQLite on OPFS, OPS data model"
 
-[lib]
-name = "aricma_todo"
-path = "lib/lib.rs"
+[workspace.lints.rust]
+unsafe_code = "forbid"
 
-[[bin]]
-name = "aricma-todo"
-path = "app/main.rs"
-
-[dependencies]
-leptos = { version = "0.7", features = ["csr"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_yaml = "0.9"
-# The OPS reference reader/writer, pinned in its own repository.
-ops-lib = { git = "https://github.com/aricma/open-productivity-standard", rev = "1dbb9acce05c7cd6555b1a238ace9298b201ef1f" }
-time = { version = "0.3", default-features = false, features = ["std", "formatting"] }
-# SigV4 signing for the S3 transport (ADR-0016). RustCrypto, no_std-friendly:
-# they build for wasm32 like the rest of the lib.
-sha2 = "0.10"
-hmac = "0.12"
-
-# The bin (app/main.rs) is wasm-only: it links sqlite-wasm + web-sys and
-# is built by trunk. The lib (lib/lib.rs) is pure logic and testable via cargo test.
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-# Vendored + patched upstream crate (see vendor/sqlite-wasm): adds
-# open_memory/export/import for the in-memory backend.
-sqlite-wasm = { path = "vendor/sqlite-wasm" }
-wasm-bindgen = "0.2"
-js-sys = "0.3"
-web-sys = { version = "0.3", features = [
-  "Blob", "Url", "FileReader", "File", "HtmlInputElement", "HtmlAnchorElement",
-  "Storage", "Window", "Document", "Navigator", "Crypto", "Element", "Event",
-  "EventTarget", "HtmlElement", "KeyboardEvent", "Location", "FileList", "VisibilityState", "MediaQueryList",
-  "Node", "NodeList", "Text", "Range", "Selection", "InputEvent", "HtmlDivElement",
-  "History", "CustomEvent", "PopStateEvent", "MouseEvent",
-  "FileSystemRemoveOptions",
-  "Headers", "Request", "RequestInit", "RequestMode", "Response",
-  "FileSystemWritableFileStream", "FileSystemCreateWritableOptions",
-  "FileSystemDirectoryHandle", "FileSystemFileHandle", "FileSystemHandle", "FileSystemGetFileOptions",
-  "FileSystemGetDirectoryOptions",
-  "IdbFactory", "IdbDatabase", "IdbObjectStore", "IdbTransaction", "IdbTransactionMode",
-  "IdbRequest", "IdbOpenDbRequest", "DomStringList", "DomException",
-  "StorageManager", "StorageEstimate"
-] }
-serde-wasm-bindgen = "0.6"
-console_error_panic_hook = "0.1"
-wasm-bindgen-futures = "0.4"
-aricma-ui-leptos = { path = "../aricma-ui-leptos" }
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+# natural naming trips this
+module_name_repetitions = "allow"
+# pub API docs noise for an internal tool's lib
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
