@@ -1,28 +1,28 @@
 ---
-source: tui/src/ui/mod.rs
-expression: "screen(&app).join(\"\\n\")"
+source: tui/src/ui/tests.rs
+expression: "masked(&app, &screen(&app).join(\"\\n\"))"
 ---
-╭ outline ─────────────────────────────────────────────────────────────────────╮
+ ✅  aricma-lazytodo · …s/mt/b98d1vks095gz2d9f2l0zyj80000gn/T/<tree>/TODOs.md
+╭ index ───────────────────────────────────────────────────────────────────────╮
 │ # inbox                                                                      │
 │   ## later                                                                   │
 │                                                                              │
 │                                                                              │
-│                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
-╭ todos ───────────────────────────────────────────────────────────────────────╮
-│ [ ] (A) pay rent #home @sam                                                  │
-│ [x] ship it                                                                  │
+╭ ● todos ─────────────────────────────────────────────────────────────────────╮
+│ 3 - [ ] (A) pay rent #home @sam                                              │
+│ 4 - [x] ship it                                                              │
 │                                                                              │
 │                                                                              │
 │                                                                              │
 │                                                                              │
-╰──────────────────────────────────────────────────────────────────────────────╯
+│                                                                              │
+╰───────────────────────────────────────────────────────────────── 1/2  #1  @1 ╯
 ╭ history ─────────────────────────────────────────────────────────────────────╮
 │                                                                              │
 │                                                                              │
 │                                                                              │
 │                                                                              │
-│                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
- 1/2  ▸ todos · tab history · shift+tab outline · r reload · q quit             
- ↑/↓ todo · x/space check · d delete · a add · e edit · A-D prio (again clears)
+ tab history · shift+tab index · f search · ? keys · q quit                     
+ ↑/↓ todo · x check · K / J move · d delete · n add · e edit · A-D prio · c copy

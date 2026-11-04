@@ -1,28 +1,28 @@
 ---
-source: tui/src/ui/mod.rs
-expression: "screen(&app).join(\"\\n\")"
+source: tui/src/ui/tests.rs
+expression: "masked(&app, &screen(&app).join(\"\\n\"))"
 ---
-╭ todos ───────────────────────────────────────────────────────────────────────╮
-│ [ ] (A) @dave fix the worst bug of the century before the release #bug       │
-│     #infra                                                                   │
-│ [x] short one                                                                │
-│                                                                              │
-│                                                                              │
-│                                                                              │
-│                                                                              │
+ ✅  aricma-lazytodo · …s/mt/b98d1vks095gz2d9f2l0zyj80000gn/T/<tree>/TODOs.md
+╭ index ───────────────────────────────────────────────────────────────────────╮
 │                                                                              │
 │                                                                              │
 │                                                                              │
 │                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
+╭ ● todos ─────────────────────────────────────────────────────────────────────╮
+│ 1 - [ ] (A) @dave fix the worst bug of the century before the release #bug   │
+│         #infra                                                               │
+│ 2 - [x] short one                                                            │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+│                                                                              │
+╰───────────────────────────────────────────────────────────────── 1/2  #2  @1 ╯
 ╭ history ─────────────────────────────────────────────────────────────────────╮
 │                                                                              │
 │                                                                              │
 │                                                                              │
 │                                                                              │
-│                                                                              │
-│                                                                              │
-│                                                                              │
 ╰──────────────────────────────────────────────────────────────────────────────╯
- 1/2  ▸ todos · tab history · shift+tab history · r reload · q quit             
- ↑/↓ todo · x/space check · d delete · a add · e edit · A-D prio (again clears)
+ tab history · shift+tab index · f search · ? keys · q quit                     
+ ↑/↓ todo · x check · K / J move · d delete · n add · e edit · A-D prio · c copy

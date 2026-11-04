@@ -25,19 +25,38 @@ pub fn style(segment: Segment) -> Style {
 /// The gaps between recognised pieces are plain, so rendering this line always
 /// shows exactly the text that was typed.
 pub fn line(body: &str) -> Line<'static> {
+    Line::from(
+        pieces(body)
+            .into_iter()
+            .map(|(span, _)| span)
+            .collect::<Vec<_>>(),
+    )
+}
+
+/// The spans of a body and what each one is.
+///
+/// A renderer that highlights a row needs the roles: a tag has to stay a tag under
+/// the cursor's band, so the piece cannot be flattened like the words around it.
+pub fn pieces(body: &str) -> Vec<(Span<'static>, Segment)> {
     let mut pieces = Vec::new();
     let mut cursor = 0;
     for (segment, range) in spans::segments(body) {
         if range.start > cursor {
-            pieces.push(Span::raw(body[cursor..range.start].to_owned()));
+            pieces.push((
+                Span::raw(body[cursor..range.start].to_owned()),
+                Segment::Title,
+            ));
         }
-        pieces.push(Span::styled(body[range.clone()].to_owned(), style(segment)));
+        pieces.push((
+            Span::styled(body[range.clone()].to_owned(), style(segment)),
+            segment,
+        ));
         cursor = range.end;
     }
     if cursor < body.len() {
-        pieces.push(Span::raw(body[cursor..].to_owned()));
+        pieces.push((Span::raw(body[cursor..].to_owned()), Segment::Title));
     }
-    Line::from(pieces)
+    pieces
 }
 
 #[cfg(test)]

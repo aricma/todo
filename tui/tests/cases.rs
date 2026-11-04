@@ -1,8 +1,9 @@
-//! Every `use-cases/tui/**/case.txt` is one test, driven through a real pty.
+//! Every `tui.txt` under `use-cases/` is one test, driven through a real pty.
 //!
 //! The TUI is only observable the way a user observes it — keys in, screen out,
 //! file on disk afterwards. `vt100` turns the pty's bytes back into a screen so
-//! `wait:` can poll for text instead of sleeping. See `use-cases/README.md`.
+//! `wait:` can poll for text instead of sleeping, and `screen:` says what the
+//! finished screen must show. See `use-cases/README.md`.
 
 use std::error::Error;
 use std::fs;
@@ -12,12 +13,15 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use portable_pty::{native_pty_system, CommandBuilder, PtySize};
-use testkit::cases::{driver_lines, eventually, expect, Case, CaseResult};
+use testkit::cases::{eventually, expect, expect_contains, Case, CaseResult, Tui};
 use vt100::Parser;
 
 // `harness!` generates `main`, so it belongs at module level.
+// one root, because a case may live in `core/` or in `tui/`: the pattern is what
+// decides which interface it runs on, so a folder with no `tui.txt` is simply not
+// collected
 datatest_stable::harness! {
-    { test = run, root = concat!(env!("CARGO_MANIFEST_DIR"), "/../use-cases/tui"), pattern = r"^.*case\.txt$" },
+    { test = run, root = concat!(env!("CARGO_MANIFEST_DIR"), "/../use-cases"), pattern = r"tui\.txt$" },
 }
 
 const ROWS: u16 = 24;
@@ -33,33 +37,24 @@ fn cols() -> std::num::NonZeroU16 {
 const WAIT: Duration = Duration::from_secs(5);
 
 /// One case folder, driven through the TUI binary under a pty.
-fn run(case_file: &Path) -> CaseResult {
-    let folder = case_file.parent().ok_or("case.txt without a folder")?;
-    let case = Case::open(case_file)?;
-    let steps = driver_lines(&fs::read_to_string(folder.join("keys.txt"))?);
-
-    // `single.txt` asks for the file, not the folder it sits in.
-    let opened = if folder.join("single.txt").exists() {
+fn run(driver: &Path) -> CaseResult {
+    let case = Case::open(driver)?;
+    let tui = Tui::read(driver)?;
+    let opened = if tui.open_file {
         case.target().to_path_buf()
     } else {
         case.scratch.path().to_path_buf()
     };
     let mut terminal = Terminal::spawn(&opened)?;
-    let outcome = play(&mut terminal, &steps, &case);
+    let outcome = play(&mut terminal, &tui, &case);
     terminal.stop();
     outcome
 }
 
-/// A case must end on a `wait:`, because the screen can only show the state the
-/// app reaches *after* it has written. Without one, a case whose expected file
-/// equals its input would pass on the untouched file, before the key landed.
-fn play(terminal: &mut Terminal, steps: &[String], case: &Case) -> CaseResult {
-    if !ends_with_wait(steps) {
-        return Err("keys.txt must end with a `wait:` line: it proves the last \
-                    action was applied before the file is compared"
-            .into());
-    }
-    for line in steps {
+/// The steps, then the file, then the screen: a case proves what a person would
+/// check — the document they were editing, and the screen they were looking at.
+fn play(terminal: &mut Terminal, tui: &Tui, case: &Case) -> CaseResult {
+    for line in &tui.steps {
         let Some((verb, value)) = line.split_once(':') else {
             return Err(format!("expected `verb: value`, got {line:?}").into());
         };
@@ -72,27 +67,31 @@ fn play(terminal: &mut Terminal, steps: &[String], case: &Case) -> CaseResult {
         }
     }
     terminal.settle();
-    let expected = case.output.clone();
+
+    // the write lands when the app gets to it, so the file is polled
+    let expected = case.expect.clone();
     let input = case.target().to_path_buf();
+    let screen = terminal.screen();
     eventually(
         || match &expected {
             Some(text) => expect(
                 &fs::read_to_string(&input).ok(),
                 &Some(text.clone()),
-                &format!("TODOs.md\n  screen:\n{}", terminal.screen()),
+                &format!("TODOs.md\n  screen:\n{screen}"),
             ),
             None => expect(
                 &fs::read_to_string(&input).ok().map(String::into_bytes),
                 &case.before.clone(),
-                &format!("TODOs.md unchanged\n  screen:\n{}", terminal.screen()),
+                &format!("TODOs.md unchanged\n  screen:\n{screen}"),
             ),
         },
         WAIT,
-    )
-}
+    )?;
 
-fn ends_with_wait(steps: &[String]) -> bool {
-    steps.last().is_some_and(|line| line.starts_with("wait:"))
+    for wanted in &tui.screens {
+        expect_contains(&terminal.screen(), wanted, "the finished screen")?;
+    }
+    Ok(())
 }
 
 /// The bytes a named key sends. Anything one character long is itself.
@@ -111,6 +110,19 @@ fn key(name: &str) -> Result<Vec<u8>, Box<dyn Error>> {
         "enter" => "\r",
         "esc" => "\u{1b}",
         "ctrl-c" => "\u{3}",
+        "ctrl-f" => "\u{6}",
+        // a command key, as the kitty keyboard protocol encodes it: CSI 102 ; 9 u
+        // (modifier 9 is 1 + the SUPER bit)
+        "cmd-f" => "\u{1b}[102;9u",
+        "ctrl-u" => "\u{15}",
+        // what a terminal sends for opt+arrow: the modifier is in the sequence
+        "alt-up" => "\u{1b}[1;3A",
+        "alt-down" => "\u{1b}[1;3B",
+        // the same key with other modifiers: which one a terminal sends for
+        // opt+arrow depends on the terminal
+        "meta-down" => "\u{1b}[1;9B",
+        "shift-down" => "\u{1b}[1;2B",
+        "ctrl-down" => "\u{1b}[1;5B",
         single => {
             if single.chars().count() == 1 {
                 single
@@ -189,14 +201,14 @@ impl Terminal {
     /// Wait until the screen stops changing, so a write that lands after the
     /// last redraw cannot be missed.
     fn settle(&self) {
-        let mut last = String::new();
-        for _ in 0..20 {
+        let mut last = self.screen();
+        for _ in 0..50 {
+            std::thread::sleep(Duration::from_millis(20));
             let now = self.screen();
             if now == last {
                 return;
             }
             last = now;
-            std::thread::sleep(Duration::from_millis(50));
         }
     }
 

@@ -1,28 +1,28 @@
 ---
-source: tui/src/ui/mod.rs
-expression: "screen(&app).join(\"\\n\")"
+source: tui/src/ui/tests.rs
+expression: "masked(&app, &screen(&app).join(\"\\n\"))"
 ---
+ ✅  aricma-lazytodo · …ar/folders/mt/b98d1vks095gz2d9f2l0zyj80000gn/T/<tree>
 ╭ files ─────────────────────╮  ╭ a/TODOs.md ──────────────────────────────────╮
-│ ▸ a/TODOs.md  2/2          │  │ # inbox                                      │
-│   b/TASKS.md  0/1          │  │                                              │
-│                            │  │ [ ] (A) pay rent #home @sam                  │
-│                            │  │ [x] ship it                                  │
-│                            │  │                                              │
+│ a/TODOs.md  1/2  #1  @1  h │  │ # inbox                                      │
+│ b/TASKS.md  0/1  #1        │  │                                              │
+│ #home  0/1                 │  │ - [ ] (A) pay rent #home @sam                │
+│ #one  0/1                  │  │ - [x] ship it                                │
+│ @sam  0/1                  │  │                                              │
 ╰────────────────────────────╯  │ ## later                                     │
-╭ outline ───────────────────╮  │                                              │
+╭ index ─────────────────────╮  │                                              │
 │ # inbox                    │  │                                              │
 │   ## later                 │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
-│                            │  │                                              │
 ╰────────────────────────────╯  │                                              │
-╭ history ───────────────────╮  │                                              │
-│ [ ] check · pay rent       │  │                                              │
+╭ ● history ─────────────────╮  │                                              │
+│ [ ] check todo · pay rent  │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
-╰────────────────────────────╯  ╰──────────────────────────────────────────────╯
- 2/2  ▸ history · tab files · shift+tab outline · → a/TODOs.md · r reload · q qu
- ↑/↓ entry · x/space undo/redo · d forget
+╰────────────────────────────╯  ╰───────────────────────────────── 1/2  #1  @1 ╯
+ tab files · shift+tab index · → a/TODOs.md · f search · ? keys · q quit        
+ ↑/↓ entry · x undo / redo · d forget

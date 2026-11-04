@@ -11,12 +11,14 @@ use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
-use super::super::App;
-use super::{cursor_at, editing_rows, panel, task_rows, CHECKBOX_WIDTH};
+use super::frame::{footer, panel};
+use super::rows::{body_width, cursor_at, offset_for, row_count, todo_rows};
+use crate::state::App;
 
 pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
-    let focused = app.pane == crate::action::Pane::View;
-    let block = panel(&app.display(&app.current().path), focused);
+    let focused = app.pane == crate::state::action::Pane::View;
+    let block =
+        panel(&app.display(&app.current().path), focused).title_bottom(footer(app, focused));
     let inner = block.inner(area);
     let height = inner.height as usize;
     let width = inner.width as usize;
@@ -27,8 +29,13 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
         .map(|task| (task.line, task))
         .collect();
     let lines = app.doc.lines();
-    let heights = heights(lines, &tasks, width);
     let selected = app.current_task().map(|task| task.line);
+    let heights = heights(
+        lines,
+        &tasks,
+        width,
+        app.roomy.then_some(selected).flatten(),
+    );
     let offset = offset_for(&heights, selected, height);
 
     let mut rows = Vec::new();
@@ -41,24 +48,18 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
         match tasks.get(&index) {
             Some(task) => {
                 let editing = app.editing().filter(|_| Some(index) == selected);
-                let rendered = match editing {
-                    Some(prompt) => {
-                        let before: String = prompt.text().chars().take(prompt.cursor()).collect();
-                        let first = rows.len();
-                        cursor = Some(cursor_at(inner, first, &before, width));
-                        editing_rows(task, prompt, width)
-                    }
-                    None => task_rows(task, width),
-                };
+                if let Some(prompt) = editing {
+                    let before: String = prompt.text().chars().take(prompt.cursor()).collect();
+                    let lead = width.saturating_sub(body_width(task, width));
+                    cursor = Some(cursor_at(inner, rows.len(), &before, width, lead));
+                }
+                let here = selected == Some(index);
+                let rendered = todo_rows(task, editing, here, width);
                 let skip = if index == offset.0 { offset.1 } else { 0 };
-                for row in rendered.into_iter().skip(skip).take(room) {
-                    // the highlight covers the whole todo, continuation rows too
-                    let row = if selected == Some(index) {
-                        row.style(Style::default().add_modifier(Modifier::REVERSED))
-                    } else {
-                        row
-                    };
-                    rows.push(row);
+                let room = room.saturating_sub(usize::from(app.roomy));
+                rows.extend(rendered.into_iter().skip(skip).take(room));
+                if app.roomy && rows.len() < height {
+                    rows.push(Line::from(""));
                 }
             }
             None => rows.push(prose(lines.get(index).map_or("", String::as_str), width)),
@@ -71,52 +72,29 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 /// How many rows each document line needs: one, or more for a wrapped todo.
-fn heights(lines: &[String], tasks: &HashMap<usize, Task>, width: usize) -> Vec<usize> {
-    let body_width = width.saturating_sub(CHECKBOX_WIDTH);
+/// How many rows each document line needs: one, or more for a wrapped todo, and
+/// two more for the todo that carries the cursor when the reader wants air around
+/// it.
+fn heights(
+    lines: &[String],
+    tasks: &HashMap<usize, Task>,
+    width: usize,
+    roomy: Option<usize>,
+) -> Vec<usize> {
     lines
         .iter()
         .enumerate()
         .map(|(index, _)| {
-            tasks
+            let rows = tasks
                 .get(&index)
-                .map_or(1, |task| super::wrap::lines(&task.body, body_width).len())
+                .map_or(1, |task| row_count(task, &task.body, width));
+            if roomy == Some(index) {
+                rows + 2
+            } else {
+                rows
+            }
         })
         .collect()
-}
-
-/// Where the viewport starts: a document line, and how many of its first rows to
-/// skip.
-///
-/// The skip is what keeps the selection still. Todos wrap to one or three rows,
-/// so an offset that could only start on a line boundary would land the
-/// checkmark anywhere between the margin and the bottom of whatever line
-/// happened to sit there — the viewport would jump by a todo's height on every
-/// move. Counting in rows instead pins the checkmark to the margin's last row,
-/// whatever the neighbours look like.
-///
-/// The top third is a margin the selection moves through without the document
-/// moving at all; past it the viewport follows. At the end the document clamps
-/// to its last full page, so the selection walks down into the bottom third
-/// instead of the panel filling with empty rows — how far depends on what
-/// follows the last todo, since trailing prose keeps it higher.
-fn offset_for(heights: &[usize], selected: Option<usize>, height: usize) -> (usize, usize) {
-    let (Some(selected), true) = (selected, height > 0) else {
-        return (0, 0);
-    };
-    let selected = selected.min(heights.len().saturating_sub(1));
-    let margin = height * 3 / 10;
-    let preceding: usize = heights[..selected].iter().sum();
-    let furthest = heights.iter().sum::<usize>().saturating_sub(height);
-    let target = preceding.saturating_sub(margin).min(furthest);
-
-    let mut accumulated = 0;
-    for (index, rows) in heights.iter().enumerate() {
-        if accumulated + rows > target {
-            return (index, target - accumulated);
-        }
-        accumulated += rows;
-    }
-    (selected, 0)
 }
 
 /// Prose: dim, one line, clipped with an ellipsis.
@@ -172,11 +150,19 @@ mod tests {
         let heights = vec![1; 60];
         // 24 rows, a margin of 7: the selection walks down the panel until row 7
         for selected in 0..=7 {
-            assert_eq!(offset_for(&heights, Some(selected), 24), (0, 0), "{selected}");
+            assert_eq!(
+                offset_for(&heights, Some(selected), 24),
+                (0, 0),
+                "{selected}"
+            );
         }
         // past it the viewport follows and the selection stays on row 7
         for selected in 8..40 {
-            assert_eq!(offset_for(&heights, Some(selected), 24), (selected - 7, 0), "{selected}");
+            assert_eq!(
+                offset_for(&heights, Some(selected), 24),
+                (selected - 7, 0),
+                "{selected}"
+            );
         }
         assert_eq!(offset_for(&heights, None, 24), (0, 0));
         assert_eq!(offset_for(&heights, Some(5), 0), (0, 0));
@@ -197,11 +183,7 @@ mod tests {
             let rendered_before: usize = heights[..line].iter().sum::<usize>() + skip;
             let preceding: usize = heights[..selected].iter().sum();
             let expected = preceding - preceding.saturating_sub(margin).min(furthest);
-            assert_eq!(
-                preceding - rendered_before,
-                expected,
-                "selected {selected}"
-            );
+            assert_eq!(preceding - rendered_before, expected, "selected {selected}");
         }
     }
 
@@ -211,7 +193,11 @@ mod tests {
         // the last page is shown whole: no empty rows, and the selection ends up
         // on the last one
         assert_eq!(offset_for(&heights, Some(59), 24), (36, 0));
-        assert_eq!(offset_for(&heights, Some(58), 24), (36, 0), "still the last page");
+        assert_eq!(
+            offset_for(&heights, Some(58), 24),
+            (36, 0),
+            "still the last page"
+        );
         // far from the end the margin still wins
         assert_eq!(offset_for(&heights, Some(40), 24), (33, 0));
         // near it the clamp takes over and the selection walks down the panel

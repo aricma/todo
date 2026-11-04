@@ -1,21 +1,22 @@
 ---
-source: tui/src/ui/mod.rs
-expression: "screen_at(&app, 120, 40).join(\"\\n\")"
+source: tui/src/ui/tests.rs
+expression: "masked(&app, &screen_at(&app, 120, 40).join(\"\\n\"))"
 ---
-╭ files ─────────────────────────────────────╮  ╭ TODOs.md ────────────────────────────────────────────────────────────╮
-│ ▸ TODOs.md  1/4                            │  │ # inbox                                                              │
-│                                            │  │                                                                      │
-│                                            │  │ [ ] (B) @dave fix you #worst-bug-of-the-century                      │
-│                                            │  │ [ ] plain task                                                       │
-│                                            │  │ [x] done task                                                        │
+ ✅  aricma-lazytodo · /private/var/folders/mt/b98d1vks095gz2d9f2l0zyj80000gn/T/<tree>                               
+╭ ● files ───────────────────────────────────╮  ╭ TODOs.md ────────────────────────────────────────────────────────────╮
+│ TODOs.md  1/4  #1  @1                      │  │ # inbox                                                              │
+│ #worst-bug-of-the-century  0/1             │  │                                                                      │
+│ @dave  0/1                                 │  │ - [ ] (B) @dave fix you #worst-bug-of-the-century                    │
+│                                            │  │ - [ ] plain task                                                     │
+│                                            │  │ - [x] done task                                                      │
 │                                            │  │                                                                      │
 │                                            │  │ ## later                                                             │
 │                                            │  │                                                                      │
-│                                            │  │ [ ] last                                                             │
+│                                            │  │ - [ ] last                                                           │
 │                                            │  │                                                                      │
 │                                            │  │                                                                      │
 ╰────────────────────────────────────────────╯  │                                                                      │
-╭ outline ───────────────────────────────────╮  │                                                                      │
+╭ index ─────────────────────────────────────╮  │                                                                      │
 │ # inbox                                    │  │                                                                      │
 │   ## later                                 │  │                                                                      │
 │                                            │  │                                                                      │
@@ -38,7 +39,6 @@ expression: "screen_at(&app, 120, 40).join(\"\\n\")"
 │                                            │  │                                                                      │
 │                                            │  │                                                                      │
 │                                            │  │                                                                      │
-│                                            │  │                                                                      │
-╰────────────────────────────────────────────╯  ╰──────────────────────────────────────────────────────────────────────╯
- 1/4  ▸ files · tab outline · shift+tab history · → TODOs.md · r reload · q quit                                        
- ↑/↓ file
+╰────────────────────────────────────────────╯  ╰───────────────────────────────────────────────────────── 1/4  #1  @1 ╯
+ tab index · shift+tab history · → TODOs.md · f search · ? keys · q quit                                                
+ ↑/↓ file / collection · n new file · d delete file · h unhide *.md · c copy

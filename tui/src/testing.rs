@@ -6,11 +6,11 @@
 use std::fs;
 
 use ratatui::backend::TestBackend;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::Terminal;
 
-use crate::action::Action;
-use crate::app::App;
+use crate::state::action::Action;
+use crate::state::app::App;
 use crate::ui;
 
 /// The screen the tests render at, unless a test asks for another size.
@@ -44,20 +44,25 @@ pub fn single(source: &str) -> (tempfile::TempDir, App) {
 
 /// One key press.
 pub fn press(app: &mut App, code: KeyCode) -> Option<Action> {
-    app.on_key(code)
+    app.press(code)
+}
+
+/// A key with a modifier held, as a terminal delivers opt+arrow.
+pub fn press_with(app: &mut App, code: KeyCode, modifiers: KeyModifiers) -> Option<Action> {
+    app.on_key(KeyEvent::new(code, modifiers))
 }
 
 /// Type text one character at a time, as crossterm would deliver it.
 pub fn type_text(app: &mut App, text: &str) {
     for character in text.chars() {
-        app.on_key(KeyCode::Char(character));
+        app.press(KeyCode::Char(character));
     }
 }
 
 /// The text a `Save` action wants written, or a panic naming what came instead.
 pub fn save_text(action: Option<Action>) -> String {
     match action {
-        Some(Action::Save { text, .. }) => text,
+        Some(Action::Save { text }) => text,
         other => panic!("expected a save, got {other:?}"),
     }
 }

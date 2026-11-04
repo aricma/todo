@@ -9,8 +9,20 @@ pub enum Mode {
     Adding(Prompt),
     /// Editing the body of the selected task.
     Editing(Prompt),
-    /// Waiting for `y` or `n` after a delete.
-    Confirming,
+    /// The file changed on disk under a write of ours, and only the person in front
+    /// of it can say which version to keep.
+    Conflicted,
+    /// Typing a heading to add to the file.
+    AddingHeading(Prompt),
+    /// Typing the folder a new `TODOs.md` goes in.
+    Creating(crate::state::create::Create),
+    /// Waiting for an answer after a delete.
+    Confirming(crate::state::confirm::Confirm),
+    /// The search popover. Its query outlives the mode, so the state lives in
+    /// `App::search` and this only says who has the keyboard.
+    Searching,
+    /// The keys page, open over everything until it is closed.
+    Help,
 }
 
 /// The text being typed and where the cursor sits, counted in characters so a
@@ -19,6 +31,12 @@ pub enum Mode {
 pub struct Prompt {
     text: String,
     cursor: usize,
+}
+
+impl Default for Prompt {
+    fn default() -> Self {
+        Self::new("")
+    }
 }
 
 impl Prompt {
