@@ -10,7 +10,7 @@ use crate::args::Export;
 use crate::exit;
 
 pub fn run(path: &Path, export: Export) -> Result<ExitCode, Error> {
-    let files = discover::scan(path)?;
+    let files = discover::scan(path)?.entries;
     let format = ops::format_from(&export.r#as, &export.out.clone().unwrap_or_default());
     let exported = ops::write(&files, format)?;
     for skipped in &exported.skipped {
