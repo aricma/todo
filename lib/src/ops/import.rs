@@ -145,7 +145,7 @@ mod tests {
         let path = tmp.path().join("TODOs.md");
         let source = "- [ ] (A) @dave fix you #bug\n- [x] plain\n";
         fs::write(&path, source).unwrap();
-        let files = crate::discover::scan(&path).unwrap();
+        let files = crate::discover::scan(&path).unwrap().entries;
         let exported = crate::ops::write(&files, Format::Json).unwrap();
         let mut imported = Doc::parse("");
         append(&mut imported, &exported.text, Format::Json).unwrap();

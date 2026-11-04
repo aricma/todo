@@ -15,6 +15,14 @@ pub enum Inverse {
     Insert { line: usize, text: String },
     /// Remove the line at `line`, which must still read `expect`.
     Remove { line: usize, expect: String },
+    /// Exchange two lines, which must still read as they did. A move is one edit,
+    /// so it is one undo, not two.
+    Swap {
+        a: usize,
+        b: usize,
+        expect_a: String,
+        expect_b: String,
+    },
 }
 
 impl Inverse {
@@ -29,6 +37,17 @@ impl Inverse {
             },
             Self::Insert { line, text } => Self::Remove { line, expect: text },
             Self::Remove { line, expect } => Self::Insert { line, text: expect },
+            Self::Swap {
+                a,
+                b,
+                expect_a,
+                expect_b,
+            } => Self::Swap {
+                a,
+                b,
+                expect_a: expect_b,
+                expect_b: expect_a,
+            },
         }
     }
 }
@@ -77,6 +96,26 @@ mod tests {
                 text: "x".into(),
             }
         );
+    }
+
+    #[test]
+    fn a_swap_flips_its_two_sides() {
+        let swap = Inverse::Swap {
+            a: 1,
+            b: 4,
+            expect_a: "a".into(),
+            expect_b: "b".into(),
+        };
+        assert_eq!(
+            swap.clone().flip(),
+            Inverse::Swap {
+                a: 1,
+                b: 4,
+                expect_a: "b".into(),
+                expect_b: "a".into(),
+            }
+        );
+        assert_eq!(swap.clone().flip().flip(), swap);
     }
 
     #[test]

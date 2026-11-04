@@ -13,7 +13,7 @@ use crate::store;
 pub fn write(files: &[Entry], format: Format) -> Result<Exported, Error> {
     let mut exported = Exported::default();
     let mut tasks = Vec::new();
-    for file in files {
+    for file in files.iter().filter(|file| !file.too_long) {
         let loaded = store::load(&file.path)?;
         let doc = Doc::parse(&loaded.text);
         for task in doc.tasks() {
@@ -120,7 +120,7 @@ mod tests {
         for (name, text) in sources {
             fs::write(root.join(name), text).unwrap();
         }
-        scan(root).unwrap()
+        scan(root).unwrap().entries
     }
 
     /// ops-lib writes a bare object for one task and an array for several, so

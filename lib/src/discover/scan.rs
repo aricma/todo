@@ -1,57 +1,126 @@
 //! Finding the files worth showing, from a directory or an explicit path.
+//!
+//! Bounded by [`crate::limits`]: the walk stops at a depth, a number of files and
+//! a file size, and says so instead of quietly showing less than the tree holds.
 
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use super::{is_candidate, Entry};
+use super::{is_candidate, order, Entry};
 use crate::doc::Doc;
 use crate::error::Error;
-
-/// How deep the directory walk goes below the path it was given.
-const MAX_DEPTH: usize = 6;
+use crate::limits;
 
 /// Directories never descended into, whatever they hold.
 const SKIPPED: [&str; 4] = ["node_modules", "target", "tmp", ".git"];
 
-/// The files to show, sorted by path.
+/// Which files a walk looks at.
+///
+/// The convention — `TODO*`, `TASK*`, `README.md` — is what a team that follows it
+/// wants; a team that does not has todos in files called anything, and asking for
+/// all of them is a deliberate act, because a large tree has a lot of markdown.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Scope {
+    /// Only the files named for todos.
+    Named,
+    /// Every `*.md` in the tree.
+    EveryMarkdown,
+}
+
+impl Scope {
+    /// Whether a file of this name is worth reading.
+    fn wants(self, name: &str) -> bool {
+        match self {
+            Self::Named => is_candidate(name),
+            Self::EveryMarkdown => name.to_lowercase().ends_with(".md"),
+        }
+    }
+}
+
+/// What a scan found, and what it left alone.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Scan {
+    /// The candidate files, sorted by path.
+    pub entries: Vec<Entry>,
+    /// One line per thing the limits stopped, for the status line and `--check`.
+    pub warnings: Vec<String>,
+}
+
+/// The files to show, from a directory or an explicit file.
 ///
 /// A directory yields candidate files that hold at least one task; an explicit
-/// file is shown whatever it holds, and a non-UTF-8 file is an error there and
-/// skipped here.
-pub fn scan(path: &Path) -> Result<Vec<Entry>, Error> {
+/// file is shown whatever it holds. A non-UTF-8 file is an error as an argument
+/// and skipped in a walk.
+pub fn scan(path: &Path) -> Result<Scan, Error> {
+    scan_scope(path, Scope::Named)
+}
+
+/// The same, over the files `scope` names.
+pub fn scan_scope(path: &Path, scope: Scope) -> Result<Scan, Error> {
     if !path.exists() {
         return Err(Error::Io(std::io::Error::new(
             std::io::ErrorKind::NotFound,
             format!("no such file or directory: {}", path.display()),
         )));
     }
+    let mut scan = Scan::default();
     if path.is_file() {
-        return Ok(vec![entry(path)?.0]);
+        let (entry, _) = entry(path)?;
+        scan.entries.push(entry);
+        return Ok(scan);
     }
-    let mut entries = Vec::new();
-    walk(path, 0, &mut entries);
-    entries.sort_by(|left, right| left.path.cmp(&right.path));
-    Ok(entries)
+    let mut deeper = Vec::new();
+    walk(path, 0, scope, &mut scan, &mut deeper);
+    // what a file viewer shows: folders first, then files, without regard to case
+    scan.entries
+        .sort_by(|left, right| order::compare(&left.path, &right.path));
+    // one line per kind of limit, not one per folder: a vendored tree has dozens
+    // of folders at the depth limit and none of them holds a todo
+    if let Some(first) = deeper.first() {
+        scan.warnings.push(format!(
+            "[warn] {} deeper than {} levels, not searched (first: {})",
+            match deeper.len() {
+                1 => "1 folder is".to_owned(),
+                count => format!("{count} folders are"),
+            },
+            limits::MAX_DEPTH,
+            first.display()
+        ));
+    }
+    Ok(scan)
 }
 
-fn walk(directory: &Path, depth: usize, entries: &mut Vec<Entry>) {
+fn walk(directory: &Path, depth: usize, scope: Scope, scan: &mut Scan, deeper: &mut Vec<PathBuf>) {
+    if scan.entries.len() >= limits::MAX_FILES {
+        return;
+    }
     let Ok(read) = fs::read_dir(directory) else {
         return;
     };
     for item in read.flatten() {
+        if scan.entries.len() >= limits::MAX_FILES {
+            scan.warnings.push(format!(
+                "[warn] {} files is the limit; {} was not searched",
+                limits::MAX_FILES,
+                directory.display()
+            ));
+            return;
+        }
         let path = item.path();
         let name = item.file_name().to_string_lossy().to_lowercase();
         if name.starts_with('.') || SKIPPED.contains(&name.as_str()) {
             continue;
         }
         if path.is_dir() {
-            if depth < MAX_DEPTH {
-                walk(&path, depth + 1, entries);
+            if depth < limits::MAX_DEPTH {
+                walk(&path, depth + 1, scope, scan, deeper);
+            } else {
+                deeper.push(path);
             }
-        } else if is_candidate(&name) {
+        } else if scope.wants(&name) {
             if let Ok((entry, interesting)) = entry(&path) {
                 if interesting {
-                    entries.push(entry);
+                    scan.entries.push(entry);
                 }
             }
         }
@@ -66,11 +135,14 @@ fn entry(path: &Path) -> Result<(Entry, bool), Error> {
     let text = String::from_utf8(bytes).map_err(|_| Error::NotUtf8(PathBuf::from(path)))?;
     let doc = Doc::parse(&text);
     let stats = doc.stats();
+    let too_long = doc.lines().len() > limits::MAX_LINES;
     let interesting = stats.all > 0 || !doc.findings().is_empty();
     Ok((
         Entry {
             path: PathBuf::from(path),
             stats,
+            too_long,
+            collections: doc.collections(),
         },
         interesting,
     ))
@@ -82,8 +154,7 @@ mod tests {
     use std::path::Path;
 
     use super::scan;
-    use crate::error::Error;
-    use crate::model::Stats;
+    use crate::limits;
 
     fn write(root: &Path, relative: &str, text: &str) {
         let path = root.join(relative);
@@ -94,6 +165,7 @@ mod tests {
     fn names(root: &Path) -> Vec<String> {
         scan(root)
             .unwrap()
+            .entries
             .into_iter()
             .map(|entry| {
                 entry
@@ -117,7 +189,8 @@ mod tests {
         write(root, "node_modules/x/TODOs.md", "- [ ] hidden\n");
         write(root, "target/TODOs.md", "- [ ] hidden\n");
         write(root, ".hidden/TODOs.md", "- [ ] hidden\n");
-        assert_eq!(names(root), ["TODOs.md", "sub/TASKS.md"]);
+        // folders first, then the files at the root — the file viewer's order
+        assert_eq!(names(root), ["sub/TASKS.md", "TODOs.md"]);
     }
 
     #[test]
@@ -125,45 +198,93 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         let path = tmp.path().join("README.md");
         fs::write(&path, "# nothing\n").unwrap();
-        let entries = scan(&path).unwrap();
-        assert_eq!(entries.len(), 1);
-        assert_eq!(entries[0].path, path);
-        assert_eq!(entries[0].stats, Stats::default());
+        let scan = scan(&path).unwrap();
+        assert_eq!(scan.entries.len(), 1);
+        assert_eq!(scan.entries[0].stats, crate::model::Stats::default());
+        assert_eq!(scan.entries[0].path, path);
     }
 
     #[test]
-    fn nested_directories_are_walked_to_depth_six() {
+    fn the_walk_stops_at_the_depth_limit_and_says_where() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        write(root, "a/b/c/d/e/f/TODOs.md", "- [ ] six\n");
-        write(root, "a/b/c/d/e/f/g/TODOs.md", "- [ ] seven\n");
-        assert_eq!(names(root), ["a/b/c/d/e/f/TODOs.md"]);
+        let deep: String = (0..=limits::MAX_DEPTH).map(|_| "d/").collect();
+        write(root, &format!("{deep}TODOs.md"), "- [ ] too deep\n");
+        let shallow: String = (0..limits::MAX_DEPTH).map(|_| "d/").collect();
+        write(root, &format!("{shallow}TODOs.md"), "- [ ] at the limit\n");
+
+        let scan = scan(root).unwrap();
+        assert_eq!(scan.entries.len(), 1, "{:?}", scan.entries);
+        assert_eq!(scan.warnings.len(), 1, "{:?}", scan.warnings);
+        assert!(
+            scan.warnings[0].starts_with("[warn] "),
+            "a level, the way a log line has one: {:?}",
+            scan.warnings
+        );
+        assert!(
+            scan.warnings[0].contains("deeper than 10 levels"),
+            "{:?}",
+            scan.warnings
+        );
+        assert!(
+            scan.warnings[0].contains("not searched"),
+            "{:?}",
+            scan.warnings
+        );
     }
 
     #[test]
-    fn results_are_sorted_by_path() {
+    fn a_file_over_the_line_limit_is_listed_but_marked() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        write(root, "b/TODOs.md", "- [ ] b\n");
-        write(root, "TODOs.md", "- [ ] root\n");
-        write(root, "a/TODOs.md", "- [ ] a\n");
-        assert_eq!(names(root), ["TODOs.md", "a/TODOs.md", "b/TODOs.md"]);
+        let long: String = std::iter::repeat_n("- [ ] a line\n", limits::MAX_LINES + 1).collect();
+        write(root, "TODOs.md", &long);
+        write(root, "TASKS.md", "- [ ] short\n");
+
+        let scan = scan(root).unwrap();
+        assert_eq!(scan.entries.len(), 2);
+        let too_long = |name: &str| {
+            scan.entries
+                .iter()
+                .find(|entry| entry.path.ends_with(name))
+                .unwrap()
+                .too_long
+        };
+        assert!(too_long("TODOs.md"), "the long one is marked");
+        assert!(!too_long("TASKS.md"), "the short one is not");
     }
 
     #[test]
-    fn a_file_with_only_a_broken_task_is_still_listed() {
+    fn the_file_limit_stops_the_walk_with_a_warning() {
         let tmp = tempfile::tempdir().unwrap();
-        write(tmp.path(), "TODOs.md", "- [ ]no space\n");
-        assert_eq!(names(tmp.path()), ["TODOs.md"]);
-        assert_eq!(scan(tmp.path()).unwrap()[0].stats.all, 0);
+        let root = tmp.path();
+        for index in 0..=limits::MAX_FILES {
+            write(root, &format!("d{index}/TODOs.md"), "- [ ] a\n");
+        }
+        let scan = scan(root).unwrap();
+        assert_eq!(scan.entries.len(), limits::MAX_FILES);
+        assert!(!scan.warnings.is_empty(), "{:?}", scan.warnings);
     }
 
     #[test]
     fn stats_travel_with_the_file() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        write(root, "TODOs.md", "- [ ] a\n- [x] b\n- [x] c\n");
-        assert_eq!(scan(root).unwrap()[0].stats, Stats { all: 3, done: 2 });
+        write(
+            root,
+            "TODOs.md",
+            "- [ ] a #home #home @sam\n- [x] b #work @sam\n- [x] c\n",
+        );
+        assert_eq!(
+            scan(root).unwrap().entries[0].stats,
+            crate::model::Stats {
+                all: 3,
+                done: 2,
+                // counted once however often they are written
+                tags: 2,
+                assignees: 1,
+            }
+        );
     }
 
     #[test]
@@ -172,14 +293,51 @@ mod tests {
         let root = tmp.path();
         let path = root.join("TODOs.md");
         fs::write(&path, [0xff, 0xfe, 0x00]).unwrap();
-        assert!(scan(root).unwrap().is_empty());
-        assert!(matches!(scan(&path), Err(Error::NotUtf8(_))));
+        assert!(scan(root).unwrap().entries.is_empty());
+        assert!(matches!(scan(&path), Err(crate::error::Error::NotUtf8(_))));
     }
 
     #[test]
     fn a_missing_path_is_an_error() {
         let tmp = tempfile::tempdir().unwrap();
-        let path = tmp.path().join("nope");
-        assert!(matches!(scan(&path), Err(Error::Io(_))));
+        assert!(matches!(
+            scan(&tmp.path().join("nope")),
+            Err(crate::error::Error::Io(_))
+        ));
+    }
+}
+
+#[cfg(test)]
+mod scope_tests {
+    use std::fs;
+
+    use super::{scan, scan_scope, Scope};
+
+    #[test]
+    fn every_markdown_file_is_a_candidate_when_the_scope_says_so() {
+        let tmp = tempfile::tempdir().unwrap();
+        fs::write(tmp.path().join("TODOs.md"), "- [ ] a\n").unwrap();
+        fs::write(tmp.path().join("backlog.md"), "- [ ] b\n").unwrap();
+        fs::write(tmp.path().join("notes.txt"), "- [ ] c\n").unwrap();
+
+        let named = scan(tmp.path()).unwrap();
+        let all = scan_scope(tmp.path(), Scope::EveryMarkdown).unwrap();
+        let seen = |found: &super::Scan| -> Vec<String> {
+            found
+                .entries
+                .iter()
+                .map(|entry| {
+                    entry
+                        .path
+                        .file_name()
+                        .unwrap()
+                        .to_string_lossy()
+                        .into_owned()
+                })
+                .collect()
+        };
+        assert_eq!(seen(&named), ["TODOs.md"]);
+        // `backlog.md` too, and still not the text file: a todo needs a markdown file
+        assert_eq!(seen(&all), ["backlog.md", "TODOs.md"]);
     }
 }

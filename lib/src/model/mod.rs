@@ -1,4 +1,6 @@
 pub mod assignee;
+pub mod blocker;
+pub mod collection;
 pub mod finding;
 pub mod heading;
 pub mod inverse;
@@ -12,6 +14,8 @@ pub mod task;
 pub mod word;
 
 pub use assignee::Assignee;
+pub use blocker::Blocker;
+pub use collection::{Collection, Item, Kind};
 pub use finding::Finding;
 pub use heading::Heading;
 pub use inverse::Inverse;

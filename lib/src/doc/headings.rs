@@ -19,7 +19,7 @@ impl Doc {
     }
 }
 
-fn heading(line: &str, index: usize) -> Option<Heading> {
+pub(super) fn heading(line: &str, index: usize) -> Option<Heading> {
     let trimmed = line.trim_start_matches(' ');
     if line.len() - trimmed.len() > 3 {
         return None;

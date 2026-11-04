@@ -5,9 +5,12 @@
 //! else in the file is ever re-rendered.
 #![forbid(unsafe_code)]
 
+pub mod collections;
 pub mod discover;
 pub mod doc;
 pub mod error;
+pub mod limits;
 pub mod model;
 pub mod ops;
+pub mod search;
 pub mod store;

@@ -28,6 +28,24 @@ pub fn save(loaded: &Loaded, text: &str) -> Result<Loaded, Error> {
     })
 }
 
+/// Write the text whatever the file says now.
+///
+/// The caller has decided: a person was shown that the file changed and chose to
+/// keep their version. The write is the same atomic one — only the staleness check
+/// is skipped — so choosing "mine" cannot leave a half-written file either.
+pub fn overwrite(loaded: &Loaded, text: &str) -> Result<Loaded, Error> {
+    let temporary = temporary_path(&loaded.path);
+    let written = write_through(&loaded.path, &temporary, text);
+    if written.is_err() {
+        let _ = fs::remove_file(&temporary);
+        written?;
+    }
+    Ok(Loaded {
+        path: loaded.path.clone(),
+        text: text.to_owned(),
+    })
+}
+
 /// Write, match permissions, flush, and rename into place.
 fn write_through(original: &Path, temporary: &Path, text: &str) -> io::Result<()> {
     fs::write(temporary, text)?;
@@ -51,6 +69,23 @@ fn temporary_path(path: &Path) -> std::path::PathBuf {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn overwrite_ignores_a_file_that_moved() {
+        let tmp = tempfile::tempdir().unwrap();
+        let path = tmp.path().join("TODOs.md");
+        std::fs::write(&path, "- [ ] mine\n").unwrap();
+        let loaded = super::super::load(&path).unwrap();
+        // someone else writes in between
+        std::fs::write(&path, "- [ ] theirs\n").unwrap();
+        assert!(
+            super::save(&loaded, "- [x] mine\n").is_err(),
+            "save refuses"
+        );
+        let after = super::overwrite(&loaded, "- [x] mine\n").expect("a write");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "- [x] mine\n");
+        assert_eq!(after.text, "- [x] mine\n");
+    }
+
     use std::fs;
 
     use super::save;

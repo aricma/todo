@@ -13,6 +13,7 @@ pub mod render;
 pub mod spans;
 
 /// A markdown file as exact lines, with no `\n` and no trailing-newline entry.
+#[derive(Clone)]
 pub struct Doc {
     pub(crate) lines: Vec<String>,
 }

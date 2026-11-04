@@ -5,8 +5,8 @@
 //! replaces only the body, keeping the bullet, indentation and checkbox.
 
 use super::Doc;
-use crate::doc::spans;
-use crate::model::{Inverse, Mismatch, Prio, Task};
+use crate::doc::{headings, parse, spans};
+use crate::model::{Blocker, Inverse, Mismatch, Prio, Task};
 
 impl Doc {
     /// Flip the checkbox of one task line.
@@ -45,6 +45,21 @@ impl Doc {
         self.write(line, before, after)
     }
 
+    /// Add a heading at the end of the file.
+    ///
+    /// The text carries its own level: `## later` stays a second-level heading, and
+    /// plain `later` becomes `# later`. A file with no headings gets its first one
+    /// this way, which is how the outline stops being empty.
+    pub fn add_heading(&mut self, text: &str) -> Option<Inverse> {
+        let line = heading_line(text)?;
+        let at = self.lines.len();
+        self.lines.push(line.clone());
+        Some(Inverse::Insert {
+            line: at,
+            text: line,
+        })
+    }
+
     /// Insert a new unchecked task after `after`, copying its bullet and
     /// indentation. `None` appends at the end of the file.
     pub fn add_after(&mut self, after: Option<usize>, body: &str) -> Option<Inverse> {
@@ -71,6 +86,51 @@ impl Doc {
         let text = format!("{}- [ ] {body}", " ".repeat(indent));
         self.lines.insert(at, text.clone());
         Some(Inverse::Insert { line: at, text })
+    }
+
+    /// Exchange a task line with the nearest task line above or below it.
+    ///
+    /// A heading is a wall: a todo belongs to the section it is written under, so
+    /// moving one past `#` would file it somewhere nobody asked for. Prose and
+    /// blank lines are not walls — the todo steps over them and they stay put,
+    /// because moving a note with it would change what the note is about.
+    pub fn move_task(&mut self, line: usize, up: bool) -> Result<Inverse, Blocker> {
+        self.task_at(line).ok_or(Blocker::Edge)?;
+        let fenced = parse::fenced(&self.lines);
+        let mut at = line;
+        let other = loop {
+            at = if up {
+                at.checked_sub(1).ok_or(Blocker::Edge)?
+            } else {
+                at.checked_add(1).ok_or(Blocker::Edge)?
+            };
+            let Some(line) = self.lines.get(at) else {
+                return Err(Blocker::Edge);
+            };
+            if *fenced.get(at).unwrap_or(&false) {
+                continue;
+            }
+            if headings::heading(line, at).is_some() {
+                return Err(Blocker::Heading);
+            }
+            if self.task_at(at).is_some() {
+                break at;
+            }
+        };
+        let (a, b) = if line < other {
+            (line, other)
+        } else {
+            (other, line)
+        };
+        let expect_a = self.lines[a].clone();
+        let expect_b = self.lines[b].clone();
+        self.lines.swap(a, b);
+        Ok(Inverse::Swap {
+            a,
+            b,
+            expect_a,
+            expect_b,
+        })
     }
 
     /// Remove one task line.
@@ -104,6 +164,18 @@ impl Doc {
                 self.lines.remove(line);
                 Ok(())
             }
+            Inverse::Swap {
+                a,
+                b,
+                expect_a,
+                expect_b,
+            } => {
+                if self.lines.get(a) != Some(&expect_a) || self.lines.get(b) != Some(&expect_b) {
+                    return Err(Mismatch { line: a });
+                }
+                self.lines.swap(a, b);
+                Ok(())
+            }
         }
     }
 
@@ -123,6 +195,25 @@ impl Doc {
     fn task_at(&self, line: usize) -> Option<Task> {
         self.tasks().into_iter().find(|task| task.line == line)
     }
+}
+
+/// A heading line from what was typed: the hashes if there are any, one `#`
+/// otherwise, and the text after them trimmed.
+fn heading_line(text: &str) -> Option<String> {
+    let text = clean(text)?;
+    let level = text
+        .chars()
+        .take_while(|character| *character == '#')
+        .count();
+    let (level, body) = match level {
+        0 => (1, text.as_str()),
+        1..=6 => (level, text[level..].trim_start()),
+        _ => return None,
+    };
+    if body.trim().is_empty() {
+        return None;
+    }
+    Some(format!("{} {}", "#".repeat(level), body.trim_end()))
 }
 
 /// Refuse text that cannot live on one todo line.
@@ -152,7 +243,35 @@ fn with_body(line: &str, task: &Task, body: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn a_heading_carries_its_own_level_and_defaults_to_one() {
+        for (typed, expected) in [
+            ("later", "# later"),
+            ("## later", "## later"),
+            ("  ### deeper  ", "### deeper"),
+            ("# spaced   ", "# spaced"),
+        ] {
+            let mut doc = Doc::parse("- [ ] a\n");
+            let inverse = doc.add_heading(typed).expect("a heading");
+            assert_eq!(doc.render(), format!("- [ ] a\n{expected}\n"), "{typed:?}");
+            // and it undoes like any other insert
+            doc.apply(inverse.flip()).expect("undo");
+            assert_eq!(doc.render(), "- [ ] a\n", "{typed:?}");
+        }
+    }
+
+    #[test]
+    fn a_heading_with_no_text_is_refused() {
+        let mut doc = Doc::parse("");
+        assert!(doc.add_heading("").is_none());
+        assert!(doc.add_heading("   ").is_none());
+        assert!(doc.add_heading("#").is_none());
+        assert!(doc.add_heading("####### seven").is_none());
+        assert_eq!(doc.render(), "");
+    }
+
     use super::Doc;
+    use crate::model::Blocker;
     use crate::model::{Inverse, Mismatch, Prio};
 
     #[test]
@@ -227,6 +346,54 @@ mod tests {
         let mut doc = Doc::parse("- [ ] old\n");
         doc.set_body(0, "x #café @a b").unwrap();
         assert_eq!(doc.render(), "- [ ] x #café @a b\n");
+    }
+
+    #[test]
+    fn a_todo_moves_past_its_neighbour_and_the_inverse_puts_it_back() {
+        let source = "- [ ] a\n- [ ] b\n- [ ] c\n";
+        let mut doc = Doc::parse(source);
+        let inverse = doc.move_task(0, false).unwrap();
+        assert_eq!(doc.render(), "- [ ] b\n- [ ] a\n- [ ] c\n");
+        doc.apply(inverse.flip()).unwrap();
+        assert_eq!(doc.render(), source);
+    }
+
+    #[test]
+    fn a_move_steps_over_prose_and_blank_lines_but_never_a_heading() {
+        let mut doc = Doc::parse("- [ ] a\n\nnote about a\n\n- [ ] b\n");
+        doc.move_task(0, false).unwrap();
+        // `b` is now first, and the note has not been dragged anywhere
+        assert_eq!(doc.render(), "- [ ] b\n\nnote about a\n\n- [ ] a\n");
+
+        let source = "## one\n- [ ] a\n\n## two\n- [ ] b\n";
+        let mut doc = Doc::parse(source);
+        assert_eq!(
+            doc.move_task(1, false),
+            Err(Blocker::Heading),
+            "the heading is a wall"
+        );
+        assert_eq!(doc.render(), source);
+    }
+
+    #[test]
+    fn a_move_at_the_top_or_the_bottom_of_the_file_does_nothing() {
+        let source = "- [ ] only\n";
+        let mut doc = Doc::parse(source);
+        assert_eq!(doc.move_task(0, true), Err(Blocker::Edge));
+        assert_eq!(doc.move_task(0, false), Err(Blocker::Edge));
+        assert_eq!(doc.render(), source);
+    }
+
+    #[test]
+    fn a_move_only_touches_task_lines() {
+        let source = "prose\n- [ ] a\n";
+        let mut doc = Doc::parse(source);
+        assert_eq!(
+            doc.move_task(0, true),
+            Err(Blocker::Edge),
+            "prose is not a task"
+        );
+        assert_eq!(doc.render(), source);
     }
 
     #[test]
