@@ -1,0 +1,5 @@
+wait: TODOs.md
+key: d
+wait: delete file
+key: esc
+wait: TODOs.md

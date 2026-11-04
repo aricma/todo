@@ -1,0 +1,28 @@
+wait: a
+key: right
+key: x
+key: x
+key: x
+wait: [x] a
+key: left
+key: tab
+key: tab
+wait: ╭─[x] check todo · a
+key: down
+key: down
+key: x
+wait: [ ] a
+key: up
+key: up
+key: x
+wait: enable the write below
+key: down
+key: down
+key: x
+wait: [x] a
+key: up
+key: x
+wait: [ ] a
+key: up
+key: x
+wait: [x] a

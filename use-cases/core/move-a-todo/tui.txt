@@ -1,0 +1,8 @@
+wait: first #one
+key: alt-down
+key: alt-up
+key: meta-down
+key: K
+key: J
+wait: second
+screen: second

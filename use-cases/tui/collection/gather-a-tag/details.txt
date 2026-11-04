@@ -1,0 +1,19 @@
+gather a tag
+
+who       Someone who writes `#home` on the chores spread over four files, and
+          wants to see what is left to do about home — not which file it is in.
+
+given     A tree of todo files, some of whose todos carry `#home`.
+
+expect    One list: every todo with that tag, each still saying the file it came
+          from, in the order the files are listed and the order the todos are
+          written in. Ticking one ticks it in its own file; nothing else moves.
+
+why       A folder is where a todo lives; a tag is what it is about, and the two cut
+          across each other. A collection is never stored and never written: it is
+          derived from the files every time it is opened, so it cannot disagree with
+          them.
+
+behaviour Sorting by file and then by line keeps the order someone chose when they
+          wrote the file — a collection is read as "what do I owe about this", and
+          re-sorting it by title would be the tool's opinion, not theirs.

@@ -1,0 +1,3 @@
+import {dir}/tasks.json --into {input}
+exit: 0
+stdout: 1 added

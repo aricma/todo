@@ -1,0 +1,7 @@
+wait: first
+key: right
+key: n
+wait: new todo
+text: never added
+key: esc
+wait: 0/1

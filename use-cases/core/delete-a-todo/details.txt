@@ -1,0 +1,17 @@
+delete a todo
+
+who       Someone cleaning up: the task is done elsewhere, or was a mistake, and
+          it should not be in the list any more.
+
+given     A list with more than one todo in it.
+
+expect    The chosen line is gone. The lines above and below it are unchanged and
+          now adjacent, and no blank line is left where it was.
+
+why       Deleting is the one action that cannot be undone by doing it again, so it
+          is the one that asks first — and the question names the line. A person
+          who says yes should get exactly that line removed.
+
+behaviour Nothing is removed until the question is answered; declining leaves the
+          file byte for byte as it was. Deleting the last todo leaves an empty file,
+          not a broken one.

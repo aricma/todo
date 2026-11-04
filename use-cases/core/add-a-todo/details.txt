@@ -1,0 +1,19 @@
+add a todo
+
+who       Someone reading their list who remembered something else, and wants it
+          in the list now, where they are — not at the end of a file they have to
+          scroll to.
+
+given     An existing list, with the cursor on one of its todos.
+
+expect    One new line, directly under the one they were on, of the same shape as
+          its neighbours: a box, the text as typed, and the #tags and @people in it
+          recognised the moment they are spelled right. Nothing else changes.
+
+why       Adding is the most common thing a person does to a list, and it must be
+          cheap: type, commit, done. An empty title is not a todo, so it is refused
+          and what was typed stays in the field — throwing away a half-typed
+          sentence is never the better answer.
+
+behaviour The write lands when the text is committed. Until then nothing on disk
+          changes, and cancelling leaves the file exactly as it was.

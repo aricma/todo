@@ -1,0 +1,11 @@
+wait: files
+# the collections are rows after the files, so two downs reach the tag
+key: down
+key: down
+# landing on the row is enough: the collection is drawn beside it before `→`
+wait: tag home todo collection
+key: right
+# the first todo of the collection is alpha's: checking it writes there
+key: x
+wait: 3 - [x] (A) pay rent #home
+screen: # tag home todo collection

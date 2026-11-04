@@ -1,0 +1,1 @@
+A todo can be removed: exactly that line, and nothing around it.

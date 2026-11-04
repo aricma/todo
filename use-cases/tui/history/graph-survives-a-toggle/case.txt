@@ -1,0 +1,1 @@
+The dependency lines stay put when a write is undone and redone: toggling a row never rewrites what it is about.

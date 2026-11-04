@@ -1,0 +1,8 @@
+wait: pay rent
+key: right
+key: x
+key: left
+key: tab
+key: tab
+key: d
+wait: [ ] pay rent

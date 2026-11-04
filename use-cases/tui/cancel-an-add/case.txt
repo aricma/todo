@@ -1,0 +1,2 @@
+An add that is cancelled leaves no trace: esc closes the field and the file is
+untouched, so a half-typed todo never becomes a line.

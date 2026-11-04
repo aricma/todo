@@ -1,0 +1,2 @@
+`n` in the file panel opens a field for a new todo file: the folder is typed, the
+file is always TODOs.md, and the new file appears in the list once it is made.

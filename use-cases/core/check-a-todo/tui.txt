@@ -1,0 +1,5 @@
+wait: pay rent
+key: right
+key: x
+wait: [x] (A) pay rent
+screen: [x] (A) pay rent #home @sam

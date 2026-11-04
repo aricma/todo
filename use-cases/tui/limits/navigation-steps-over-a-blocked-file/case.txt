@@ -1,0 +1,1 @@
+Down steps over a file past the line limit and opens the one after it.

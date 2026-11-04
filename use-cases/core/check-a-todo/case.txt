@@ -1,0 +1,1 @@
+A todo can be marked done: its box changes, and nothing else about the line does.

@@ -1,0 +1,18 @@
+move a todo
+
+who       Someone re-prioritising by hand: the thing they will do first should be
+          at the top of its section, not buried third.
+
+given     A list with at least two todos in one section.
+
+expect    The two lines exchange places. Both texts survive byte for byte, every
+          other line stays where it was, and nothing is created or lost.
+
+why       Order is information in a todo list; that is what a list is for. Moving a
+          todo must be a swap of lines, not a delete-and-add: a delete-and-add
+          loses the line's identity, and would drop any metadata anchored to it.
+
+behaviour A heading is a wall, because a todo belongs to the section it is written
+          under: a move stops there rather than filing it under the next heading.
+          Prose and blank lines are not walls — the todo steps over them and they
+          stay where they are.

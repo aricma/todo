@@ -1,0 +1,18 @@
+edit a todo
+
+who       Someone whose todo was too vague to act on. "pay rent" becomes "pay
+          rent and the water bill" — the same task, said properly.
+
+given     A list with a todo whose text needs changing.
+
+expect    The same line, in the same place, with the same box and priority, and a
+          different text. The tags and assignees in the new text are the ones the
+          new text has; nothing else in the file moves.
+
+why       Editing the text is not re-creating the task. A person who fixes a typo
+          must not lose the tick, and must not lose the priority they thought
+          about.
+
+behaviour The text is edited where the todo sits, so what is being changed is
+          visible against its neighbours. Committing writes that one line;
+          cancelling leaves it untouched.

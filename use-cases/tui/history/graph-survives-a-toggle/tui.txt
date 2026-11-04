@@ -1,0 +1,17 @@
+wait: write the README
+key: right
+key: x
+key: B
+key: x
+key: 0
+key: left
+key: tab
+key: tab
+wait: ╭──[x] clear prio
+key: down
+key: down
+key: down
+key: x
+wait: ╰─[ ] check
+key: x
+wait: [x] write the README

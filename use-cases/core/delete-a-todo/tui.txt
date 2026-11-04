@@ -1,0 +1,6 @@
+wait: keep me
+key: right
+key: d
+key: Y
+wait: 0/1
+screen: keep me

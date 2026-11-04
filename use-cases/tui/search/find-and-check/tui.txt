@@ -1,0 +1,7 @@
+wait: files
+key: f
+text: milk
+key: enter
+key: x
+wait: [x] (A) buy milk
+screen: [x] (A) buy milk

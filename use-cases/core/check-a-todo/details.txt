@@ -1,0 +1,20 @@
+check a todo
+
+who       Someone going through a list at the end of the day, marking what they
+          actually finished. They are not editing; they are ticking.
+
+given     A list where one line is a todo: a box, an optional priority, the text,
+          and whatever #tags and @people the author wrote.
+
+expect    The same line, at the same place, with the same text, priority, tag and
+          assignee — only the box changes, from `[ ]` to `[x]`. Every other line
+          of the file is byte for byte what it was.
+
+why       The line is the unit. A person ticks a box and expects the meta they
+          wrote next to it to survive: the priority is still right, the tag still
+          applies, the person still owns it. A tool that reflowed the line while
+          ticking it would be rewriting prose nobody asked it to touch.
+
+behaviour The write lands immediately, not on some later save: a checklist that
+          does not visibly tick is a checklist people stop trusting. Ticking twice
+          is unticking — the box is its own opposite.

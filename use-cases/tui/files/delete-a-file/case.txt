@@ -1,0 +1,2 @@
+`d` in the file panel asks before removing a file that holds anything: a delete
+that needs a capital `Y` is not one a stray key can do.

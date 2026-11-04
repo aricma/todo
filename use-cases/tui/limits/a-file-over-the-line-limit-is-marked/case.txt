@@ -1,0 +1,1 @@
+A file past the line limit is listed as too long, and selecting it says why instead of opening half of it.

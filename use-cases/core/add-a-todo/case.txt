@@ -1,0 +1,1 @@
+A todo can be added to a list, with its tags and assignee, next to the one you are on.

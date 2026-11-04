@@ -1,0 +1,4 @@
+wait: too long
+key: down
+wait: not opened
+screen: too long

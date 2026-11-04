@@ -1,0 +1,1 @@
+A tag in the file panel opens every todo that carries it, across files, and checking one writes to its own file.

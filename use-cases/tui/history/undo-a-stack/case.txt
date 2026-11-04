@@ -1,0 +1,1 @@
+Three writes to one todo stack: undo pushes down from the top, and redo has to climb back up.

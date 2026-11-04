@@ -1,0 +1,3 @@
+export {input} --as json
+exit: 0
+stdout: "@dave fix you #bug"

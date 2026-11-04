@@ -1,0 +1,6 @@
+wait: TODOs.md
+key: n
+wait: new todos file
+text: extra/work
+key: enter
+wait: work/
