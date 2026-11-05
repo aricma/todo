@@ -17,35 +17,61 @@ pub fn write(files: &[Entry], format: Format) -> Result<Exported, Error> {
         let loaded = store::load(&file.path)?;
         let doc = Doc::parse(&loaded.text);
         for task in doc.tasks() {
-            let parts = spans::parts(&task.body);
             let where_ = format!("{}:{}", file.path.display(), task.line + 1);
-            if parts.title.trim().is_empty() {
-                exported.skipped.push(format!("{where_}: no title"));
-                continue;
+            match ops(&task, tasks.len() + 1) {
+                Some(one) => tasks.push(one),
+                None => exported.skipped.push(skip(&task, &where_)),
             }
-            let title = title(&task);
-            // OPS bounds a title at 1 KiB; a todo line longer than that is not
-            // something to truncate silently.
-            if title.len() > ops_lib::v0::limits::MAX_TITLE_BYTES {
-                exported.skipped.push(format!(
-                    "{where_}: title is {} bytes, the OPS limit is {}",
-                    title.len(),
-                    ops_lib::v0::limits::MAX_TITLE_BYTES
-                ));
-                continue;
-            }
-            let mut ops = OpsTask::new(title, status(&task));
-            ops.id = Some(format!("md-{}", tasks.len() + 1));
-            let metadata = metadata(&parts);
-            if !metadata.is_empty() {
-                ops.metadata = Some(metadata);
-            }
-            tasks.push(ops);
         }
     }
     exported.text =
         ops_lib::v0::write(format, &tasks).map_err(|error| Error::Ops(error.to_string()))?;
     Ok(exported)
+}
+
+/// One todo as one OPS document, in JSON: what `c` puts on the clipboard.
+///
+/// A copied todo is structured data, not a line of text, so the todo it becomes on
+/// the other side of a paste is the todo that was copied — status, priority, tags and
+/// people included — and an OPS document from anywhere else (an export, an agent, a
+/// chat) pastes the same way (RFC-014).
+pub fn one(task: &Task) -> Result<String, Error> {
+    let where_ = format!("line {}", task.line + 1);
+    let one = ops(task, 1).ok_or_else(|| Error::Ops(skip(task, &where_)))?;
+    ops_lib::v0::write(Format::Json, &[one]).map_err(|error| Error::Ops(error.to_string()))
+}
+
+/// One task as OPS, or `None` when OPS would not take it: no title, or a title past
+/// the spec's 1 KiB bound.
+fn ops(task: &Task, index: usize) -> Option<OpsTask> {
+    let parts = spans::parts(&task.body);
+    if parts.title.trim().is_empty() {
+        return None;
+    }
+    let title = title(task);
+    if title.len() > ops_lib::v0::limits::MAX_TITLE_BYTES {
+        return None;
+    }
+    let mut ops = OpsTask::new(title, status(task));
+    ops.id = Some(format!("md-{index}"));
+    let metadata = metadata(&parts);
+    if !metadata.is_empty() {
+        ops.metadata = Some(metadata);
+    }
+    Some(ops)
+}
+
+/// What an export could not take, and why.
+fn skip(task: &Task, where_: &str) -> String {
+    let parts = spans::parts(&task.body);
+    if parts.title.trim().is_empty() {
+        return format!("{where_}: no title");
+    }
+    format!(
+        "{where_}: title is {} bytes, the OPS limit is {}",
+        title(task).len(),
+        ops_lib::v0::limits::MAX_TITLE_BYTES
+    )
 }
 
 /// The body without the positional priority token: that is metadata.
@@ -115,6 +141,7 @@ mod tests {
 
     use super::write;
     use crate::discover::scan;
+    use crate::doc::Doc;
 
     fn entries(root: &Path, sources: &[(&str, &str)]) -> Vec<crate::discover::Entry> {
         for (name, text) in sources {
@@ -130,6 +157,32 @@ mod tests {
             Value::Array(items) => items,
             single => vec![single],
         }
+    }
+
+    #[test]
+    fn one_todo_copies_as_a_one_task_document() {
+        let doc = Doc::parse("- [ ] (B) pay rent #home @sam\n");
+        let copied = super::one(&doc.tasks()[0]).unwrap();
+        // ops-lib writes a bare task object when the document holds one, and a
+        // person reading their clipboard sees a task, not a document with a list
+        let json: Value = serde_json::from_str(&copied).unwrap();
+        assert_eq!(json["title"], "pay rent #home @sam");
+        assert_eq!(json["status"], "open");
+        assert_eq!(json["metadata"]["priority"], "B");
+        assert_eq!(json["metadata"]["tags"], serde_json::json!(["home"]));
+        assert_eq!(json["metadata"]["assignee"], "sam");
+    }
+
+    #[test]
+    fn a_copied_todo_pastes_back_as_the_same_line() {
+        use ops_lib::v0::Format;
+        let doc = Doc::parse("  * [x] (A) ship it #x @dave\n");
+        let task = doc.tasks()[0].clone();
+        let copied = super::one(&task).unwrap();
+        let mut into = Doc::parse("## todos\n");
+        let written = crate::ops::import::insert_document(&mut into, &copied, Format::Json, 1).unwrap();
+        assert_eq!(written, vec![1], "one line, where it was asked for");
+        assert_eq!(into.render(), "## todos\n- [x] (A) ship it #x @dave\n");
     }
 
     #[test]

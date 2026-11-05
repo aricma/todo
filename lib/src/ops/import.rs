@@ -9,16 +9,39 @@ use crate::error::Error;
 /// were added. A task's `title` becomes the body verbatim; only a valid
 /// `metadata.priority` letter is prepended back as the positional token.
 pub fn append(doc: &mut Doc, bytes: &str, format: Format) -> Result<usize, Error> {
-    let tasks = ops_lib::v0::read(format, bytes).map_err(|error| Error::Ops(error.to_string()))?;
-    let mut at = doc.lines().len();
-    let mut added = 0;
-    for task in &tasks {
-        added += insert(doc, task, &mut at, 0);
-    }
-    Ok(added)
+    let at = doc.lines().len();
+    Ok(insert_document(doc, bytes, format, at)?.len())
 }
 
-fn insert(doc: &mut Doc, task: &OpsTask, at: &mut usize, indent: usize) -> usize {
+/// Insert every task in an OPS document at `at`, depth first, and say which lines
+/// were written — what a paste becomes. A task's `title` becomes the body verbatim;
+/// only a valid `metadata.priority` letter is prepended back as the positional token.
+///
+/// The lines are the only thing the file grows: the document that arrived is not
+/// copied into the file, which is what lets a person paste JSON and see todos
+/// (RFC-014).
+pub fn insert_document(
+    doc: &mut Doc,
+    bytes: &str,
+    format: Format,
+    at: usize,
+) -> Result<Vec<usize>, Error> {
+    let tasks = ops_lib::v0::read(format, bytes).map_err(|error| Error::Ops(error.to_string()))?;
+    let mut at = at;
+    let mut written = Vec::new();
+    for task in &tasks {
+        insert(doc, task, &mut at, 0, &mut written);
+    }
+    Ok(written)
+}
+
+fn insert(
+    doc: &mut Doc,
+    task: &OpsTask,
+    at: &mut usize,
+    indent: usize,
+    written: &mut Vec<usize>,
+) -> usize {
     let Some(inverse) = doc.insert_at(*at, indent, &body(task)) else {
         return 0;
     };
@@ -29,9 +52,10 @@ fn insert(doc: &mut Doc, task: &OpsTask, at: &mut usize, indent: usize) -> usize
     if task.status == Status::Done {
         doc.check(line);
     }
+    written.push(line);
     let mut added = 1;
     for child in &task.subtasks {
-        added += insert(doc, child, at, indent + 2);
+        added += insert(doc, child, at, indent + 2, written);
     }
     added
 }

@@ -1362,8 +1362,67 @@ fn d_on_a_stale_history_entry_keeps_it() {
     assert!(message.text.contains("reloads on its own"), "{message:?}");
 }
 
+/// One OPS task, as `c` writes it and as another tool would hand it over.
+const PASTED: &str = r#"[
+  {"id": "x-1", "status": "open", "metadata": {"priority": "B", "tags": ["home"]},
+   "title": "pay rent #home"},
+  {"id": "x-2", "status": "done", "title": "already done"}
+]"#;
+
 #[test]
-fn c_copies_the_file_path_the_todo_line_or_the_collection_name() {
+fn a_pasted_ops_document_lands_as_todo_lines_under_the_cursor() {
+    let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] first\n- [ ] last\n")]);
+    app.pane = Pane::View;
+    // the cursor is on `first`, so the pasted todos belong under it
+    app.on_paste(PASTED);
+    assert_eq!(
+        app.doc.render(),
+        "- [ ] first\n- [ ] (B) pay rent #home\n- [x] already done\n- [ ] last\n"
+    );
+    // the file got lines, not the document
+    assert!(!app.doc.render().contains('{'), "no json in the file");
+    // one entry per line, so undo peels them from the bottom up
+    assert_eq!(app.history.len(), 2);
+    assert!(app.message_text().contains("pasted 2 todos"), "{:?}", app.message);
+}
+
+#[test]
+fn a_paste_that_is_not_ops_writes_nothing() {
+    let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] first\n")]);
+    app.pane = Pane::View;
+    app.on_paste("- [ ] copied from an editor\n");
+    assert_eq!(app.doc.render(), "- [ ] first\n", "nothing was written");
+    assert!(app.history.is_empty());
+    assert!(
+        app.message_text().contains("not an OPS document"),
+        "{:?}",
+        app.message
+    );
+}
+
+#[test]
+fn a_paste_into_a_field_is_text_and_a_paste_into_a_file_list_says_where() {
+    // a field is a text field: the document goes in as text, at the cursor
+    let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] first\n")]);
+    app.pane = Pane::View;
+    press(&mut app, KeyCode::Char('e'));
+    app.on_paste("with spaces");
+    assert_eq!(
+        app.mode,
+        Mode::Editing(crate::state::prompt::Prompt::new("firstwith spaces")),
+        "pasted at the cursor"
+    );
+
+    // a file list is not a place a todo can land, and says so
+    press(&mut app, KeyCode::Esc);
+    app.pane = Pane::Files;
+    app.on_paste(PASTED);
+    assert!(app.message_text().contains("goes into a file's todos"), "{:?}", app.message);
+    assert_eq!(app.doc.render(), "- [ ] first\n");
+}
+
+#[test]
+fn c_copies_the_file_path_the_ops_document_or_the_collection_name() {
     let (_tmp, mut app) = app(&[("a/TODOs.md", "- [ ] (A) pay rent #home @sam\n")]);
 
     // a file gives its absolute path: that is what pastes into a shell
@@ -1379,13 +1438,28 @@ fn c_copies_the_file_path_the_todo_line_or_the_collection_name() {
         app.message
     );
 
-    // a todo gives the line as the file has it, markdown and all
+    // a todo gives an OPS document: the todo as data, not as a line
     app.pane = Pane::View;
     let action = press(&mut app, KeyCode::Char('c')).expect("a copy");
     let Action::Copy { text } = action else {
         panic!("{action:?}");
     };
-    assert_eq!(text, "- [ ] (A) pay rent #home @sam");
+    for piece in [
+        "\"title\": \"pay rent #home @sam\"",
+        "\"status\": \"open\"",
+        "\"priority\": \"A\"",
+        "\"tags\"",
+        "\"assignee\": \"sam\"",
+    ] {
+        assert!(text.contains(piece), "{piece} is missing: {text}");
+    }
+    assert!(text.trim_start().starts_with('{'), "a task, not a page: {text}");
+    // the header says what was copied in the words of the line, not of the document
+    assert!(
+        app.message_text().contains("copied - [ ] (A) pay rent"),
+        "{:?}",
+        app.message
+    );
 
     // and the history, which has no single line to give, does nothing
     // a collection row gives the word it is, not the open file's path

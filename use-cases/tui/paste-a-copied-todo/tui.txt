@@ -1,0 +1,4 @@
+wait: first
+key: right
+paste: [{"id":"x-1","status":"open","metadata":{"priority":"B","tags":["home"]},"title":"pay rent #home"},{"id":"x-2","status":"done","title":"already done"}]
+wait: pasted 2 todos

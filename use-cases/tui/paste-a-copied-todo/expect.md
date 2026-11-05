@@ -1,0 +1,4 @@
+- [ ] first
+- [ ] (B) pay rent #home
+- [x] already done
+- [ ] last

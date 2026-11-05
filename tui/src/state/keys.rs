@@ -652,10 +652,13 @@ impl App {
 
     /// `c`: put the selected thing on the clipboard.
     ///
-    /// A file gives its path, which is what a person pastes into a shell or an
-    /// editor; a todo gives its line exactly as the file has it, tags and all, so
-    /// pasting it somewhere else keeps the markdown; a collection gives the word it
-    /// is — `#home`, `@sam` — which is what you paste into a search or a new todo.
+    /// A file gives its path and a heading gives its text, because those are strings
+    /// and a person uses them as strings. A **todo** gives an OPS document — title,
+    /// status, priority, tags, people — because a todo is structured data: pasted back
+    /// into a todos file it is drawn as a line, pasted into anything else it is the
+    /// same todo, and an OPS document from elsewhere pastes the same way (RFC-014).
+    /// A collection row gives the word it is — `#home`, `@sam` — for a search or a new
+    /// todo, which is what a collection *is*.
     fn copy(&mut self) -> Option<Action> {
         let (text, what) = match self.pane {
             // the row says what it is: a collection row is a name, not a file
@@ -671,8 +674,19 @@ impl App {
             }
             Pane::View | Pane::Todos | Pane::Collection => {
                 let task = self.current_task()?;
+                // the label is the line, which is what the person recognises; the
+                // clipboard gets the document
                 let line = self.doc.lines().get(task.line)?.clone();
-                (line.clone(), line)
+                match aricma_todo_lib::ops::one(&task) {
+                    Ok(json) => (json, line),
+                    // a todo with no title has nothing to be a task about: say so
+                    // rather than quietly putting the markdown on the clipboard, and
+                    // leaving a paste to guess
+                    Err(error) => {
+                        self.set_warning(error.to_string());
+                        return None;
+                    }
+                }
             }
             // a heading is one line of text too
             Pane::Outline => {
@@ -683,6 +697,59 @@ impl App {
         };
         self.message = Some(crate::state::message::Message::success(text::copied(&what)));
         Some(Action::Copy { text })
+    }
+
+    /// What arrived from the clipboard: `Event::Paste`, one string.
+    ///
+    /// In a field, a paste is text and goes in at the cursor — a path, a query, a
+    /// sentence of a todo. Anywhere else it is a **todo** being pasted, so it is read
+    /// as an OPS document and written out as todo lines under the highlighted one: the
+    /// file gets markdown, the person gets their todos, and a document copied out of
+    /// another tool needs no conversion (RFC-014).
+    pub fn on_paste(&mut self, text: &str) -> Option<Action> {
+        if self.mode != Mode::Normal {
+            // a text field takes text, whatever it is
+            let mut action = None;
+            for character in text.chars().filter(|one| !one.is_control()) {
+                if let Some(one) = self.press(KeyCode::Char(character)) {
+                    action = Some(one);
+                }
+            }
+            return action;
+        }
+        if !matches!(self.pane, Pane::View | Pane::Todos) {
+            self.set_warning(text::PASTE_NOT_HERE);
+            return None;
+        }
+        let after = self
+            .current_task()
+            .map_or_else(|| self.doc.lines().len(), |task| task.line + 1);
+        let written = match aricma_todo_lib::ops::paste(&mut self.doc, text, after) {
+            Ok(written) => written,
+            Err(error) => {
+                let _ = error;
+                self.set_warning(text::NOT_OPS);
+                return None;
+            }
+        };
+        let Some(&first) = written.first() else {
+            self.set_warning(text::NO_TODOS_IN_OPS);
+            return None;
+        };
+        // one entry per line: the history is per line, and undo peels the paste from
+        // the bottom up, which is how a paste into a file someone cares about is safe
+        for line in &written {
+            let text = self.doc.lines().get(*line)?.clone();
+            let task = self.task_at(*line)?;
+            self.record(label(text::NEW_TODO, &task), Inverse::Insert { line: *line, text });
+        }
+        self.task_idx = self
+            .tasks()
+            .iter()
+            .position(|task| task.line == first)
+            .unwrap_or(0);
+        self.set_info(text::pasted(written.len()));
+        Some(self.save_action())
     }
 
     /// A move leaves the todo at the other end of its swap, or where it landed when

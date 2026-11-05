@@ -63,6 +63,7 @@ The steps a person takes, in order, and what the finished screen must show:
 open: file                        # optional: open TODOs.md itself, not its folder
 key: right                        # a named key, or one character
 text: ship it #infra @dave        # literal characters; a trailing space is kept
+paste: [{"title": "pay rent"}]     # a bracketed paste, as a terminal sends it
 wait: esc cancel · enter add      # poll the screen until this appears (5 s)
 screen: [x] (A) pay rent #home    # the finished screen must contain this
 ```

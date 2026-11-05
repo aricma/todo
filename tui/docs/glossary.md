@@ -74,7 +74,8 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | **check / uncheck** | the one key that changes a todo's state, and a **history entry** |
 | **move** | changing which todo a line sits after. The file's order is the only order, and across a heading the todo joins the far chapter's **cluster** |
 | **history** | the session's own list of edits that can be undone, with the file's real history read from it — a **history entry** names what it did (`new todo`, `set prio B`) |
-| **copy** | putting a path or a todo line on the clipboard: the line exactly as the file has it, never reformatted |
+| **copy** | putting the selected thing on the clipboard: a path or a heading as plain text, a **todo** as an OPS document (RFC-014) |
+| **paste** | a string arriving from the clipboard. Text in a field; an OPS document anywhere todos live, written out as todo lines — the file never receives JSON |
 | **refusal** | a reason a key cannot act, said in words where the thing it blocks is. Not a failure |
 | **failure** | something went wrong that the program did not choose: a write that did not land, a file that moved |
 

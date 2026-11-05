@@ -18,15 +18,17 @@ pub fn pump(terminal: &mut ratatui::DefaultTerminal, app: &mut App) -> Result<()
             }
             continue;
         }
-        let Event::Key(key) = event::read()? else {
-            continue;
+        // A paste is not a hundred key presses: bracketed paste is on, so the
+        // terminal hands over what was copied as one string, and `state` decides what
+        // it means — text in a field, a todo anywhere todos live.
+        let action = match event::read()? {
+            Event::Key(key) if key.kind == KeyEventKind::Press => app.on_key(key),
+            Event::Paste(text) => app.on_paste(&text),
+            _ => continue,
         };
-        if key.kind != KeyEventKind::Press {
-            continue;
-        }
         // one place decides what a key means, and the whole map is in `state`:
         // this loop only draws, reads, and performs what came back
-        if let Some(action) = app.on_key(key) {
+        if let Some(action) = action {
             perform(app, action);
         }
     }

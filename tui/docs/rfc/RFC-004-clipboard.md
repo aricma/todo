@@ -19,12 +19,14 @@ about the program and a lie about the person's clipboard.
 ## Behaviour
 
 1. `c` **MUST** put on the clipboard, by the panel the cursor is in: the file's path
-   in the files panel, the todo's **line exactly as the file has it** in the todos
-   panel, the file view or a collection, the collection's own word (`#home`, `@sam`)
-   on a collection row, and a heading's text in the index panel.
-2. A copy **MUST NOT** reformat: a copied todo pastes back as the markdown the file
-   stores, indentation and tags included, because it is the file's line and not the
-   screen's rendering of it.
+   in the files panel, the collection's own word (`#home`, `@sam`) on a collection
+   row, a heading's text in the index panel, and — in the todos panel, the file view
+   or a collection — an **OPS document** of the selected todo. A todo is data, so it
+   travels as data; RFC-014 says what that document is and how it comes back.
+2. A copy **MUST NOT** reformat what it copies: a path is a path, a heading is its
+   text, a collection is its word. A todo is the exception the structure buys: it is
+   not the file's line, because a line is a rendering of the todo and the document is
+   the todo.
 3. The program **MUST** attempt the OSC 52 sequence on every copy — it is the only
    clipboard that reaches a screen over ssh.
 4. On a local macOS session (`SSH_CONNECTION` and `SSH_TTY` both unset) it **MUST**

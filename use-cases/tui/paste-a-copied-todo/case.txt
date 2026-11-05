@@ -1,0 +1,3 @@
+A todo copied out of this tool is an OPS document, and pasting one writes todo lines:
+the file gets markdown, the paste says how many todos arrived, and a document from
+somewhere else (an export, an agent) pastes the same way.

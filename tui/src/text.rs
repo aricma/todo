@@ -155,10 +155,29 @@ pub const NEEDS_A_HEADING: &str = "a heading needs a title";
 /// A todo with nothing in it is not a todo.
 pub const NEEDS_A_TITLE: &str = "a todo needs a title";
 
-/// A file's path, or a todo's line, is on the clipboard.
+/// A file's path, a heading's text or a todo's OPS document is on the clipboard.
 pub fn copied(what: &str) -> String {
     format!("copied {what}")
 }
+
+/// How many todo lines a pasted document became.
+pub fn pasted(count: usize) -> String {
+    match count {
+        1 => "pasted 1 todo".to_owned(),
+        count => format!("pasted {count} todos"),
+    }
+}
+
+/// A paste that is not an OPS document: nothing was written, and the reason is that
+/// the file only ever gets todo lines, not whatever was on the clipboard.
+pub const NOT_OPS: &str = "not an OPS document — nothing was pasted";
+
+/// An OPS document that holds no todos.
+pub const NO_TODOS_IN_OPS: &str = "that document holds no todos";
+
+/// A paste where a todo has no file to go in.
+pub const PASTE_NOT_HERE: &str = "a pasted todo goes into a file's todos";
+
 
 /// A search with no result is not an error, so it is not coloured like one.
 pub const NO_MATCH: &str = "no todo matches";

@@ -14,7 +14,8 @@ use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use ratatui::crossterm::event::{
-    KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
+    DisableBracketedPaste, EnableBracketedPaste, KeyboardEnhancementFlags,
+    PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
 };
 
 /// Unambiguous `esc` and `tab`, and press/release kinds, so a modifier is never
@@ -30,6 +31,12 @@ pub fn push() {
     if ratatui::crossterm::execute!(out, PushKeyboardEnhancementFlags(FLAGS)).is_ok() {
         PUSHED.store(true, Ordering::SeqCst);
     }
+    // Bracketed paste, so a copied document arrives as one string instead of a
+    // hundred key presses — which in a normal screen would be a hundred keys, some of
+    // them `d` and `x` (RFC-014). A terminal that ignores the sequence sends the text
+    // as keys, which is what it did before this existed.
+    let _ = ratatui::crossterm::execute!(out, EnableBracketedPaste);
+    let _ = out.flush();
 }
 
 /// Give the keyboard back exactly as it was found.
@@ -38,6 +45,6 @@ pub fn pop() {
         return;
     }
     let mut out = std::io::stdout();
-    let _ = ratatui::crossterm::execute!(out, PopKeyboardEnhancementFlags);
+    let _ = ratatui::crossterm::execute!(out, DisableBracketedPaste, PopKeyboardEnhancementFlags);
     let _ = out.flush();
 }
