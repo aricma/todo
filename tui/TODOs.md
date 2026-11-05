@@ -24,7 +24,6 @@
 - [x] we should allow not only TODOs.md files but also Tasks.md files in the files panel — already so: `is_candidate` lowercases the name and accepts `task*`, with `accepts_todo_and_task_prefixes_in_any_case` for `Tasks.md` and `tasks-2026.md`
 - [x] collections in the files panel can not be deleted — right: deleting one would mean stripping `#tag` from every line that names it, across files, which this tool does not do. So there is no key for it, and now it is not offered either: the status bar follows the **row**, not the panel, so a collection row shows `↑/↓ collection` and no `n`/`d`, and the keys page says "a file row"
 
-- [ ] (B) add line numbers to the todos panel
 
 ## open, in the order to do them
 
@@ -39,8 +38,11 @@ the record of how each one was decided.)
 - [x] (C) add opt+up/down as bindings to also switch left sidebar panels — moving a todo is `ctrl+↑/↓` now (`K`/`J` stay)
 - [x] (D) add an 'h' keybinding for the files panel so that we can unhide/hide all other *.md files in the tree since any of them  could have todos in them, this is for teams the do not stic to the TODOs.md and Tasks.md name conwentions and want to just have a look around but these other md files are not included in the search and are hidden by default
 - [x] file panel files and collections should both support a 'c' binding to copy the litteral string like  the path tag or assignment
-- [ ] (A) the tui in single file mode should not ollapse and just hide the files panle but keep the left right split
+- [x] (B) add line numbers to the todos panel — the todos panel had them all along; the panel that did not was the **file view**, which now numbers every line it draws, prose and headings included, with the file's own line number (RFC-002)
+- [x] (A) the tui in single file mode should not collapse and hide the files panel but keep the left right split — one file hides the files panel, not the split: the index, todos and history keep the right-hand column and its width
+- [x] (B) empty files are not visible in the files panel but they should — a candidate file is listed when it holds a todo, a line that meant to be one, or nothing but headings: a file made for the first todo is a place to go (a readme with prose and no todos stays out)
 - [ ] (D) we should be dealing with 'TODO:' comments in any file in the tree
 - [ ] (C) we should copy todos as OPS so we can copy paste them between files
 - [ ] (D) we need to fix the new todo input wrap ... it is a weird user experiance + the spaces are trimmed from the state before passed down to the view again with leads to a weird experinace where spaces are not visible until wrapped by another word
 - [ ] (D) we need to add hints for todos to be formatted correctly and the files to be formatted correctly and auto fix functions so the user can just accept them
+- [ ] (D) add auto fix hints for the headdings panel, if an h1 or h2 for 'Done ✅' is missing we are adding a hint that can be approved by navigating to it and press Y  for now we do not allow to dismiss any hint since we do not have state other then the pure files BUT we do allow to press h to hide or unhide the hints
