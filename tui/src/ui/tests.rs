@@ -685,6 +685,41 @@ fn a_long_history_entry_wraps_under_its_own_label() {
 }
 
 #[test]
+fn a_wrapped_history_entry_keeps_its_lane_running() {
+    let (_tmp, mut app) = app(&[(
+        "TODOs.md",
+        "- [ ] a todo with a title long enough to need two rows in this narrow sidebar\n",
+    )]);
+    app.pane = crate::state::action::Pane::View;
+    // two writes to the same line: the second one depends on the first, so a lane
+    // runs from the newer entry down to the older one
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('x'));
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('x'));
+    app.pane = crate::state::action::Pane::History;
+    let lines = screen_at(&app, 80, 24);
+    let first = lines
+        .iter()
+        .position(|line| line.contains("uncheck todo"))
+        .unwrap_or_else(|| panic!("the entry is on screen:\n{}", lines.join("\n")));
+    let lane = lines[first]
+        .chars()
+        .position(|one| one == '╭')
+        .expect("the lane leaves this row");
+    assert!(
+        lines[first + 1].contains("with a title"),
+        "it wraps: {:?}",
+        &lines[first..first + 2]
+    );
+    // and the pipe beside the wrapped rows is still a pipe
+    assert_eq!(
+        lines[first + 1].chars().nth(lane),
+        Some('│'),
+        "{:?}",
+        &lines[first..first + 3]
+    );
+}
+
+#[test]
 fn the_files_read_like_a_file_viewer_and_the_pointer_follows() {
     let (_tmp, mut app) = app(&[
         ("web/Tasks.md", "- [ ] w\n"),

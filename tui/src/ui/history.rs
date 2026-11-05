@@ -62,7 +62,14 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
         // gutter and the checkbox stay on the first row and the rest lines up
         // under the text they continue
         let lead = format!("{}[{checkbox}] ", graph.row(index));
-        let pad = " ".repeat(UnicodeWidthStr::width(lead.as_str()));
+        // the rows a label wraps onto keep the lanes that run through this entry, so
+        // a dependency line is a line and not a line with holes in it; the checkbox
+        // column stays blank, because a write has one state, on its first row
+        let pad = format!(
+            "{}{}",
+            graph.through(index),
+            " ".repeat(UnicodeWidthStr::width(format!("[{checkbox}] ").as_str()))
+        );
         let room = width.saturating_sub(pad.len());
         for (line, chunk) in wrap::lines(&entry.label, room.max(MIN_WRAP))
             .into_iter()
@@ -126,6 +133,25 @@ struct Graph {
 }
 
 impl Graph {
+    /// The gutter of a row's continuation: only the lanes that run *through* this
+    /// entry. A label that wraps is still the same write, so the pipes beside it
+    /// carry on; a lane that arrived here has ended, and a gap is the truth.
+    fn through(&self, row: usize) -> String {
+        if self.width == 0 {
+            return String::new();
+        }
+        let cells = self.rows.get(row).cloned().unwrap_or_default();
+        let mut text = String::with_capacity(self.width + 1);
+        for lane in 0..self.width {
+            text.push_str(match cells.get(lane).copied().unwrap_or(" ") {
+                START | PASS => PASS,
+                _ => " ",
+            });
+        }
+        text.push(' ');
+        text
+    }
+
     /// The gutter of one row, padded to the graph's width.
     ///
     /// A row where a line turns the corner gets a horizontal run from its lane to
