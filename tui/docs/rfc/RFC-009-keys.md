@@ -62,6 +62,7 @@ none, and the bar offers the spelling that always arrives.
 | anywhere | `q` / `ctrl+c` | quit | `q` for the panel-level quit, `ctrl+c` for anywhere, including inside a field where `q` is a letter |
 | anywhere | `t` | line height | "tall" rows; a display setting, not a document one, so it must not shadow a letter a person types |
 | files panel | `↑/↓` | file / collection | one list of places; the row's kind decides what the bar offers |
+| todos panel, file view, collection | `↑/↓` | nav | the arrow keys move the cursor, not the todo: `↑/↓ todo` sat in a row of verbs (`x check`, `d delete`) and read as a third one |
 | files panel | `n` | new file | new where files are chosen |
 | files panel | `d` | delete file | the panel's own destructive verb, behind `Y` |
 | files panel | `h` | hide / unhide | "hidden files": widen the scan to every `*.md` and back |

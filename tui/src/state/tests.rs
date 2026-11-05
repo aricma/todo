@@ -1055,7 +1055,7 @@ fn an_empty_row_waits_while_the_add_field_floats_over_it() {
     // the dots are the screen's, not the file's
     assert_eq!(app.doc.render(), "- [ ] first\n- [ ]\n");
     assert!(text.contains("esc cancel · enter add"), "{text}");
-    assert!(!text.contains("↑/↓ todo"), "{text}");
+    assert!(!text.contains("↑/↓ nav"), "{text}");
     // esc takes the row out and puts the cursor back on the row it came from
     press(&mut app, KeyCode::Esc);
     assert_eq!(app.doc.render(), "- [ ] first\n");

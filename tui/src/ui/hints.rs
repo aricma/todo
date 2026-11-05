@@ -170,7 +170,10 @@ pub const BINDINGS: &[Binding] = &[
     // the panels below
     Binding::new("enter", "open file", Where::COLLECTION, Bar::Verb).on_something(),
     // ---- the panels that edit the open file's todos, and a collection's rows
-    Binding::new("↑/↓", "todo", Where::TODO.or(Where::COLLECTION), Bar::Verb),
+    // "nav", not "todo": the arrow keys move the cursor, and naming the thing under it
+    // read as an action on that thing — `↑/↓ todo` next to `x check` and `d delete`
+    // looked like a third verb
+    Binding::new("↑/↓", "nav", Where::TODO.or(Where::COLLECTION), Bar::Verb),
     Binding::new("x", "check", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
     // the second spelling of `x`: a terminal always sends the letter, so the bar keeps
     // the shorter row and the page is where one key is told twice
@@ -483,7 +486,7 @@ mod tests {
         let _ = app.press(ratatui::crossterm::event::KeyCode::Char('d'));
         let _ = app.press(ratatui::crossterm::event::KeyCode::Char('Y'));
         let hints = super::section_keys(&app);
-        assert_eq!(hints, ["↑/↓ todo", "n add", "c copy"], "{hints:?}");
+        assert_eq!(hints, ["↑/↓ nav", "n add", "c copy"], "{hints:?}");
 
         // a collection's `enter` is about the row the cursor is on, and there is none
         app.pane = Pane::Collection;
