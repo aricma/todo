@@ -26,21 +26,19 @@ pub fn draw(frame: &mut Frame, app: &App) {
     ])
     .areas(frame.area());
     header_line(frame, app, header);
+    // Two columns whether or not the file panel is there: a single file hides the
+    // list, not the split, so its sections keep the width and the place they had.
+    // The gap matches the two rows a pair of stacked frames leaves between sections.
+    let [sidebar, view] = Layout::horizontal([
+        Constraint::Percentage(SIDEBAR_PERCENT),
+        Constraint::Percentage(VIEW_PERCENT),
+    ])
+    .spacing(COLUMN_GAP)
+    .areas(panes);
     if app.single {
-        // One file: no list to choose from and nothing to compare against, so
-        // every section gets the full width.
-        stack(frame, app, panes, &app.sections());
+        stack(frame, app, view, &app.sections());
     } else {
-        // Two columns, so the gap between them matches the two rows a pair of
-        // stacked frames leaves between sections.
-        let [sidebar, view] = Layout::horizontal([
-            Constraint::Percentage(SIDEBAR_PERCENT),
-            Constraint::Percentage(VIEW_PERCENT),
-        ])
-        .spacing(COLUMN_GAP)
-        .areas(panes);
-        let panes: Vec<Pane> = app.sections().into_iter().collect();
-        stack(frame, app, sidebar, &panes);
+        stack(frame, app, sidebar, &app.sections());
         // the right-hand side is the open file, or the collection that was opened
         // from the file panel
         if app.viewing().is_some() {

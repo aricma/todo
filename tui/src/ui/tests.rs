@@ -148,10 +148,11 @@ fn the_border_is_rounded_and_the_header_says_where_we_are() {
         "it names what was opened: {:?}",
         lines[0]
     );
-    // the sections start under it
-    assert!(lines[1].starts_with('╭'), "{:?}", lines[1]);
+    // the sections start under it, in the right-hand column: one file hides the
+    // list, not the split
+    assert!(lines[1].trim_start().starts_with('╭'), "{:?}", lines[1]);
     assert!(
-        lines.iter().any(|line| line.starts_with('╰')),
+        lines.iter().any(|line| line.trim_start().starts_with('╰')),
         "a bottom corner"
     );
 }
@@ -190,13 +191,13 @@ fn a_long_heading_wraps_under_its_own_text() {
         .position(|line| line.contains("# a heading"))
         .expect("the heading is on screen");
     assert!(
-        lines[first + 1].contains("second row"),
-        "it wraps onto the next row: {:?}",
+        lines[first + 1].contains("enough to need a"),
+        "the text continues on the row below: {:?}",
         &lines[first..first + 3]
     );
     // and the continuation lines up under the text, not under the hashes
     let text_at = lines[first].find("a heading").unwrap();
-    let next_at = lines[first + 1].find("second").unwrap();
+    let next_at = lines[first + 1].find("enough").unwrap();
     assert_eq!(text_at, next_at, "{:?}", &lines[first..first + 2]);
 }
 
