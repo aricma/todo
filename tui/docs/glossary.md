@@ -70,7 +70,7 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | word | what it is |
 | --- | --- |
 | **edit** | changing a todo's body where it sits (`e`), the row becoming the field |
-| **add** | a new todo, typed in the **new todo** field under the row it will land after |
+| **add** | a new todo: the empty row goes in first, the cursor moves onto it, and it is typed in place — the row is the field |
 | **check / uncheck** | the one key that changes a todo's state, and a **history entry** |
 | **move** | changing which todo a line sits after. The file's order is the only order, and across a heading the todo joins the far chapter's **cluster** |
 | **history** | the session's own list of edits that can be undone, with the file's real history read from it — a **history entry** names what it did (`new todo`, `set prio B`) |

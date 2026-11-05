@@ -86,12 +86,15 @@ pub(crate) fn parse_line(line: &str, index: usize) -> Option<Task> {
         'x' | 'X' => true,
         _ => return None,
     };
-    // `[ ]text` is not a task: the space after the checkbox is required.
-    let after = chars.as_str().strip_prefix(']')?.strip_prefix(' ')?;
-    let body = after.trim();
-    if body.is_empty() {
-        return None;
-    }
+    let after = chars.as_str().strip_prefix(']')?;
+    let body = match after.strip_prefix(' ') {
+        Some(rest) => rest.trim(),
+        // `- [ ]` with nothing after it is the row a new todo waits in before its
+        // title is typed; `[ ]text` is still not a task, because the space after
+        // the checkbox is what separates it from the title (RFC-013)
+        None if after.trim().is_empty() => "",
+        None => return None,
+    };
     let parts = spans::parts(body);
     Some(Task {
         line: index,
@@ -213,7 +216,6 @@ mod tests {
     #[test]
     fn a_line_that_looks_like_a_task_but_is_not_one_is_prose() {
         for line in [
-            "- [ ]\n",
             "- [] x\n",
             "- [ ]\tx\n",
             "  - [x]no space\n",

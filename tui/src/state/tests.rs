@@ -368,13 +368,13 @@ fn n_refuses_an_empty_body_and_writes_nothing() {
     app.pane = Pane::Todos;
     press(&mut app, KeyCode::Char('n'));
     assert_eq!(press(&mut app, KeyCode::Enter), None);
-    assert_eq!(
-        app.doc.render(),
-        "- [ ] a
-"
-    );
-    // the field stays open, empty, so the next thing typed is the todo
+    // the field stays open on the row it prepared, and that row is the only thing
+    // that exists: nothing has been saved and nothing is in the history
     assert_eq!(app.mode, Mode::Adding(Prompt::new("")));
+    assert_eq!(app.doc.render(), "- [ ] a\n- [ ]\n");
+    assert!(app.history.is_empty());
+    assert_eq!(press(&mut app, KeyCode::Esc), None);
+    assert_eq!(app.doc.render(), "- [ ] a\n", "a cancelled row is not a line");
 }
 
 #[test]
@@ -1035,21 +1035,26 @@ fn the_keys_page_opens_on_question_mark_and_closes_on_escape() {
 }
 
 #[test]
-fn the_add_field_floats_and_leaves_the_keys_in_the_bar() {
+fn the_new_todo_row_is_the_field_and_the_keys_stay_in_the_bar() {
     let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] first\n")]);
     app.pane = Pane::View;
     press(&mut app, KeyCode::Char('n'));
+    // the empty row is in the file before anything is typed, and the cursor is on it
+    assert_eq!(app.doc.render(), "- [ ] first\n- [ ]\n");
+    assert_eq!(app.current_task().unwrap().line, 1);
+
     type_text(&mut app, "ship #infra");
     let text = screen(&app).join("\n");
-    assert!(text.contains("new todo"), "{text}");
-    assert!(text.contains("esc cancel · enter add"), "{text}");
-    // the second row is the field's own keys while it owns the keyboard
+    // the row, banded, with what is being typed on it — not a floating frame
+    assert!(text.contains("ship #infra"), "{text}");
+    assert!(!text.contains("╭ new todo"), "{text}");
+    // and the keys for the key that owns the keyboard are the bar's second row
     assert!(text.contains("esc cancel · enter add"), "{text}");
     assert!(!text.contains("↑/↓ todo"), "{text}");
-    // typing has not touched the file
-    assert_eq!(app.doc.render(), "- [ ] first\n");
+    // the document still holds the empty row: the text is the field's
+    assert_eq!(app.doc.render(), "- [ ] first\n- [ ]\n");
 
-    // esc leaves the file alone
+    // esc takes the row out with it
     press(&mut app, KeyCode::Esc);
     assert_eq!(app.doc.render(), "- [ ] first\n");
 }
@@ -1061,7 +1066,11 @@ fn a_todo_with_no_title_is_refused_and_the_field_keeps_the_text() {
     press(&mut app, KeyCode::Char('n'));
     type_text(&mut app, "  #tag @who");
     assert_eq!(press(&mut app, KeyCode::Enter), None, "nothing was added");
-    assert_eq!(app.doc.render(), "- [ ] first\n");
+    assert_eq!(
+        app.doc.render(),
+        "- [ ] first\n- [ ]\n",
+        "the row waits, with no title on it"
+    );
     assert_eq!(app.mode, Mode::Adding(Prompt::new("  #tag @who")));
     let text = screen(&app).join("\n");
     assert!(text.contains("! a todo needs a title"), "{text}");
@@ -1112,7 +1121,11 @@ fn a_refresh_waits_while_something_is_being_typed() {
     std::fs::write(&path, "- [ ] a\n- [ ] elsewhere\n").unwrap();
     app.refresh_from_disk().unwrap();
 
-    assert_eq!(app.doc.render(), "- [ ] a\n", "the document is left alone");
+    assert_eq!(
+        app.doc.render(),
+        "- [ ] a\n- [ ]\n",
+        "the document is left alone, row and all"
+    );
     assert_eq!(
         app.mode,
         Mode::Adding(crate::state::prompt::Prompt::new("half typed")),

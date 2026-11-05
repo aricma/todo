@@ -1,7 +1,8 @@
 wait: first
 key: right
 key: n
-wait: new todo
+wait: 2 - [ ]
 text: never added
+wait: never added
 key: esc
 wait: 0/1

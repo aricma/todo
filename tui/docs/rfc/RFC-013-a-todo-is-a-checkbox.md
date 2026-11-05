@@ -36,8 +36,11 @@ open todos, and pressing `x` on one would write `[x]` into a paragraph of prose.
 4. A line that carries a checkbox-shaped bracket but fails the shape **MUST** be
    reported as a finding — `malformed task line` — and **MUST NOT** be silently treated
    as prose. `[y]`, `[]` and a box with no space after it are the cases.
-5. A todo with nothing left for a title (`- [ ] ` and then air) **MUST** be a finding,
-   not a todo: there is nothing to read, check or copy.
+5. A todo with nothing readable left for a title **MUST** be a finding (`no title`):
+   `- [ ]` on its own, and a line made only of `#tag`s or `@who`s, are the cases. It
+   stays a todo — a checkbox is a state the person can change — and `--check` is where
+   it is reported. The empty one has a second job: it is the row a new todo waits in
+   (RFC-010), prepared in the file before its title is typed.
 6. A write **MUST** keep the marker and the indentation it found. `* [ ] x` stays `*`,
    never becomes `-`; the file's own style is not the program's to normalise.
 7. A bare bullet **MUST** be treated as prose **with a bullet**, not as "a todo that is

@@ -76,6 +76,21 @@ impl Doc {
         Some(Inverse::Insert { line: at, text })
     }
 
+    /// Put an empty todo after the given line and say where it went: the row a new
+    /// todo is typed into.
+    ///
+    /// The line exists before the person types, so the row being typed is the row
+    /// the todo will occupy — the file view, the counts and the highlight all show
+    /// it, and cancelling takes it out again (RFC-014).
+    pub fn add_placeholder(&mut self, after: Option<usize>) -> Option<usize> {
+        let (at, indent, marker) = match after.and_then(|line| self.task_at(line)) {
+            Some(task) => (task.line + 1, task.indent, task.marker.clone()),
+            None => (self.lines.len(), 0, "-".to_owned()),
+        };
+        self.lines.insert(at, format!("{}{} [ ]", " ".repeat(indent), marker));
+        Some(at)
+    }
+
     /// Insert a new unchecked task at a line index with an explicit indent,
     /// which is how a nested OPS tree is written back as indented todos.
     pub fn insert_at(&mut self, at: usize, indent: usize, body: &str) -> Option<Inverse> {
@@ -314,6 +329,11 @@ fn checkbox_offset(task: &Task) -> usize {
 /// The line with its body replaced, keeping the whitespace around the body.
 fn with_body(line: &str, task: &Task, body: &str) -> String {
     let start = task.indent + task.marker.len() + 5;
+    // a placeholder has nothing at all after its checkbox yet, so there is no
+    // space to fill: the separator is added with the body
+    if line.len() <= task.indent + task.marker.len() + 4 {
+        return format!("{} {body}", line.trim_end());
+    }
     let raw = &line[start..];
     if raw.trim().is_empty() {
         return format!("{}{body}", &line[..start]);
@@ -548,6 +568,29 @@ mod tests {
         assert_eq!(doc.render(), "- [ ] a\n- [ ] c\n");
         doc.apply(inverse.flip()).unwrap();
         assert_eq!(doc.render(), source);
+    }
+
+    #[test]
+    fn an_empty_checkbox_is_a_task_with_no_title() {
+        // the row a new todo waits in, and a line `--check` reports as `no title`
+        let doc = Doc::parse("- [ ]\n- [ ] a\n");
+        assert_eq!(doc.tasks().len(), 2);
+        assert_eq!(doc.tasks()[0].body, "");
+        assert_eq!(doc.findings().len(), 1, "the empty one has no title");
+        // but a checkbox run into its title is still not a task
+        assert!(Doc::parse("- [ ]text\n").tasks().is_empty());
+    }
+
+    #[test]
+    fn a_placeholder_goes_where_the_neighbour_is() {
+        let mut doc = Doc::parse("## x\n  * [ ] child\n");
+        let line = doc.add_placeholder(Some(1)).unwrap();
+        assert_eq!(line, 2);
+        assert_eq!(doc.render(), "## x\n  * [ ] child\n  * [ ]\n");
+        // and typing the title fills that same line in
+        doc.set_body(line, "new #t").unwrap();
+        assert_eq!(doc.render(), "## x\n  * [ ] child\n  * [ ] new #t\n");
+        assert_eq!(doc.add_placeholder(None), Some(3), "and at the end");
     }
 
     #[test]

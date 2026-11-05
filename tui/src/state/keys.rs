@@ -224,6 +224,9 @@ impl App {
     fn typing(&mut self, mut prompt: Prompt, what: Typing, code: KeyCode) -> Option<Action> {
         match code {
             KeyCode::Esc => {
+                if what == Typing::NewTodo {
+                    self.drop_placeholder();
+                }
                 self.mode = Mode::Normal;
                 return None;
             }
@@ -797,9 +800,30 @@ impl App {
     }
 
     /// `n` in a todo panel: an empty prompt for a new todo.
+    /// A new todo is its row: the empty line goes in first, the cursor moves onto it,
+    /// and the field types into it. Nothing is written to disk until `enter`, and
+    /// `esc` takes the line out again — so the person sees where the todo lands
+    /// while they are still deciding what it says.
     fn ask_add(&mut self) -> Option<Action> {
+        let after = self.current_task().map(|task| task.line);
+        let line = self.doc.add_placeholder(after)?;
+        self.task_idx = self
+            .tasks()
+            .iter()
+            .position(|task| task.line == line)
+            .unwrap_or(0);
+        self.add_line = Some(line);
         self.mode = Mode::Adding(Prompt::new(""));
         None
+    }
+
+    /// Put the row a new todo was waiting in back the way it was: the field was
+    /// cancelled, and a line nobody typed is not part of the file.
+    fn drop_placeholder(&mut self) {
+        if let Some(line) = self.add_line.take() {
+            // never recorded in the history, so its inverse is not kept either
+            self.doc.delete(line);
+        }
     }
 
     /// `n` in the outline: an empty prompt for a new heading.
@@ -816,18 +840,18 @@ impl App {
     }
 
     fn add(&mut self, body: &str) -> Option<Action> {
-        let after = self.current_task().map(|task| task.line);
-        let inverse = self.doc.add_after(after, body)?;
-        let aricma_todo_lib::model::Inverse::Insert { line, .. } = inverse else {
-            return None;
+        let line = self.add_line?;
+        // the row is already in the file; this fills it in. The entry is the line
+        // being *there*, not the text being set: undoing "new todo" takes the line
+        // out, and redoing puts that same line back
+        self.doc.set_body(line, body)?;
+        self.add_line = None;
+        let done = self.task_at(line)?;
+        let entry = Inverse::Insert {
+            line,
+            text: self.doc.lines().get(line)?.clone(),
         };
-        self.task_idx = self
-            .tasks()
-            .iter()
-            .position(|task| task.line == line)
-            .unwrap_or(0);
-        let after = self.task_at(line)?;
-        Some(self.record(label(text::NEW_TODO, &after), inverse))
+        Some(self.record(label(text::NEW_TODO, &done), entry))
     }
 
     /// `opt+↑` / `opt+↓` (or `K` / `J`): swap the selected todo with the nearest one

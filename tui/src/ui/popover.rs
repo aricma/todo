@@ -95,7 +95,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
 /// screen then looks exactly as it did, and nothing is broken, which is the reason
 /// it is a modifier and not a colour painted over the text.
 fn backdrop(frame: &mut Frame, app: &App) {
-    if !app.modal() {
+    if !app.floating() {
         return;
     }
     let screen = frame.area();
@@ -425,14 +425,15 @@ pub fn draw_create(frame: &mut Frame, app: &App) {
     cursor_in(frame, inner, &before, PAD);
 }
 
-/// The field a new todo is typed in. It floats, because the todo it will become
-/// has no row of its own yet — it goes under the one that is highlighted.
+/// The field a new heading is typed in. It floats, because a heading has no row to
+/// be typed into: the index lists headings that exist. A new **todo** does have one —
+/// its empty line is put in the file first and the row itself is the field, the same
+/// way `e` edits one.
 pub fn draw_add(frame: &mut Frame, app: &App) {
-    let (prompt, title) = match &app.mode {
-        Mode::Adding(prompt) => (prompt, text::NEW_TODO),
-        Mode::AddingHeading(prompt) => (prompt, text::NEW_HEADING),
-        _ => return,
+    let Mode::AddingHeading(prompt) = &app.mode else {
+        return;
     };
+    let title = text::NEW_HEADING;
     let screen = frame.area();
     // half the screen, like the other popovers, and never wider than a sentence:
     // what does not fit wraps onto the next row
