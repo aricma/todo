@@ -512,6 +512,12 @@ fn the_row_a_new_todo_waits_in_is_the_one_that_has_the_cursor() {
         "the band, on the empty row: {:?}",
         lines[at]
     );
+
+    // the field over it says so, and carries no dot: the row behind it is what has
+    // the cursor
+    let text = texts(&app);
+    assert!(text.contains("╭ new todo"), "{text}");
+    assert!(!text.contains("● new todo"), "{text}");
 }
 
 #[test]
@@ -528,19 +534,19 @@ fn a_modal_dims_everything_behind_it() {
     );
 
     app.pane = crate::state::action::Pane::View;
-    press(&mut app, ratatui::crossterm::event::KeyCode::Char('f'));
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('n'));
     assert!(
         cell(&app).modifier.contains(Modifier::DIM),
-        "the popover has the keyboard, so the screen behind it is quiet"
+        "the field has the keyboard, so the screen behind it is quiet"
     );
 
     // and the question itself is not dimmed with it
     let lines = screen(&app);
     let at = lines
         .iter()
-        .position(|line| line.contains("search"))
-        .expect("the popover is on screen");
-    let left = lines[at].find('╭').expect("a framed popover");
+        .position(|line| line.contains("new todo"))
+        .expect("the field is on screen");
+    let left = lines[at].find("╭ new todo").expect("a framed field");
     let edge = terminal(&app, WIDTH, HEIGHT).backend().buffer().clone();
     assert!(
         !edge[(u16::try_from(left).unwrap(), u16::try_from(at).unwrap())]
@@ -759,7 +765,7 @@ fn the_files_read_like_a_file_viewer_and_the_pointer_follows() {
 #[test]
 fn a_fields_keys_are_on_the_bottom_border_esc_first_and_on_the_right() {
     let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] a\n")]);
-    app.pane = crate::state::action::Pane::Outline;
+    app.pane = crate::state::action::Pane::View;
     press(&mut app, ratatui::crossterm::event::KeyCode::Char('n'));
     let lines = screen(&app);
     let border = lines
@@ -1243,10 +1249,8 @@ fn a_tag_is_coloured_before_the_word_ends() {
     let text = &lines[prompt_row];
     let tag = u16::try_from(text[..text.find("#inf").unwrap()].chars().count()).unwrap();
     let buffer = terminal(&app, WIDTH, HEIGHT).backend().buffer().clone();
-    // on the band a name keeps its colour as the background, white on top: the tag
-    // is still cyan, and still cyan halfway through the word
     assert_eq!(
-        buffer[(tag, u16::try_from(prompt_row).unwrap())].bg,
+        buffer[(tag, u16::try_from(prompt_row).unwrap())].fg,
         super::prompt::TAG
     );
 }
@@ -1269,9 +1273,8 @@ fn the_prompt_colours_what_the_parser_sees() {
     let column =
         |needle: &str| u16::try_from(text[..text.find(needle).unwrap()].chars().count()).unwrap();
     let (tag, who) = (column("#x"), column("@y"));
-    // the row is the band, so a name is its colour behind and white on top
-    assert_eq!(buffer[(tag, row)].bg, super::prompt::TAG);
-    assert_eq!(buffer[(who, row)].bg, super::prompt::ASSIGNEE);
+    assert_eq!(buffer[(tag, row)].fg, super::prompt::TAG);
+    assert_eq!(buffer[(who, row)].fg, super::prompt::ASSIGNEE);
 }
 
 #[test]

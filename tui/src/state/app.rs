@@ -72,10 +72,11 @@ pub struct App {
     pub last_sidebar: Pane,
     pub history: Vec<Entry>,
     pub mode: Mode,
-    /// The empty line a new todo is being typed into, while the field is open. The
-    /// row is in the document already, so the highlight, the counts and the file
-    /// view all point at where the todo will land.
-    pub add_line: Option<usize>,
+    /// The empty line a new todo is waiting in, while its field is open: the line, and
+    /// the row the cursor goes back to if the field is cancelled. The row is in the
+    /// document already, so the highlight and the file view point at where the todo
+    /// will land — the field is the question, the row is the answer being prepared.
+    pub add: Option<(usize, usize)>,
     /// What just happened, drawn under the panel it is about — never in the status
     /// bar. A message about one row lives on that row instead.
     pub message: Option<Message>,
@@ -142,7 +143,7 @@ impl App {
             baseline,
             history: Vec::new(),
             mode: Mode::Normal,
-            add_line: None,
+            add: None,
             message: None,
             last_key: None,
             show: Showing::Both,
@@ -356,12 +357,12 @@ impl App {
         }
     }
 
-    /// The prompt being typed, when a todo is being edited **in place** — by `e`, and
-    /// by `n`, which puts an empty row in the file and types into it.
+    /// The prompt being typed, when a todo is being edited in place: the row itself is
+    /// the field, which is what `e` does. A new todo is typed in a field over the
+    /// screen, into the empty row that is waiting for it — see `add`.
     pub fn editing(&self) -> Option<&crate::state::prompt::Prompt> {
         match &self.mode {
-            crate::state::prompt::Mode::Editing(prompt)
-            | crate::state::prompt::Mode::Adding(prompt) => Some(prompt),
+            crate::state::prompt::Mode::Editing(prompt) => Some(prompt),
             _ => None,
         }
     }
@@ -730,19 +731,11 @@ impl App {
         self.mode != Mode::Normal
     }
 
-    /// Whether something is drawn **over** the screen. A field typed into a row —
-    /// `e`, and `n` with the empty todo it prepared — owns the keyboard without
-    /// floating, so the screen behind it stays as bright as it is.
+    /// Whether something is drawn **over** the screen. A field typed into a row (`e`)
+    /// owns the keyboard without floating, so the screen behind it stays as bright as
+    /// it is; a new todo's field floats over the row that is waiting for it.
     pub const fn floating(&self) -> bool {
-        match &self.mode {
-            Mode::Normal | Mode::Editing(_) | Mode::Adding(_) => false,
-            Mode::Searching
-            | Mode::AddingHeading(_)
-            | Mode::Creating(_)
-            | Mode::Help
-            | Mode::Conflicted
-            | Mode::Confirming(_) => true,
-        }
+        !matches!(&self.mode, Mode::Normal | Mode::Editing(_))
     }
 
     /// An answer to "why can't I do that?" — a rule, not a failure.

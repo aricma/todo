@@ -1,2 +1,3 @@
-An add that is cancelled leaves no trace: the empty row `n` prepares is taken out
-again, so a half-typed todo never becomes a line, and nothing is written to disk.
+An add that is cancelled leaves no trace: the field says a line is open for the todo,
+the empty row it prepared is in the file and highlighted, and esc takes both away — the
+file is untouched.

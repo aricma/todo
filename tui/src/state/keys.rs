@@ -867,19 +867,23 @@ impl App {
     }
 
     /// `n` in a todo panel: an empty prompt for a new todo.
-    /// A new todo is its row: the empty line goes in first, the cursor moves onto it,
-    /// and the field types into it. Nothing is written to disk until `enter`, and
-    /// `esc` takes the line out again — so the person sees where the todo lands
-    /// while they are still deciding what it says.
+    /// `n`: the empty row goes in first, the highlight moves onto it, and the field
+    /// opens over the screen waiting for what goes in it.
+    ///
+    /// The row is the answer to "where does this land", and the field is the question:
+    /// the person sees the todo's place before they decide its words. Nothing reaches
+    /// the disk until `enter`; `esc` takes the row out and puts the highlight back
+    /// where it was.
     fn ask_add(&mut self) -> Option<Action> {
         let after = self.current_task().map(|task| task.line);
+        let before = self.task_idx;
         let line = self.doc.add_placeholder(after)?;
         self.task_idx = self
             .tasks()
             .iter()
             .position(|task| task.line == line)
             .unwrap_or(0);
-        self.add_line = Some(line);
+        self.add = Some((line, before));
         self.mode = Mode::Adding(Prompt::new(""));
         None
     }
@@ -887,10 +891,13 @@ impl App {
     /// Put the row a new todo was waiting in back the way it was: the field was
     /// cancelled, and a line nobody typed is not part of the file.
     fn drop_placeholder(&mut self) {
-        if let Some(line) = self.add_line.take() {
-            // never recorded in the history, so its inverse is not kept either
-            self.doc.delete(line);
-        }
+        let Some((line, before)) = self.add.take() else {
+            return;
+        };
+        // never recorded in the history, so its inverse is not kept either
+        self.doc.delete(line);
+        // and the cursor goes back to the row it came from
+        self.task_idx = before.min(self.tasks().len().saturating_sub(1));
     }
 
     /// `n` in the outline: an empty prompt for a new heading.
@@ -907,12 +914,12 @@ impl App {
     }
 
     fn add(&mut self, body: &str) -> Option<Action> {
-        let line = self.add_line?;
+        let (line, _) = self.add?;
         // the row is already in the file; this fills it in. The entry is the line
         // being *there*, not the text being set: undoing "new todo" takes the line
         // out, and redoing puts that same line back
         self.doc.set_body(line, body)?;
-        self.add_line = None;
+        self.add = None;
         let done = self.task_at(line)?;
         let entry = Inverse::Insert {
             line,

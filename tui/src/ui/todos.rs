@@ -9,7 +9,7 @@ use ratatui::Frame;
 
 use super::consts::message_style;
 use super::frame::{counts, panel};
-use super::rows::{body_width, cursor_at, row_count, todo_rows};
+use super::rows::{body_width, cursor_at, row_count, todo_rows, waiting_rows};
 use crate::state::App;
 use crate::text;
 
@@ -41,9 +41,17 @@ fn rows(app: &App, width: usize) -> Vec<Line<'static>> {
     for (index, task) in app.tasks().iter().enumerate() {
         let here = index == selected;
         let editing = app.editing().filter(|_| here);
+        // the row a new todo is waiting in says so, without the file knowing
+        let waiting = app.add.is_some_and(|(line, _)| line == task.line);
         // the number is a gutter, not part of the line: it stays unbanded, and the
         // todo is wrapped in what is left
-        for (at, mut row) in todo_rows(task, editing, here, width.saturating_sub(gutter))
+        let room = width.saturating_sub(gutter);
+        let cells = if waiting {
+            waiting_rows(task, here, room)
+        } else {
+            todo_rows(task, editing, here, room)
+        };
+        for (at, mut row) in cells
             .into_iter()
             .enumerate()
         {

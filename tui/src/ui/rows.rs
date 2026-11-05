@@ -89,6 +89,15 @@ pub fn todo_rows(
     line_rows(&task.lead(), body, selected, width)
 }
 
+/// The row a new todo is waiting in, while its field is open.
+///
+/// The line in the file is an empty checkbox — `- [ ]` and nothing else — which on its
+/// own reads as a broken todo rather than an invitation. The dots are drawn, never
+/// written: the file gets the title, not the hint.
+pub fn waiting_rows(task: &Task, selected: bool, width: usize) -> Vec<Line<'static>> {
+    line_rows(&task.lead(), "…", selected, width)
+}
+
 /// The same for a line that was read rather than parsed: a collection's item keeps
 /// its `lead` as a string, because the file it came from is not the open document.
 pub fn line_rows(

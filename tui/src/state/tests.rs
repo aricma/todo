@@ -1035,28 +1035,40 @@ fn the_keys_page_opens_on_question_mark_and_closes_on_escape() {
 }
 
 #[test]
-fn the_new_todo_row_is_the_field_and_the_keys_stay_in_the_bar() {
+fn an_empty_row_waits_while_the_add_field_floats_over_it() {
     let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] first\n")]);
     app.pane = Pane::View;
     press(&mut app, KeyCode::Char('n'));
-    // the empty row is in the file before anything is typed, and the cursor is on it
+    // the empty row is in the file before anything is typed, and the cursor is on it,
+    // so the person sees where the todo lands while the field asks what it says
     assert_eq!(app.doc.render(), "- [ ] first\n- [ ]\n");
     assert_eq!(app.current_task().unwrap().line, 1);
 
     type_text(&mut app, "ship #infra");
     let text = screen(&app).join("\n");
-    // the row, banded, with what is being typed on it — not a floating frame
+    // the field is the question …
+    assert!(text.contains("╭ new todo"), "{text}");
     assert!(text.contains("ship #infra"), "{text}");
-    assert!(!text.contains("╭ new todo"), "{text}");
-    // and the keys for the key that owns the keyboard are the bar's second row
+    // … and the row it is about is on screen, waiting, and saying that a title is on
+    // its way: a bare `- [ ]` would read as a broken todo
+    assert!(text.contains("2 - [ ] …"), "{text}");
+    // the dots are the screen's, not the file's
+    assert_eq!(app.doc.render(), "- [ ] first\n- [ ]\n");
     assert!(text.contains("esc cancel · enter add"), "{text}");
     assert!(!text.contains("↑/↓ todo"), "{text}");
-    // the document still holds the empty row: the text is the field's
-    assert_eq!(app.doc.render(), "- [ ] first\n- [ ]\n");
-
-    // esc takes the row out with it
+    // esc takes the row out and puts the cursor back on the row it came from
     press(&mut app, KeyCode::Esc);
     assert_eq!(app.doc.render(), "- [ ] first\n");
+    assert_eq!(app.current_task().unwrap().body, "first");
+
+    // and enter writes the todo into the row that was waiting for it
+    press(&mut app, KeyCode::Char('n'));
+    type_text(&mut app, "ship #infra");
+    let action = press(&mut app, KeyCode::Enter);
+    let text = save_text(action);
+    assert_eq!(text, "- [ ] first\n- [ ] ship #infra\n");
+    assert_eq!(app.current_task().unwrap().body, "ship #infra");
+    assert_eq!(app.history.len(), 1, "one entry: the line appearing");
 }
 
 #[test]

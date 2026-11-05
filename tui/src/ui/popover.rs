@@ -425,15 +425,18 @@ pub fn draw_create(frame: &mut Frame, app: &App) {
     cursor_in(frame, inner, &before, PAD);
 }
 
-/// The field a new heading is typed in. It floats, because a heading has no row to
-/// be typed into: the index lists headings that exist. A new **todo** does have one —
-/// its empty line is put in the file first and the row itself is the field, the same
-/// way `e` edits one.
+/// The field a new todo or a new heading is typed in.
+///
+/// It floats, because what is being made does not exist yet: a todo's empty row is in
+/// the file and highlighted, which says *where* it goes, and the field says *what* —
+/// typed into a row that is only a checkbox and a title waiting, there would be nothing
+/// on screen telling the person that a line is open for them.
 pub fn draw_add(frame: &mut Frame, app: &App) {
-    let Mode::AddingHeading(prompt) = &app.mode else {
-        return;
+    let (prompt, title) = match &app.mode {
+        Mode::Adding(prompt) => (prompt, text::NEW_TODO),
+        Mode::AddingHeading(prompt) => (prompt, text::NEW_HEADING),
+        _ => return,
     };
-    let title = text::NEW_HEADING;
     let screen = frame.area();
     // half the screen, like the other popovers, and never wider than a sentence:
     // what does not fit wraps onto the next row

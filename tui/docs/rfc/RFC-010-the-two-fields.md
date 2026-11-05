@@ -24,15 +24,20 @@ floats in the middle, because nothing on screen is the folder it will land in.
 2. A field **MUST** wrap in the panel's inner width, and its cursor **MUST** follow the
    text onto the second and third row. A field that wraps but keeps its cursor on the
    first line looks broken.
-3. A new todo **MUST** be typed into the row it will occupy: an empty `- [ ]` is put
-   in the file under the highlighted row (or at the end), the row keeps the file's own
-   line number, and the cursor is on it before the first key. Its text **MUST** be
-   styled as the todo will read — priority yellow, tags cyan, people magenta — with
-   names white on their own colour while the row is the band.
-4. A field **MUST** submit with `enter` and cancel with `esc`, and cancelling **MUST**
-   leave the document exactly as it was — for a new todo that means the empty row is
-   taken out again. Nothing is written to disk before `enter`, so an add that is
-   cancelled or abandoned by quitting is not a line on anyone's file.
+3. A new todo **MUST** be prepared, not promised: an empty `- [ ]` goes into the file
+   under the highlighted row (or at the end), the cursor moves onto it, and the field
+   opens **over the screen** for the words. The row says where the todo lands, the field
+   says what it says, and neither is left to be imagined. The waiting row **MUST** be
+   drawn with a `…` after its checkbox — the row itself says a title is on its way —
+   and that hint **MUST** be the screen's only: the file receives the title, never the
+   dots. The field's text **MUST** be styled as the todo will read — priority yellow,
+   tags cyan, people magenta.
+4. A field **MUST** submit with `enter` and cancel with `esc`. Submitting a new todo
+   **MUST** write the typed words into the row that was waiting for them. Cancelling
+   **MUST** take that row out and put the cursor back on the row it came from, so the
+   document and the highlight are exactly what they were. Nothing is written to disk
+   before `enter`, so an add that is cancelled or abandoned by quitting is not a line on
+   anyone's file.
 4a. The prepared row **MUST** be a task the document already holds: counted in the
    file's own numbering, listed in the view, and parsed like any other line. It is an
    empty todo while it waits, which `--check` reports as `no title` (RFC-013).
@@ -58,12 +63,15 @@ floats in the middle, because nothing on screen is the folder it will land in.
 one line of text, and it loses the row the todo will land after — the only context that
 makes "where does this go" answerable.
 
-**A floating field for the new todo** (the first implementation, and the one this RFC
-replaces) was rejected for the same reason as a form, in miniature: it put two things
-with emphasis on screen — the band on the row the todo lands after, and a frame over
-the middle of the screen — and the row that would hold the todo existed only after the
-fact. Preparing the row first answers "where does it go" by showing it, and it costs
-one line the session can take back.
+**A floating field with no row behind it** (what the tool did first) was rejected: it
+put two things with emphasis on screen — the band on the row the todo lands *after*, and
+a frame over the middle — and the row that would hold the todo existed only once the
+field was submitted. The fix is the prepared row, not the removal of the field.
+
+**Typing straight into the prepared row** (no field at all) was built and rejected: a
+line that reads `- [ ]` and nothing else looks like a broken todo, not like an invitation,
+and nothing on the screen then says that a line is open for the person to fill. The
+field is what says "type here"; the row is what says "it will go there".
 
 **Path completion as a separate picker** was rejected: the path is one string, and a
 picker would have to be entered and left for every segment. Offers inside the field keep

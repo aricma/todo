@@ -59,7 +59,13 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
                     cursor = Some(cursor_at(inner, rows.len(), &before, width, lead + gutter));
                 }
                 let here = selected == Some(index);
-                let rendered = todo_rows(task, editing, here, width);
+                // the row a new todo is waiting in says so, without the file knowing
+                let waiting = app.add.is_some_and(|(line, _)| line == task.line);
+                let rendered = if waiting {
+                    super::rows::waiting_rows(task, here, width)
+                } else {
+                    todo_rows(task, editing, here, width)
+                };
                 let skip = if index == offset.0 { offset.1 } else { 0 };
                 let room = room.saturating_sub(usize::from(app.roomy));
                 rows.extend(rendered.into_iter().skip(skip).take(room));
