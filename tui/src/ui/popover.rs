@@ -439,10 +439,9 @@ pub fn draw_add(frame: &mut Frame, app: &App) {
         ..area
     });
     let rows_wanted = wrap::lines(prompt.text(), inner.width as usize).len();
-    // two borders, the text, the rule under it, and one row more when the field
-    // has to say why it refused; the keys live in the frame, so they cost no row
-    let height =
-        POPOVER_BORDER_ROWS + as_u16(rows_wanted.max(1)) + RULE_ROWS + u16::from(panel.is_some());
+    // two borders, the text, and one row more when the field has to say why it
+    // refused; the keys live in the frame, so they cost no row
+    let height = POPOVER_BORDER_ROWS + as_u16(rows_wanted.max(1)) + u16::from(panel.is_some());
     let area = Rect {
         height: height.min(screen.height),
         ..area
@@ -454,12 +453,6 @@ pub fn draw_add(frame: &mut Frame, app: &App) {
         .map(|chunk| prompt::line(&chunk))
         .collect();
     let mut rows = rows;
-    // the rule that closes the input off from the frame: without it the field is
-    // one slim line of text floating in a box
-    rows.push(Line::from(Span::styled(
-        RULE.repeat(inner.width as usize),
-        Style::default().add_modifier(Modifier::DIM),
-    )));
     if let Some(message) = panel {
         rows.push(Line::from(Span::styled(
             format!("{}{}", message_prefix(message.tone), message.text),
