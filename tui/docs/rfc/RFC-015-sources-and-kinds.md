@@ -1,7 +1,7 @@
 # RFC-015: Three sources, and what each one allows
 
 - **Date:** 2026-10-16
-- **Related:** [RFC-005](RFC-005-collections.md), [RFC-009](RFC-009-keys.md), [RFC-016](RFC-016-the-inline-todo.md), [RFC-017](RFC-017-the-tree-is-what-git-sees.md)
+- **Related:** [RFC-005](RFC-005-collections.md), [RFC-009](RFC-009-keys.md), [RFC-016](RFC-016-a-comment-todo.md), [RFC-017](RFC-017-the-tree-is-what-git-sees.md)
 
 ## Context
 
@@ -23,10 +23,10 @@ the difference has to be a thing in the program.
 ## Behaviour
 
 1. There are **three sources** of a todo, and the program **MUST** name them, because a
-   person reading a row is reading one of them: a **todo document**, an **inline file**,
+   person reading a row is reading one of them: a **todo document**, an **comment todo file**,
    and a **collection**.
 2. A path **MUST** decide the kind: a `.md` file is a todo document, and every other file
-   the walk reads is an inline file. There is no way to make a `.md` file an inline one,
+   the walk reads is a comment todo file. There is no way to make a `.md` file a comment one,
    and no way to make a `.rs` file a document.
 3. The kind **MUST** decide the key set (RFC-016), the same way in three places at once:
    the key that is pressed, the row the status bar draws, and the keys page. A key that
@@ -34,8 +34,8 @@ the difference has to be a thing in the program.
    doing nothing.
 4. A collection's rows **MUST** carry the kind of the file they came from, and the key
    set **MUST** follow the row the cursor is on — a `#tag` collection that mixes an
-   inline todo with a document todo offers `x` on one row and not on the next.
-5. A session **SHOULD** open on a todo document rather than an inline file, when the tree
+   comment todo with a document todo offers `x` on one row and not on the next.
+5. A session **SHOULD** open on a todo document rather than a comment todo file, when the tree
    holds both: a person opens this tool on the place their todos were written, not on
    whichever source file sorts first.
 6. The kind is a property of the **file**, not of the panel: the same todo shown in the
@@ -58,11 +58,11 @@ same undo, the same collections and the same numbers — a second program could 
 
 ## Consequences
 
-- `Source` (`Document` / `Inline`) is on the parsed file, and the file panel's row carries
+- `Source` (`Document` / `Comment`) is on the parsed file, and the file panel's row carries
   it, so nothing has to guess from the extension twice.
 - The bar's second row is no longer a pure function of the pane: `hints::Where` gained an
   `INLINE` bit that a binding can be excluded by, so `x`, `space`, `n`, `K`/`J` and
-  `ctrl+↑/↓` are not drawn in an inline file.
+  `ctrl+↑/↓` are not drawn in a comment todo file.
 - Three refusals are new words on screen: that a comment cannot be checked, cannot be
   added to by the tool, and cannot be moved.
 - A test has to prove the two halves agree: a key absent from the bar must also be
@@ -73,6 +73,6 @@ same undo, the same collections and the same numbers — a second program could 
 - Should the file panel mark the kind of each row? It shows the counts, and a code file
   with one todo reads `0/1` exactly like a document with one todo. Today it does not mark
   it; the path's extension is the only tell.
-- Should `n` in an inline file offer a commented-out placeholder at the cursor's line —
+- Should `n` in a comment todo file offer a commented-out placeholder at the cursor's line —
   `// TODO: ` written for you, in the comment syntax of that language? It would need to
   know each language's comment, which is a table this tool does not have.

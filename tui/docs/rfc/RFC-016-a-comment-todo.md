@@ -1,7 +1,7 @@
-# RFC-016: An inline todo is a `TODO:` comment
+# RFC-016: A comment todo is one line of code
 
 - **Date:** 2026-10-16
-- **Related:** [RFC-013](RFC-013-a-todo-is-a-checkbox.md), [RFC-014](RFC-014-a-copied-todo-is-a-document.md), [RFC-015](RFC-015-sources-and-kinds.md), [RFC-018](RFC-018-reading-an-inline-file.md)
+- **Related:** [RFC-013](RFC-013-a-todo-is-a-checkbox.md), [RFC-014](RFC-014-a-copied-todo-is-a-document.md), [RFC-015](RFC-015-sources-and-kinds.md), [RFC-018](RFC-018-reading-a-comment-todo-file.md)
 
 ## Context
 
@@ -16,7 +16,7 @@ what it matches and what it therefore gets wrong.
 
 ## Behaviour
 
-1. In an **inline file** — any file the walk reads that is not `.md` — a todo **MUST** be
+1. In a **comment todo file** — any file the walk reads that is not `.md` — a todo **MUST** be
    a line containing the literal `TODO:` in any case, with at least one character after
    it that is not a space. One todo per line, the first `TODO:` on it.
 2. A line with `TODO:` and nothing after it is **not** a todo: it promises something and
@@ -28,12 +28,12 @@ what it matches and what it therefore gets wrong.
    the comment syntax and never rewrites it.
 4. The body is the text after `TODO:` and the one space that follows it. It is read by
    the same rules as a todo document's body, and **MUST** be: a priority token `(A)`–`(D)`
-   at the start, `#tags`, `@people` anywhere. That is how an inline todo gets a priority —
+   at the start, `#tags`, `@people` anywhere. That is how a comment todo gets a priority —
    **`TODO: (A) fix the retry`** — and it is why the priority is written *after* the
    colon rather than inside the comment marker.
-5. Editing an inline todo **MUST** rewrite only the body. The code in front of it and
+5. Editing a comment todo **MUST** rewrite only the body. The code in front of it and
    after it on the same line is untouched.
-6. An inline todo **MUST** be able to be: edited, copied, priced, deleted. It **MUST NOT**
+6. A comment todo **MUST** be able to be: edited, copied, priced, deleted. It **MUST NOT**
    be checked, added to by the tool, or moved:
    - **no check** — a comment has no checkbox, and its only "done" is being removed;
    - **no add** — where in the code the thought belongs is the person's decision, and the
@@ -46,7 +46,7 @@ what it matches and what it therefore gets wrong.
 8. A todo comment's `title` **MAY** keep a trailing comment terminator (`fix it */`),
    because the tool does not know comment syntax. Copying such a todo into a document
    carries the terminator with it, and the person edits it out.
-9. An inline todo **MUST** join collections like any other todo: a `#tag` in the comment
+9. A comment todo **MUST** join collections like any other todo: a `#tag` in the comment
    is a tag, and the collection shows the todo in its file's order.
 
 ## Why not the alternative
@@ -76,7 +76,7 @@ version; a later RFC may narrow it.
   comment todo, and every write path (edit, priority, format) goes through it. The
   library's column arithmetic moved to "where the lead ends", which is one rule for both
   kinds.
-- `findings` and `format` are about documents only, so an inline file reports nothing and
+- `findings` and `format` are about documents only, so a comment todo file reports nothing and
   `--format` never rewrites a comment.
 - The two paragraph-length mistakes are real and known: a todo mentioned inside a string
   literal is listed as a todo, and a multi-line `/* … */` comment is one long body on its

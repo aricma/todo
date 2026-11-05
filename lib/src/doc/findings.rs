@@ -13,7 +13,7 @@ impl Doc {
     /// Every todo-rule violation, in line order.
     pub fn findings(&self) -> Vec<Finding> {
         // the rules are about todo documents; a comment todo has none to break
-        if self.source == super::Source::Inline {
+        if self.source == super::Source::Comment {
             return Vec::new();
         }
         let fenced = parse::fenced(&self.lines);

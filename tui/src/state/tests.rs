@@ -1844,7 +1844,7 @@ fn q_quits_and_saves_carry_the_open_path() {
 }
 
 #[test]
-fn an_inline_file_opens_on_its_todo_comments() {
+fn a_comment_todo_file_opens_on_its_todo_comments() {
     let (_tmp, mut app) = app(&[
         (
             "src/main.rs",
@@ -1854,12 +1854,12 @@ fn an_inline_file_opens_on_its_todo_comments() {
     ]);
     // a document is what a session opens by default, however the paths sort
     assert!(app.current().path.ends_with("TODOs.md"));
-    assert!(!app.inline());
+    assert!(!app.comment());
 
     let first = app.files[0].path.clone();
     app.focus_file(&first);
     app.open_current().unwrap();
-    assert!(app.inline(), "a code file is an inline file");
+    assert!(app.comment(), "a code file is a comment todo file");
     let tasks = app.tasks();
     assert_eq!(tasks.len(), 1);
     assert_eq!(tasks[0].title, "wire it up");
@@ -1879,7 +1879,7 @@ fn an_inline_file_opens_on_its_todo_comments() {
 #[test]
 fn a_comment_todo_takes_only_the_keys_that_make_sense_for_it() {
     let (_tmp, mut app) = app(&[("src/a.rs", "// TODO: (B) fix it\nlet x = 1;\n")]);
-    assert!(app.inline());
+    assert!(app.comment());
     app.pane = Pane::View;
 
     // the bar offers the three keys that work and none of the four that do not

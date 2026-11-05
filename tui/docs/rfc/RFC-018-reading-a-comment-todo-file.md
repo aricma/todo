@@ -1,12 +1,12 @@
-# RFC-018: Reading an inline file — two lines of code, and a fold
+# RFC-018: Reading a comment todo file — two lines of code, and a fold
 
 - **Date:** 2026-10-16
-- **Related:** [RFC-002](RFC-002-numbered-lines.md), [RFC-012](RFC-012-chapter-clusters.md), [RFC-016](RFC-016-the-inline-todo.md)
+- **Related:** [RFC-002](RFC-002-numbered-lines.md), [RFC-012](RFC-012-chapter-clusters.md), [RFC-016](RFC-016-a-comment-todo.md)
 
 ## Context
 
 A todo document is read as a document: its prose is context a person wants in full, and
-the file view dims it and clips it to one line but never hides it. An inline file is not
+the file view dims it and clips it to one line but never hides it. A comment todo file is not
 that. It is a thousand lines of code with a note somewhere in the middle, and the file view
 of it would be a thousand dim lines with one bright one — a screen that is almost entirely
 noise, and a reader scrolling to find the second todo.
@@ -22,7 +22,7 @@ predict without counting.
 
 1. In a **document**, every line is shown, as it always was. Folding **MUST NOT** apply to
    a todo document: its prose is the document.
-2. In an **inline file**, a todo's line is shown, and **MUST** be shown with up to two
+2. In a **comment todo file**, a todo's line is shown, and **MUST** be shown with up to two
    lines of code above it and two below it — `CONTEXT = 2` — so the note is read with the
    code it is about.
 3. Lines that fall outside every such window **MUST** be replaced by a single `…` row at

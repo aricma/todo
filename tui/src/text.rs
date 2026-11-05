@@ -178,17 +178,17 @@ pub const NO_TODOS_IN_OPS: &str = "that document holds no todos";
 /// A paste where a todo has no file to go in.
 pub const PASTE_NOT_HERE: &str = "a pasted todo goes into a file's todos";
 
-/// A check on a todo that is a comment: the only way to close one is to remove the
-/// comment, and the only way to track one is to copy it into a todo file.
-pub const INLINE_NO_CHECK: &str = "a todo comment is closed by deleting it, or copied into a todo file";
+/// A check on a comment todo: the only way to close one is to remove the comment,
+/// and the only way to track one is to copy it into a todo file.
+pub const COMMENT_NO_CHECK: &str = "a todo comment is closed by deleting it, or copied into a todo file";
 
 /// A new todo in a file whose todos are comments: the line is written by hand, in
 /// the code that needs it, because only a person knows where in the code it goes.
-pub const INLINE_NO_ADD: &str = "a todo comment is written by hand, in its own line of code";
+pub const COMMENT_NO_ADD: &str = "a todo comment is written by hand, in its own line of code";
 
 /// A move of a todo that is a comment: the line sits where the code around it
 /// needs it, and moving it would move it away from what it is about.
-pub const INLINE_NO_MOVE: &str = "a todo comment stays with the code it is about";
+pub const COMMENT_NO_MOVE: &str = "a todo comment stays with the code it is about";
 
 
 /// A search with no result is not an error, so it is not coloured like one.

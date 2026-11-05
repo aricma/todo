@@ -10,7 +10,7 @@ impl Doc {
     /// Every heading in the file, in order.
     pub fn headings(&self) -> Vec<Heading> {
         // a code file's `#` is a comment, a macro or a directive, never an outline
-        if self.source == super::Source::Inline {
+        if self.source == super::Source::Comment {
             return Vec::new();
         }
         let fenced = parse::fenced(&self.lines);

@@ -80,7 +80,7 @@ mod tests {
 
     #[test]
     fn a_comment_todos_lead_is_the_code_in_front_of_it() {
-        let doc = Doc::parse_inline("    // TODO: (B) fix #x\nlet x = 1;\n");
+        let doc = Doc::parse_comment("    // TODO: (B) fix #x\nlet x = 1;\n");
         let task = &doc.tasks()[0];
         assert!(task.is_comment());
         assert_eq!(task.lead(), "    // TODO: ");

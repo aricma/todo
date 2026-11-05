@@ -14,16 +14,16 @@ pub mod spans;
 
 /// Where a file's todos come from.
 ///
-/// Three things in the tool hold todos — a todo document, an inline file, and a
+/// Three things in the tool hold todos — a todo document, a comment todo file, and a
 /// collection gathered from the first two — and each allows a different set of
 /// keys, because not every edit is possible in every one of them (RFC-015).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Source {
     /// A todo document: markdown whose `- [ ]` lines are the todos.
     Document,
-    /// An inline file: anything else in the tree whose `TODO:` comments are the
+    /// A comment todo file: anything else in the tree whose `TODO:` comments are the
     /// todos, one line each, with the code around them left alone.
-    Inline,
+    Comment,
 }
 
 impl Source {
@@ -37,7 +37,7 @@ impl Source {
         {
             Self::Document
         } else {
-            Self::Inline
+            Self::Comment
         }
     }
 }
@@ -65,11 +65,11 @@ impl Doc {
     pub fn parse_as(source: Source, text: &str) -> Self {
         match source {
             Source::Document => Self::parse(text),
-            Source::Inline => Self::parse_inline(text),
+            Source::Comment => Self::parse_comment(text),
         }
     }
 
-    /// A document with no lines of its own, parsed as an inline file — for tests and
+    /// A document with no lines of its own, parsed as a comment todo file — for tests and
     /// for the empty state of a pane.
     pub fn empty(source: Source) -> Self {
         Self {

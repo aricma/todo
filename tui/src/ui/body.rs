@@ -36,7 +36,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
     let selected = app.current_task().map(|task| task.line);
     // in a code file, the lines around a todo are context and the rest is the file:
     // two lines of it either side, and one `…` for what was folded away (RFC-018)
-    let (keep, gap) = if app.inline() {
+    let (keep, gap) = if app.comment() {
         folded(lines, &tasks)
     } else {
         (vec![true; lines.len()], vec![false; lines.len()])
@@ -133,10 +133,10 @@ fn heights(
         .collect()
 }
 
-/// How many lines of code are shown before and after a todo in an inline file.
+/// How many lines of code are shown before and after a todo in a comment todo file.
 pub const CONTEXT: usize = 2;
 
-/// Which lines of an inline file are worth a row, and where a run of code was
+/// Which lines of a comment todo file are worth a row, and where a run of code was
 /// folded away.
 ///
 /// Every todo keeps `CONTEXT` lines above and below it, because the code around a

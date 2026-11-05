@@ -70,7 +70,7 @@ impl Where {
     pub const TYPING: Self = Self(1 << 6);
     /// the open file's todos are `TODO:` comments: a key that needs a document is
     /// not offered at all, because there is nothing there for it to act on (RFC-015)
-    pub const INLINE: Self = Self(1 << 7);
+    pub const COMMENT: Self = Self(1 << 7);
 
     /// Both places, for a key a collection shares with the panels that edit a file.
     pub const fn or(self, other: Self) -> Self {
@@ -101,7 +101,7 @@ pub struct Binding {
     /// to delete, an entry to undo.
     pub something: bool,
     /// Places the key does not work in, even where its panels do: checking a todo
-    /// comment is not an operation, so `x` is not offered in an inline file.
+    /// comment is not an operation, so `x` is not offered in a comment todo file.
     pub without: Where,
 }
 
@@ -191,20 +191,20 @@ pub const BINDINGS: &[Binding] = &[
     Binding::new("↑/↓", "nav", Where::TODO.or(Where::COLLECTION), Bar::Verb),
     Binding::new("x", "check", Where::TODO.or(Where::COLLECTION), Bar::Verb)
         .on_something()
-        .but_not(Where::INLINE),
+        .but_not(Where::COMMENT),
     // the second spelling of `x`: a terminal always sends the letter, so the bar keeps
     // the shorter row and the page is where one key is told twice
     Binding::new("space", "check", Where::TODO.or(Where::COLLECTION), Bar::No)
         .on_something()
-        .but_not(Where::INLINE),
+        .but_not(Where::COMMENT),
     Binding::new("K / J", "move", Where::TODO, Bar::Verb)
         .on_something()
-        .but_not(Where::INLINE),
+        .but_not(Where::COMMENT),
     Binding::new("ctrl+↑/↓", "move", Where::TODO, Bar::No)
         .on_something()
-        .but_not(Where::INLINE),
+        .but_not(Where::COMMENT),
     Binding::new("d", "delete", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
-    Binding::new("n", "add", Where::TODO, Bar::Verb).but_not(Where::INLINE),
+    Binding::new("n", "add", Where::TODO, Bar::Verb).but_not(Where::COMMENT),
     Binding::new("e", "edit", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
     Binding::new("A-D", "prio", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
     Binding::new("0", "clear prio", Where::TODO.or(Where::COLLECTION), Bar::No)
@@ -261,8 +261,8 @@ fn here(app: &App) -> Where {
     }
     // the kind of file decides what can be done to its todos, and it is the open
     // file that is being edited — a collection's rows open their own files
-    if matches!(app.pane, Pane::View | Pane::Todos | Pane::Collection) && app.inline() {
-        here = here.or(Where::INLINE);
+    if matches!(app.pane, Pane::View | Pane::Todos | Pane::Collection) && app.comment() {
+        here = here.or(Where::COMMENT);
     }
     here
 }

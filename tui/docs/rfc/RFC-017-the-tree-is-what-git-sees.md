@@ -1,7 +1,7 @@
 # RFC-017: The tree is what git does not ignore
 
 - **Date:** 2026-10-16
-- **Related:** [RFC-006](RFC-006-discovery-and-limits.md), [RFC-016](RFC-016-the-inline-todo.md)
+- **Related:** [RFC-006](RFC-006-discovery-and-limits.md), [RFC-016](RFC-016-a-comment-todo.md)
 
 ## Context
 
@@ -9,7 +9,7 @@ RFC-006 decided which files a walk looks at: markdown named `TODO*`, `TASK*` or 
 with a list of folders never descended into (`node_modules`, `target`, `tmp`, `.git`) and
 four limits — depth, files, lines, and a warning for each one it hit.
 
-That worked because the walk only opened markdown files it already wanted. Inline todos
+That worked because the walk only opened markdown files it already wanted. Comment todos
 change the cost: to know whether a file holds a `TODO:` comment, the file has to be
 **read**. Every file. In a real checkout that means a vendored folder, a `dist/`, a
 generated client, a hundred megabytes of `Cargo.lock` and `.min.js`.
@@ -36,7 +36,7 @@ obey: `.gitignore`. So the walk should not guess — it should ask.
    byte, are skipped. Named on the command line, they are an error instead — the person
    asked for that file.
 6. A file is listed only when it holds something: a document with a todo, a finding, or
-   nothing but headings; an inline file with at least one `TODO:` comment. The rest of the
+   nothing but headings; a comment todo file with at least one `TODO:` comment. The rest of the
    tree is read and dropped, because a file list is a list of places to go, not an
    inventory.
 7. The scan **SHOULD** remain fast enough to run on open without a spinner. Reading every
@@ -78,5 +78,5 @@ is that the todos people actually leave in a repository are in the code.
 - What should the byte limit be for a file whose *language* makes one line enormous — a
   minified bundle is one line and a megabyte? The line cap catches it after reading; the
   byte cap stops before.
-- Should `--check` list the inline todos it will not check, so a person knows they were
+- Should `--check` list the comment todos it will not check, so a person knows they were
   seen? Today it neither reports nor validates them.

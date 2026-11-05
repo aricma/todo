@@ -238,7 +238,7 @@ fn walk(
             } else {
                 deeper.push(path);
             }
-        } else if scope.wants(&name) || Source::of(&path) == Source::Inline {
+        } else if scope.wants(&name) || Source::of(&path) == Source::Comment {
             if *seen >= limits::MAX_READ {
                 scan.warnings.push(format!(
                     "[warn] {} files is the limit; the walk stopped there",
@@ -286,7 +286,7 @@ fn entry(path: &Path, strict: bool) -> Result<(Entry, bool), Error> {
     };
     let doc = match source {
         Source::Document => Doc::parse(&text),
-        Source::Inline => Doc::parse_inline(&text),
+        Source::Comment => Doc::parse_comment(&text),
     };
     let stats = doc.stats();
     let too_long = doc.lines().len() > limits::MAX_LINES;
@@ -298,7 +298,7 @@ fn entry(path: &Path, strict: bool) -> Result<(Entry, bool), Error> {
     // tree is code, and a file list is a list of places to go, not of files
     let worth_showing = match source {
         Source::Document => stats.all > 0 || !doc.findings().is_empty() || bare,
-        Source::Inline => stats.all > 0,
+        Source::Comment => stats.all > 0,
     };
     Ok((
         Entry {
@@ -495,7 +495,7 @@ mod tests {
             .collect();
         assert_eq!(
             names,
-            [("src/main.rs".to_owned(), crate::doc::Source::Inline)],
+            [("src/main.rs".to_owned(), crate::doc::Source::Comment)],
             "{names:?}"
         );
     }

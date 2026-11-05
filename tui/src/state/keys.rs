@@ -594,8 +594,8 @@ impl App {
     fn toggle(&mut self) -> Option<Action> {
         // a comment has no checkbox to flip, and its only "done" is being deleted —
         // or copied into a todo file to be tracked there
-        if self.inline() {
-            self.set_warning(text::INLINE_NO_CHECK);
+        if self.comment() {
+            self.set_warning(text::COMMENT_NO_CHECK);
             return None;
         }
         match self.pane {
@@ -723,7 +723,7 @@ impl App {
             }
             return action;
         }
-        if !matches!(self.pane, Pane::View | Pane::Todos) || self.inline() {
+        if !matches!(self.pane, Pane::View | Pane::Todos) || self.comment() {
             self.set_warning(text::PASTE_NOT_HERE);
             return None;
         }
@@ -881,10 +881,10 @@ impl App {
     /// the disk until `enter`; `esc` takes the row out and puts the highlight back
     /// where it was.
     fn ask_add(&mut self) -> Option<Action> {
-        // an inline file's todo is a comment in the code: where it goes is the
+        // a comment todo file's todo is a comment in the code: where it goes is the
         // person's decision and the line is written by hand (RFC-016)
-        if self.inline() {
-            self.set_warning(text::INLINE_NO_ADD);
+        if self.comment() {
+            self.set_warning(text::COMMENT_NO_ADD);
             return None;
         }
         let after = self.current_task().map(|task| task.line);
@@ -950,8 +950,8 @@ impl App {
         }
         // a comment's line is where the code needs it: moving it would move the
         // note away from the thing it is about
-        if self.inline() {
-            self.set_warning(text::INLINE_NO_MOVE);
+        if self.comment() {
+            self.set_warning(text::COMMENT_NO_MOVE);
             return None;
         }
         let line = self.current_task()?.line;

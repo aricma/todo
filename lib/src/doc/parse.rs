@@ -20,10 +20,10 @@ impl Doc {
     /// The same, for a file whose todos are `TODO:` comments: any file in the tree
     /// that is not a todo document. Its lines are kept exactly as they are, so the
     /// code around a todo is neither moved nor rewritten (RFC-016).
-    pub fn parse_inline(source: &str) -> Self {
+    pub fn parse_comment(source: &str) -> Self {
         Self {
             lines: lines(source),
-            source: Source::Inline,
+            source: Source::Comment,
         }
     }
 
@@ -31,7 +31,7 @@ impl Doc {
     pub fn tasks(&self) -> Vec<Task> {
         match self.source {
             Source::Document => scan(&self.lines),
-            Source::Inline => scan_inline(&self.lines),
+            Source::Comment => scan_comment(&self.lines),
         }
     }
 }
@@ -53,7 +53,7 @@ fn lines(source: &str) -> Vec<String> {
 /// No fences and no headings: a code file is not markdown, and `# TODO:` in a shell
 /// script is a comment, not an outline. One todo per line, the first `TODO:` on it,
 /// and the code around it is the todo's lead (RFC-016).
-fn scan_inline(lines: &[String]) -> Vec<Task> {
+fn scan_comment(lines: &[String]) -> Vec<Task> {
     lines
         .iter()
         .enumerate()
@@ -202,8 +202,8 @@ mod tests {
     use crate::model::Prio;
 
     #[test]
-    fn an_inline_file_finds_its_todo_comments_and_nothing_else() {
-        let doc = Doc::parse_inline(
+    fn a_comment_todo_file_finds_its_todo_comments_and_nothing_else() {
+        let doc = Doc::parse_comment(
             "fn main() {\n    // TODO: ship it\n    // FIXME: not this\n    // todo: nor case-blind?\n}\n",
         );
         let tasks = doc.tasks();
@@ -216,20 +216,20 @@ mod tests {
     }
 
     #[test]
-    fn an_inline_todo_needs_something_after_the_colon() {
-        assert!(Doc::parse_inline("// TODO:\n// TODO:   \n").tasks().is_empty());
-        assert_eq!(Doc::parse_inline("// TODO:x\n").tasks()[0].body, "x");
+    fn a_comment_todo_needs_something_after_the_colon() {
+        assert!(Doc::parse_comment("// TODO:\n// TODO:   \n").tasks().is_empty());
+        assert_eq!(Doc::parse_comment("// TODO:x\n").tasks()[0].body, "x");
     }
 
     #[test]
     fn a_checkbox_in_a_code_file_is_code_and_a_comment_in_markdown_is_prose() {
-        assert!(Doc::parse_inline("- [ ] not a todo here\n").tasks().is_empty());
+        assert!(Doc::parse_comment("- [ ] not a todo here\n").tasks().is_empty());
         assert!(Doc::parse("// TODO: not a todo here\n").tasks().is_empty());
     }
 
     #[test]
-    fn an_inline_todo_reads_the_priority_the_tags_and_the_people() {
-        let doc = Doc::parse_inline("/* TODO: (A) fix #infra @dave */\n");
+    fn a_comment_todo_reads_the_priority_the_tags_and_the_people() {
+        let doc = Doc::parse_comment("/* TODO: (A) fix #infra @dave */\n");
         let task = &doc.tasks()[0];
         assert_eq!(task.prio, Some(Prio::A));
         // the terminator is the code's, not the tool's: it stays in the text

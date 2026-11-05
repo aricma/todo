@@ -107,7 +107,7 @@ impl App {
             )));
         }
         // a file over the line limit is listed but never read, so opening it by
-        // accident is not an option. A todo document wins over an inline file: a
+        // accident is not an option. A todo document wins over a comment todo file: a
         // session opens where the todos were written, not on whichever source file
         // happens to sort first (RFC-015)
         let first = |wanted: Source| {
@@ -115,7 +115,7 @@ impl App {
                 .iter()
                 .position(|entry| !entry.too_long && entry.source == wanted)
         };
-        let Some(index) = first(Source::Document).or_else(|| first(Source::Inline)) else {
+        let Some(index) = first(Source::Document).or_else(|| first(Source::Comment)) else {
             let blocked = &scan.entries[0];
             return Err(Error::Ops(format!(
                 "{}: {}",
@@ -723,11 +723,11 @@ impl App {
         self.open_current()
     }
 
-    /// Whether the open file is an inline one: `TODO:` comments in code, whose
+    /// Whether the open file is a comment one: `TODO:` comments in code, whose
     /// todos can be edited, copied, priced and deleted, and nothing else. The keys
     /// that need a document are refused rather than hidden in silence (RFC-015).
-    pub fn inline(&self) -> bool {
-        self.doc.source() == Source::Inline
+    pub fn comment(&self) -> bool {
+        self.doc.source() == Source::Comment
     }
 
     /// Which files the scan looks at: the ones named for todos, or every markdown
