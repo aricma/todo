@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use crate::doc::Source;
 use crate::model::{Collection, Stats};
 
 /// One candidate file: where it is, how its tasks count, and whether it is too
@@ -7,6 +8,9 @@ use crate::model::{Collection, Stats};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Entry {
     pub path: PathBuf,
+    /// What its todos are: checkboxes in a todo document, or `TODO:` comments in a
+    /// code file (RFC-015).
+    pub source: Source,
     pub stats: Stats,
     /// More lines than [`crate::limits::MAX_LINES`]: shown, marked, not read.
     pub too_long: bool,
