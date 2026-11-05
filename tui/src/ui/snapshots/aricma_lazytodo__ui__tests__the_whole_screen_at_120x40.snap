@@ -41,4 +41,4 @@ expression: "masked(&app, &screen_at(&app, 120, 40).join(\"\\n\"))"
 │                                            │  │                                                                      │
 ╰────────────────────────────────────────────╯  ╰───────────────────────────────────────────────────────── 1/4  #1  @1 ╯
  tab index · shift+tab history · → TODOs.md · f search · ? keys · q quit                                                
- ↑/↓ file / collection · n new file · d delete file · h unhide *.md · c copy
+ ↑/↓ nav · n new file · d delete file · h unhide *.md · c copy

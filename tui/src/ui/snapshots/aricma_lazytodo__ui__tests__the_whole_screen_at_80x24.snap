@@ -25,4 +25,4 @@ expression: "masked(&app, &screen(&app).join(\"\\n\"))"
 │                            │  │                                              │
 ╰────────────────────────────╯  ╰───────────────────────────────── 1/2  #1  @1 ╯
  tab files · shift+tab index · → a/TODOs.md · f search · ? keys · q quit        
- ↑/↓ entry · x undo / redo · d forget
+ ↑/↓ nav · x undo / redo · d forget

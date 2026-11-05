@@ -158,21 +158,21 @@ pub const BINDINGS: &[Binding] = &[
         Bar::No,
     ),
     // ---- the file panel
-    Binding::new("↑/↓", "file / collection", Where::FILES, Bar::Verb),
+    // "nav" in every panel, never the thing under the cursor: the arrows move the
+    // cursor, and naming what it lands on read as an action on it — `↑/↓ todo` sat
+    // beside `x check` and `d delete` like a third verb. One idea, one word.
+    Binding::new("↑/↓", "nav", Where::FILES, Bar::Verb),
     Binding::new("n", "new file", Where::FILE_ROW, Bar::Verb),
     Binding::new("d", "delete file", Where::FILE_ROW, Bar::Verb),
     Binding::new("h", "hide / unhide", Where::FILES, Bar::Verb),
     Binding::new("v", "what to list", Where::FILES, Bar::No),
     // ---- the index of headings
-    Binding::new("↑/↓", "heading", Where::OUTLINE, Bar::Verb),
+    Binding::new("↑/↓", "nav", Where::OUTLINE, Bar::Verb),
     Binding::new("n", "new heading", Where::OUTLINE, Bar::Verb),
     // ---- a collection: the one key that is its own, before the rows it shares with
     // the panels below
     Binding::new("enter", "open file", Where::COLLECTION, Bar::Verb).on_something(),
     // ---- the panels that edit the open file's todos, and a collection's rows
-    // "nav", not "todo": the arrow keys move the cursor, and naming the thing under it
-    // read as an action on that thing — `↑/↓ todo` next to `x check` and `d delete`
-    // looked like a third verb
     Binding::new("↑/↓", "nav", Where::TODO.or(Where::COLLECTION), Bar::Verb),
     Binding::new("x", "check", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
     // the second spelling of `x`: a terminal always sends the letter, so the bar keeps
@@ -187,7 +187,7 @@ pub const BINDINGS: &[Binding] = &[
     Binding::new("0", "clear prio", Where::TODO.or(Where::COLLECTION), Bar::No)
         .on_something(),
     // ---- the history
-    Binding::new("↑/↓", "entry", Where::HISTORY, Bar::Verb),
+    Binding::new("↑/↓", "nav", Where::HISTORY, Bar::Verb),
     Binding::new("x", "undo / redo", Where::HISTORY, Bar::Verb).on_something(),
     Binding::new("space", "undo / redo", Where::HISTORY, Bar::No).on_something(),
     Binding::new("d", "forget", Where::HISTORY, Bar::Verb).on_something(),
@@ -463,7 +463,7 @@ mod tests {
         app.pane = Pane::History;
         // nothing has been written, so there is no entry to undo and the bar offers
         // only the cursor
-        assert_eq!(super::section_keys(&app), ["↑/↓ entry"]);
+        assert_eq!(super::section_keys(&app), ["↑/↓ nav"]);
 
         // one check, and there is something to undo
         app.pane = Pane::Todos;

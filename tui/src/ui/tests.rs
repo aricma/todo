@@ -1379,7 +1379,7 @@ fn a_row_that_cannot_be_toggled_says_why_under_itself() {
     let status = lines[lines.len() - 2..].join("\n");
     assert!(!status.contains("enable the write"), "{status}");
     assert!(
-        status.contains("↑/↓ entry"),
+        status.contains("↑/↓ nav"),
         "the keys are still there: {status}"
     );
 }
@@ -1474,7 +1474,7 @@ fn the_status_bar_is_general_keys_then_the_keys_of_whoever_has_the_keyboard() {
         !rows[0].contains('▸'),
         "where you are is the panel's dot, not a word here: {rows:?}"
     );
-    assert!(rows[1].contains("↑/↓ file"), "{rows:?}");
+    assert!(rows[1].contains("↑/↓ nav"), "{rows:?}");
 
     // a modal takes the second row over; the shared keys stay where they are
     press(&mut app, ratatui::crossterm::event::KeyCode::Char('n'));
@@ -1597,7 +1597,7 @@ fn the_scan_warnings_live_in_the_files_panel_not_the_status_bar() {
     let status = lines[lines.len() - 2..].join("\n");
     assert!(!status.contains("10 levels"), "{status}");
     assert!(
-        status.contains("↑/↓ file"),
+        status.contains("↑/↓ nav"),
         "the panel's keys are back: {status}"
     );
 
@@ -1716,14 +1716,9 @@ fn the_keys_page_breathes() {
         ("tab", "next section"),
         ("esc", "dismiss it"),
         ("ctrl+u", "empty the search"),
-        ("file / collection", "↑/↓"),
-        ("open file", "enter"),
+        ("↑/↓", "nav"),
+        ("enter", "open file"),
     ] {
-        let (keys, does) = if keys.starts_with("file") {
-            (does, keys)
-        } else {
-            (keys, does)
-        };
         let line = lines
             .iter()
             .find(|line| line.contains(does))
