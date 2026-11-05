@@ -13,18 +13,18 @@
 - [x] (A) add more stats for how many tags and assignees are in each file in the files panel make the stats color coded as we have them in the todos panel as well
 - [x] (D) add a conflict resolution to the todos panel
 - [x] (B) increase the depth we can handle to 10 levels
-- [x] (A) add the same stats for tags and assignees to the bottom right of the todos panel next to the todo numbers #aricma @kevin
+- [x] (A) add the same stats for tags and assignees to the bottom right of the todos panel next to the todo numbers @aricma @kevin
 - [x] (B) allow the history items to wrap
 - [x] (B) allow headings in outline to wrap
 - [x] (C) rename outline to index
-- [x] (A) add line numbers to the todos panel #aricma
 - [x] (C) add a 'c' keybinding for the todos panel and files panel so we can copy files and todos to the clipboard with a single keystroke
 - [x] (D) how do we give feedback for copied todos and files
 - [x] (A) add a header line above the panels, a single line that carries the name of this app "aricma-todo .  $PWD"
 - [x] "─── 16/18  #1  @1 ╯" this 16/18 stat needs to be the same color as the border when the panel is active, right now the stat gets darker when the panel is in focus
 - [x] we should allow not only TODOs.md files but also Tasks.md files in the files panel — already so: `is_candidate` lowercases the name and accepts `task*`, with `accepts_todo_and_task_prefixes_in_any_case` for `Tasks.md` and `tasks-2026.md`
-
 - [x] collections in the files panel can not be deleted — right: deleting one would mean stripping `#tag` from every line that names it, across files, which this tool does not do. So there is no key for it, and now it is not offered either: the status bar follows the **row**, not the panel, so a collection row shows `↑/↓ collection` and no `n`/`d`, and the keys page says "a file row"
+
+- [ ] (B) add line numbers to the todos panel
 
 ## open, in the order to do them
 
@@ -39,3 +39,8 @@ the record of how each one was decided.)
 - [x] (C) add opt+up/down as bindings to also switch left sidebar panels — moving a todo is `ctrl+↑/↓` now (`K`/`J` stay)
 - [x] (D) add an 'h' keybinding for the files panel so that we can unhide/hide all other *.md files in the tree since any of them  could have todos in them, this is for teams the do not stic to the TODOs.md and Tasks.md name conwentions and want to just have a look around but these other md files are not included in the search and are hidden by default
 - [x] file panel files and collections should both support a 'c' binding to copy the litteral string like  the path tag or assignment
+- [ ] (A) the tui in single file mode should not ollapse and just hide the files panle but keep the left right split
+- [ ] (D) we should be dealing with 'TODO:' comments in any file in the tree
+- [ ] (C) we should copy todos as OPS so we can copy paste them between files
+- [ ] (D) we need to fix the new todo input wrap ... it is a weird user experiance + the spaces are trimmed from the state before passed down to the view again with leads to a weird experinace where spaces are not visible until wrapped by another word
+- [ ] (D) we need to add hints for todos to be formatted correctly and the files to be formatted correctly and auto fix functions so the user can just accept them
