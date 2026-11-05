@@ -58,6 +58,30 @@ fn the_todos_panel_numbers_the_lines_it_shows() {
     assert!(lines[next].contains("4 - [x] ship it"), "{}", lines[next]);
 }
 
+#[test]
+fn the_file_view_numbers_every_line_prose_included() {
+    let (_tmp, app) = app(&[("TODOs.md", "# inbox\n\njust some prose\n\n- [ ] pay rent\n")]);
+    let lines = screen(&app);
+    let at = |needle: &str| {
+        lines
+            .iter()
+            .position(|line| line.contains(needle))
+            .unwrap_or_else(|| panic!("{needle} is on screen"))
+    };
+    // the same number the todos panel and the editor use, so a line found in one is
+    // the line found in the other; prose and headings are numbered with the todos
+    assert!(
+        lines[at("just some prose")].contains("3 just some prose"),
+        "{}",
+        lines[at("just some prose")]
+    );
+    assert!(
+        lines[at("pay rent")].contains("5 - [ ] pay rent"),
+        "{}",
+        lines[at("pay rent")]
+    );
+}
+
 /// A screen against its recorded snapshot.
 ///
 /// The header names the tree the session was opened on, and in a test that is a temp
@@ -315,12 +339,19 @@ fn a_long_todo_wraps_and_prose_beside_it_does_not() {
     );
     // the continuation starts where the body starts: under the text, not under
     // the bullet — whatever the bullet and checkbox happen to be
-    let body_column = lines[first].find("a todo that is far too long").unwrap();
-    let continuation_column = lines[first + 1].find("the panel once").unwrap();
-    assert_eq!(
-        body_column,
-        continuation_column,
-        "continuations are indented under the body: {}",
+    let body_at = lines[first].find("a todo that is far too long").unwrap();
+    let body_column = lines[first][..body_at].chars().count();
+    let below: Vec<char> = lines[first + 1].chars().collect();
+    assert!(
+        below[..body_column]
+            .iter()
+            .all(|character| *character == ' ' || *character == '│'),
+        "nothing but border and air is left of the body: {}",
+        lines[first + 1]
+    );
+    assert!(
+        below[body_column] != ' ' && below[body_column] != '│',
+        "the wrapped text itself starts there: {}",
         lines[first + 1]
     );
     // the prose above it is still one clipped row

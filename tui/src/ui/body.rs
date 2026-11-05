@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use aricma_todo_lib::model::Task;
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
-use ratatui::text::Line;
+use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui::Frame;
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
@@ -21,7 +21,11 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
         panel(&app.display(&app.current().path), focused).title_bottom(footer(app, focused));
     let inner = block.inner(area);
     let height = inner.height as usize;
-    let width = inner.width as usize;
+    // the number column: the digits of the last line, and a space after it. The
+    // whole document is numbered, prose included, so a todo seen here is the same
+    // number it has in the editor and in the todos panel
+    let gutter = gutter(app.doc.lines().len());
+    let width = (inner.width as usize).saturating_sub(gutter);
 
     let tasks: HashMap<usize, Task> = app
         .tasks()
@@ -45,13 +49,14 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
             break;
         }
         let room = height - rows.len();
+        let first = rows.len();
         match tasks.get(&index) {
             Some(task) => {
                 let editing = app.editing().filter(|_| Some(index) == selected);
                 if let Some(prompt) = editing {
                     let before: String = prompt.text().chars().take(prompt.cursor()).collect();
                     let lead = width.saturating_sub(body_width(task, width));
-                    cursor = Some(cursor_at(inner, rows.len(), &before, width, lead));
+                    cursor = Some(cursor_at(inner, rows.len(), &before, width, lead + gutter));
                 }
                 let here = selected == Some(index);
                 let rendered = todo_rows(task, editing, here, width);
@@ -64,6 +69,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
             }
             None => rows.push(prose(lines.get(index).map_or("", String::as_str), width)),
         }
+        number(&mut rows[first..], index, gutter);
     }
     frame.render_widget(Paragraph::new(rows).block(block), area);
     if let Some((x, y)) = cursor {
@@ -95,6 +101,27 @@ fn heights(
             }
         })
         .collect()
+}
+
+/// How wide the line-number column is: the digits of the last line, and a space.
+fn gutter(lines: usize) -> usize {
+    lines.max(1).to_string().len() + 1
+}
+
+/// Put the line's number on its first row, and the column's width of air on the rows
+/// it wraps onto, so the text of a wrapped line stays in one straight edge.
+fn number(rows: &mut [Line<'static>], index: usize, gutter: usize) {
+    for (at, row) in rows.iter_mut().enumerate() {
+        let label = if at == 0 {
+            format!("{:>width$} ", index + 1, width = gutter - 1)
+        } else {
+            " ".repeat(gutter)
+        };
+        row.spans.insert(
+            0,
+            Span::styled(label, Style::default().add_modifier(Modifier::DIM)),
+        );
+    }
 }
 
 /// Prose: dim, one line, clipped with an ellipsis.
