@@ -25,6 +25,9 @@ functions more than one layer needs.
 ## Reading
 
 - [lazytodo.md](./lazytodo.md) — the terminal client: line grammar, keys, history, CLI.
+- [tui/docs/](./tui/docs/glossary.md) — the terminal client's words
+  ([glossary](./tui/docs/glossary.md)) and its
+  [RFCs](./tui/docs/rfc/README.md), one per behaviour, with an index.
 - [web/README.md](./web/README.md) — the SPA, and its [docs/adr](./web/docs/adr/README.md).
 - [use-cases/](./use-cases/README.md) — the use cases as data: `core/` is the
   document's behaviour on any interface, `cli/` and `tui/` are what only that
