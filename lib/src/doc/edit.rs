@@ -93,8 +93,9 @@ impl Doc {
     /// Prose and blank lines are not in the way — the todo steps over them and they
     /// stay put, because moving a note with it would change what the note is about.
     /// A heading is neither a wall nor something to swap with: the todo crosses it
-    /// and lands against it on the far side, so it joins the section above (or
-    /// below) without dragging that section's last todo out of its own.
+    /// and joins the chapter on the far side, in its **cluster** (see `land`), so it
+    /// does not split the todos of the chapter it entered and does not drag that
+    /// chapter's own todos out of theirs.
     pub fn move_task(&mut self, line: usize, up: bool) -> Result<Inverse, Blocker> {
         self.task_at(line).ok_or(Blocker::Edge)?;
         let fenced = parse::fenced(&self.lines);
@@ -112,11 +113,14 @@ impl Doc {
                 continue;
             }
             if headings::heading(near, at).is_some() {
-                // `to` is the heading's own index in both directions: inserting
-                // there lands the todo just above it when the move is up, and just
-                // below it when the move is down, because the line was lifted out
-                // first
-                return self.shift(line, at, up).ok_or(Blocker::Edge);
+                let land = self.land(line, at, up, &fenced).ok_or(Blocker::Edge)?;
+                let expect = self.lines.remove(line);
+                self.lines.insert(land, expect.clone());
+                return Ok(Inverse::Move {
+                    from: line,
+                    to: land,
+                    expect,
+                });
             }
             if self.task_at(at).is_some() {
                 break at;
@@ -138,37 +142,66 @@ impl Doc {
         })
     }
 
-    /// Lift the line at `from` out and put it back at `to`, which is where the
-    /// heading it crossed used to be. One edit, so one undo: a todo that crossed a
-    /// heading comes back to the line it started on, and every line it stepped over
-    /// is still where it was. Blank lines are air between sections, so the todo
-    /// lands on the section's side of the gap rather than across it.
-    fn shift(&mut self, from: usize, to: usize, up: bool) -> Option<Inverse> {
-        // up: what it steps back over keeps its index when the line is lifted, so
-        // the landing is measured first; down: everything below moves up one row,
-        // so it is measured after
-        let mut land = to;
+    /// Where a todo that crossed the heading at `skipped` comes down.
+    ///
+    /// Todos **cluster** at the end of a chapter: a heading, the chapter's own text,
+    /// then its todos. So a move across a heading joins the cluster on the far side
+    /// instead of splitting it — above, the todo lands after that chapter's last todo;
+    /// below, before its first. The prose, tables and images above a cluster are the
+    /// chapter's introduction, and are stepped over with the heading, because a todo
+    /// that landed above them would be separated from the todos it belongs with.
+    ///
+    /// A chapter with no todos has no cluster to join, so the todo lands at that
+    /// chapter's end and starts one there. One heading per press: a move does not
+    /// hop two chapters to find a crowd.
+    ///
+    /// The index is where the line ends up once it is lifted out, which is what
+    /// `Inverse::Move::to` means.
+    fn land(&self, from: usize, skipped: usize, up: bool, fenced: &[bool]) -> Option<usize> {
         if up {
-            while land > 0 && self.lines[land - 1].trim().is_empty() {
-                land -= 1;
+            let mut at = skipped;
+            while at > 0 {
+                at -= 1;
+                if *fenced.get(at).unwrap_or(&false) {
+                    continue;
+                }
+                // into the chapter above: it is where a cluster would be
+                if headings::heading(&self.lines[at], at).is_some() {
+                    break;
+                }
+                if self.task_at(at).is_some() {
+                    return Some(at + 1);
+                }
             }
-            // nowhere left to go: the heading above is the document's first line
-            if land == 0 {
-                return None;
+            // nothing to join: the end of the chapter above, and never above the
+            // document's own title, where nobody would find it
+            let mut end = skipped;
+            while end > 0 && self.lines[end - 1].trim().is_empty() {
+                end -= 1;
             }
+            (end > 0).then_some(end)
+        } else {
+            let mut at = skipped + 1;
+            while at < self.lines.len() {
+                if *fenced.get(at).unwrap_or(&false) {
+                    at += 1;
+                    continue;
+                }
+                if headings::heading(&self.lines[at], at).is_some() {
+                    break;
+                }
+                if self.task_at(at).is_some() {
+                    // before it, and one row nearer once the line is lifted out
+                    return Some(at - 1);
+                }
+                at += 1;
+            }
+            let mut end = at;
+            while end > from + 1 && self.lines[end - 1].trim().is_empty() {
+                end -= 1;
+            }
+            Some(end - 1)
         }
-        let expect = self.lines.remove(from);
-        if !up {
-            while land < self.lines.len() && self.lines[land].trim().is_empty() {
-                land += 1;
-            }
-        }
-        self.lines.insert(land, expect.clone());
-        Some(Inverse::Move {
-            from,
-            to: land,
-            expect,
-        })
     }
 
     /// Remove one task line.
@@ -433,6 +466,57 @@ mod tests {
         // and down again, to the top of the section below
         doc.move_task(2, false).unwrap();
         assert_eq!(doc.render(), "## one\n- [ ] a\n\n## two\n- [ ] b\n- [ ] c\n");
+    }
+
+    #[test]
+    fn a_move_crosses_the_chapters_text_to_reach_its_todos() {
+        // a chapter is a heading, its own text — prose, a table, an image — and its
+        // todos at the end. Crossing into it must not come down between the text
+        // and the todos: that splits the cluster
+        let source = concat!(
+            "## one\n",
+            "what this chapter is about\n",
+            "\n",
+            "| a | b |\n",
+            "| - | - |\n",
+            "\n",
+            "- [ ] a\n",
+            "- [ ] b\n",
+            "\n",
+            "## two\n",
+            "![shot](shot.png)\n",
+            "\n",
+            "- [ ] c\n",
+        );
+        let mut doc = Doc::parse(source);
+        // `c` joins the cluster above, under `b`, without leaving its chapter's
+        // image behind it
+        let inverse = doc.move_task(12, true).unwrap();
+        assert_eq!(
+            doc.render(),
+            "## one\nwhat this chapter is about\n\n| a | b |\n| - | - |\n\n- [ ] a\n- [ ] b\n- [ ] c\n\n## two\n![shot](shot.png)\n\n"
+        );
+        doc.apply(inverse.flip()).unwrap();
+        assert_eq!(doc.render(), source, "one move, one undo");
+
+        // and `b` joins the cluster below, above `c`, stepping over the image
+        doc.move_task(7, false).unwrap();
+        assert_eq!(
+            doc.render(),
+            "## one\nwhat this chapter is about\n\n| a | b |\n| - | - |\n\n- [ ] a\n\n## two\n![shot](shot.png)\n\n- [ ] b\n- [ ] c\n"
+        );
+    }
+
+    #[test]
+    fn a_move_into_a_chapter_with_no_todos_starts_its_cluster() {
+        let source = "## one\n- [ ] a\n\n## two\nnotes, and no todo yet\n";
+        let mut doc = Doc::parse(source);
+        doc.move_task(1, false).unwrap();
+        // the end of that chapter, not between its heading and its notes
+        assert_eq!(
+            doc.render(),
+            "## one\n\n## two\nnotes, and no todo yet\n- [ ] a\n"
+        );
     }
 
     #[test]
