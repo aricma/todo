@@ -118,8 +118,8 @@ fn walk(directory: &Path, depth: usize, scope: Scope, scan: &mut Scan, deeper: &
                 deeper.push(path);
             }
         } else if scope.wants(&name) {
-            if let Ok((entry, interesting)) = entry(&path) {
-                if interesting {
+            if let Ok((entry, worth_showing)) = entry(&path) {
+                if worth_showing {
                     scan.entries.push(entry);
                 }
             }
@@ -127,16 +127,19 @@ fn walk(directory: &Path, depth: usize, scope: Scope, scan: &mut Scan, deeper: &
     }
 }
 
-/// The entry, and whether the file is worth showing: it must hold a task, or at
-/// least a line that meant to be one — otherwise a file of nothing but broken
-/// todos would be invisible to `--check`.
+/// The entry, and whether the file is worth listing: it must hold a task, a line
+/// that meant to be one, or nothing but headings — a file made for the first todo
+/// is a place to go, and one that holds only prose is not in the business of todos.
 fn entry(path: &Path) -> Result<(Entry, bool), Error> {
     let bytes = fs::read(path)?;
     let text = String::from_utf8(bytes).map_err(|_| Error::NotUtf8(PathBuf::from(path)))?;
     let doc = Doc::parse(&text);
     let stats = doc.stats();
     let too_long = doc.lines().len() > limits::MAX_LINES;
-    let interesting = stats.all > 0 || !doc.findings().is_empty();
+    let bare = text
+        .lines()
+        .all(|line| line.trim().is_empty() || line.trim_start().starts_with('#'));
+    let worth_showing = stats.all > 0 || !doc.findings().is_empty() || bare;
     Ok((
         Entry {
             path: PathBuf::from(path),
@@ -144,7 +147,7 @@ fn entry(path: &Path) -> Result<(Entry, bool), Error> {
             too_long,
             collections: doc.collections(),
         },
-        interesting,
+        worth_showing,
     ))
 }
 
@@ -184,13 +187,27 @@ mod tests {
         let root = tmp.path();
         write(root, "TODOs.md", "- [ ] a\n");
         write(root, "sub/TASKS.md", "- [x] b\n");
-        write(root, "README.md", "# nothing to do\n");
+        write(root, "README.md", "# nothing to do\n\nJust a readme, no tasks in it.\n");
         write(root, "notes.md", "- [ ] not a candidate\n");
         write(root, "node_modules/x/TODOs.md", "- [ ] hidden\n");
         write(root, "target/TODOs.md", "- [ ] hidden\n");
         write(root, ".hidden/TODOs.md", "- [ ] hidden\n");
         // folders first, then the files at the root — the file viewer's order
         assert_eq!(names(root), ["sub/TASKS.md", "TODOs.md"]);
+    }
+
+    #[test]
+    fn a_file_with_nothing_but_headings_is_listed_and_one_of_prose_is_not() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+        // what `n` makes, and what a `touch TODOs.md` makes: places to write the
+        // first todo, so they have to be reachable from the list
+        write(root, "made/TODOs.md", "# made todos\n");
+        write(root, "touched/TODOs.md", "");
+        // a readme with words in it is not about todos
+        write(root, "README.md", "# readme\n\nHow to build it.\n");
+
+        assert_eq!(names(root), ["made/TODOs.md", "touched/TODOs.md"]);
     }
 
     #[test]
