@@ -44,17 +44,20 @@ Everything a person reads on screen has a name, and the names are in
 | 002 | [Numbered document lines](RFC-002-numbered-lines.md) | every panel that shows document lines numbers them with the file's own line |
 | 003 | [Editing a todo where it sits](RFC-003-editing-in-place.md) | the row itself is the field, and the file is written once it is done |
 | 004 | [The clipboard and its feedback](RFC-004-clipboard.md) | a copy lands in the clipboard the person can paste from, and the header says so |
+| 005 | [Collections](RFC-005-collections.md) | tags and people as places todos live, biggest first, read in file order |
+| 006 | [Discovery and limits](RFC-006-discovery-and-limits.md) | which files are candidates, which are listed, and where the walk stops |
+| 007 | [Search](RFC-007-search.md) | a query over every todo, best first, that puts the cursor on the answer |
+| 008 | [History and undo](RFC-008-history-and-undo.md) | the session's own trail, one entry per act, and when an undo must refuse |
+| 009 | [Keys, focus and crossing](RFC-009-keys.md) | every binding, what it does, and why that key — with the unmodified spellings |
+| 010 | [The two fields](RFC-010-the-two-fields.md) | a new todo under its row, a new file with offers and refusals |
+| 011 | [Where messages go](RFC-011-where-messages-go.md) | success in the header, failures and refusals by the keys, the rest beside their panel |
 
-### Planned
-
-Not written yet. Each is a behaviour a person can see, so each will get a file.
+### Next
 
 | # | the behaviour |
 | --- | --- |
-| 005 | Collections: tags and assignees as places todos live, sorted by size, opened from the files panel |
-| 006 | Discovery and limits: which files are listed, ten levels, the line ceiling, `h` for the whole tree |
-| 007 | Search: the query, the ranking, and the jump that leaves the cursor where it landed |
-| 008 | History and undo: the session's entries, the graph of dependencies, why an undo can refuse |
-| 009 | Keys, focus and crossing: `tab`, `←`/`→`, the status bar's spelling of what works here |
-| 010 | The two fields: new todo and new todos file, their offers, refusals and wrapping |
-| 011 | Where messages go: header, status bar, panel footer, popover — and what is a refusal |
+| 012 | Staying current: the 0.75 s poll, the reload that forgets history, and the conflict that only a person can settle |
+| 013 | The CLI: `check`, `format`, `export`, `import` — the same rules without a screen |
+
+Written after this pass: the doc claimed `r`/`ctrl+r` forced a reload. There is no
+such key (`state/tests.rs` asserts `r` is not one), and `lazytodo.md` now says so.
