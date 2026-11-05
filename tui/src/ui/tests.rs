@@ -503,6 +503,42 @@ fn a_floating_field_has_no_dot_because_it_is_the_only_thing_with_the_cursor() {
 }
 
 #[test]
+fn a_modal_dims_everything_behind_it() {
+    let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] a\n")]);
+    // the header's own text, bright while nothing is asked
+    let column = u16::try_from(screen(&app)[0].find("aricma").unwrap()).unwrap();
+    let cell = |app: &crate::state::App| {
+        terminal(app, WIDTH, HEIGHT).backend().buffer()[(column, 0)].clone()
+    };
+    assert!(
+        !cell(&app).modifier.contains(Modifier::DIM),
+        "the screen is at full brightness"
+    );
+
+    app.pane = crate::state::action::Pane::View;
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('n'));
+    assert!(
+        cell(&app).modifier.contains(Modifier::DIM),
+        "the field has the keyboard, so the screen behind it is quiet"
+    );
+
+    // and the question itself is not dimmed with it
+    let lines = screen(&app);
+    let at = lines
+        .iter()
+        .position(|line| line.contains("new todo"))
+        .expect("the field is on screen");
+    let left = lines[at].find("╭ new todo").expect("a framed field");
+    let edge = terminal(&app, WIDTH, HEIGHT).backend().buffer().clone();
+    assert!(
+        !edge[(u16::try_from(left).unwrap(), u16::try_from(at).unwrap())]
+            .modifier
+            .contains(Modifier::DIM),
+        "the field's own border stays bright"
+    );
+}
+
+#[test]
 fn one_row_per_file_with_its_folders_in_front_of_it() {
     let (_tmp, app) = app(&[
         ("a/TODOs.md", "- [ ] a\n"),

@@ -53,6 +53,7 @@ fn area(screen: Rect, rows: u16) -> Rect {
 }
 
 pub fn draw(frame: &mut Frame, app: &App) {
+    backdrop(frame, app);
     draw_add(frame, app);
     draw_create(frame, app);
     draw_help(frame, app);
@@ -86,6 +87,21 @@ pub fn draw(frame: &mut Frame, app: &App) {
         .take(app.search.query.cursor())
         .collect();
     cursor_in(frame, inner, &before, PAD);
+}
+
+/// Everything behind a modal is dimmed, so the panel that has the keyboard is the
+/// one the eye lands on: a floating frame over a screen of the same brightness reads
+/// as part of it, not as a question. Dim is a modifier a terminal may ignore — the
+/// screen then looks exactly as it did, and nothing is broken, which is the reason
+/// it is a modifier and not a colour painted over the text.
+fn backdrop(frame: &mut Frame, app: &App) {
+    if !app.modal() {
+        return;
+    }
+    let screen = frame.area();
+    frame
+        .buffer_mut()
+        .set_style(screen, Style::default().add_modifier(Modifier::DIM));
 }
 
 /// The conflict question: the file changed under a write of ours, and only a person
