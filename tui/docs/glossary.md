@@ -46,7 +46,8 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | **priority** | `(A)`…`(D)`, straight after the checkbox. Yellow, and the only positional rule in the grammar |
 | **tag** | `#home` — cyan. A tag is a **collection**, and a tag is where todos live |
 | **assignee** | `@sam` — magenta. A person is a **collection** too |
-| **prose** | every line of a file that is not a todo. Drawn dim, one row, clipped |
+| **prose** | every line of a file that is not a todo — a bare bullet included. Drawn dim, one row, clipped |
+| **finding** | a line that meant to be a todo and is not one (`--check`). Reported, never silently rewritten (RFC-013) |
 | **heading** | a markdown `#` line, what the index panel is made of |
 | **chapter** | a heading and everything under it, up to the next heading of any level: its **introduction**, then its **cluster** |
 | **introduction** | the text of a chapter before its first todo: paragraphs, tables, images, code |

@@ -52,13 +52,14 @@ Everything a person reads on screen has a name, and the names are in
 | 010 | [The two fields](RFC-010-the-two-fields.md) | a new todo under its row, a new file with offers and refusals |
 | 011 | [Where messages go](RFC-011-where-messages-go.md) | success in the header, failures and refusals by the keys, the rest beside their panel |
 | 012 | [Chapter clusters](RFC-012-chapter-clusters.md) | a chapter is its heading, its own text, then its todos — and no key splits that block |
+| 013 | [A todo is a checkbox](RFC-013-a-todo-is-a-checkbox.md) | a bullet is a shape; a checkbox is a state, and only a state is a todo |
 
 ### Next
 
 | # | the behaviour |
 | --- | --- |
-| 013 | Staying current: the 0.75 s poll, the reload that forgets history, and the conflict that only a person can settle |
-| 014 | The CLI: `check`, `format`, `export`, `import` — the same rules without a screen |
+| 014 | Staying current: the 0.75 s poll, the reload that forgets history, and the conflict that only a person can settle |
+| 015 | The CLI: `check`, `format`, `export`, `import` — the same rules without a screen |
 
 Written after this pass: the doc claimed `r`/`ctrl+r` forced a reload. There is no
 such key (`state/tests.rs` asserts `r` is not one), and `lazytodo.md` now says so.

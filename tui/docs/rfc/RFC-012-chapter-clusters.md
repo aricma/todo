@@ -99,5 +99,5 @@ feature.
 - Should `x` on the last todo of a chapter offer to move it to a `Done ✅` chapter, or
   is that the `d`-and-retype story?
 - Is the introduction ever a list that is *not* todos (a bulleted summary)? Those lines
-  are prose to this program, so a move would step over them; that is deliberate, but it
-  is the sharpest edge of the rule.
+  are prose to this program (RFC-013), so a move would step over them; that is
+  deliberate, but it is the sharpest edge of the rule.
