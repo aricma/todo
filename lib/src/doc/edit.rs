@@ -68,8 +68,9 @@ impl Doc {
             return None;
         }
         let (at, indent, marker) = match after.and_then(|line| self.task_at(line)) {
-            Some(task) => (task.line + 1, task.indent, task.marker.clone()),
-            None => (self.lines.len(), 0, "-".to_owned()),
+            // a comment todo's line is code: there is no bullet under it to copy
+            Some(task) if !task.is_comment() => (task.line + 1, task.indent, task.marker.clone()),
+            _ => (self.lines.len(), 0, "-".to_owned()),
         };
         let text = format!("{}{} [ ] {body}", " ".repeat(indent), marker);
         self.lines.insert(at, text.clone());
@@ -84,8 +85,9 @@ impl Doc {
     /// it, and cancelling takes it out again (RFC-014).
     pub fn add_placeholder(&mut self, after: Option<usize>) -> Option<usize> {
         let (at, indent, marker) = match after.and_then(|line| self.task_at(line)) {
-            Some(task) => (task.line + 1, task.indent, task.marker.clone()),
-            None => (self.lines.len(), 0, "-".to_owned()),
+            // the row a new todo waits in is markdown, so a code line has none
+            Some(task) if !task.is_comment() => (task.line + 1, task.indent, task.marker.clone()),
+            _ => (self.lines.len(), 0, "-".to_owned()),
         };
         self.lines.insert(at, format!("{}{} [ ]", " ".repeat(indent), marker));
         Some(at)
@@ -323,15 +325,15 @@ fn clean(body: &str) -> Option<String> {
 
 /// The byte offset of the checkbox character inside its line.
 fn checkbox_offset(task: &Task) -> usize {
-    task.indent + task.marker.len() + 2
+    task.lead().len() - 3
 }
 
 /// The line with its body replaced, keeping the whitespace around the body.
 fn with_body(line: &str, task: &Task, body: &str) -> String {
-    let start = task.indent + task.marker.len() + 5;
+    let start = task.lead().len();
     // a placeholder has nothing at all after its checkbox yet, so there is no
     // space to fill: the separator is added with the body
-    if line.len() <= task.indent + task.marker.len() + 4 {
+    if line.len() < start {
         return format!("{} {body}", line.trim_end());
     }
     let raw = &line[start..];

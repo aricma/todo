@@ -8,8 +8,13 @@ impl Doc {
     pub fn format(&mut self) -> bool {
         let mut changed = false;
         for task in self.tasks() {
+            // nothing to normalise in a code comment: the checkbox is not there, and
+            // the tool does not own the comment markers
+            if task.is_comment() {
+                continue;
+            }
             let line = &mut self.lines[task.line];
-            let checkbox = task.indent + task.marker.len() + 2;
+            let checkbox = task.lead().len() - 3;
             let mut bytes = line.clone().into_bytes();
             if bytes[checkbox] == b'X' {
                 bytes[checkbox] = b'x';

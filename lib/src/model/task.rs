@@ -19,6 +19,10 @@ pub struct Task {
     pub assignees: Vec<Assignee>,
     /// The bullet that opened the line (`-`, `*`, `+`, `1.`), kept verbatim.
     pub(crate) marker: String,
+    /// For a todo that is a comment rather than a checkbox: everything in front of
+    /// the body, which is the code around it — `    // TODO: `, `/* TODO: `, `# TODO: `.
+    /// `None` for a markdown todo, whose lead is its bullet and checkbox.
+    pub(crate) prefix: Option<String>,
 }
 
 impl Task {
@@ -29,8 +33,21 @@ impl Task {
     /// bullet the author wrote is not noise to be hidden from someone who is
     /// already reading the rest of the document.
     pub fn lead(&self) -> String {
+        // a comment todo came from a line with no checkbox: its lead is the code
+        // in front of the text, and it is never rebuilt because the tool does not
+        // own the comment markers
+        if let Some(prefix) = &self.prefix {
+            return prefix.clone();
+        }
         let checkbox = if self.done { 'x' } else { ' ' };
         format!("{}{} [{checkbox}] ", " ".repeat(self.indent), self.marker)
+    }
+
+    /// Whether this todo is a `TODO:` comment in a code file rather than a checkbox
+    /// in a todo document. A comment todo can be edited, copied and deleted; it can
+    /// be neither checked nor moved, because the line it lives on is code (RFC-016).
+    pub fn is_comment(&self) -> bool {
+        self.prefix.is_some()
     }
 
     /// The line as written back: indent, bullet, checkbox, body.
@@ -59,6 +76,17 @@ mod tests {
             let expected = source.trim_end().replace("[X]", "[x]");
             assert_eq!(task.render(), expected, "{source:?}");
         }
+    }
+
+    #[test]
+    fn a_comment_todos_lead_is_the_code_in_front_of_it() {
+        let doc = Doc::parse_inline("    // TODO: (B) fix #x\nlet x = 1;\n");
+        let task = &doc.tasks()[0];
+        assert!(task.is_comment());
+        assert_eq!(task.lead(), "    // TODO: ");
+        assert_eq!(task.body, "(B) fix #x");
+        assert_eq!(task.prio, Some(crate::model::Prio::B));
+        assert_eq!(task.render(), "    // TODO: (B) fix #x");
     }
 
     #[test]

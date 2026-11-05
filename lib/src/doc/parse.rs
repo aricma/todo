@@ -4,28 +4,94 @@
 //! `findings` and `format` can never disagree about it.
 
 use super::spans;
-use super::Doc;
+use super::{Doc, Source};
 use crate::model::Task;
 
 impl Doc {
     /// Split a file into lines. CRLF loses its `\r`, a BOM is dropped, and the
     /// trailing newline is not a line of its own.
     pub fn parse(source: &str) -> Self {
-        let source = source.strip_prefix('\u{feff}').unwrap_or(source);
-        let mut lines: Vec<String> = source
-            .split('\n')
-            .map(|line| line.strip_suffix('\r').unwrap_or(line).to_owned())
-            .collect();
-        if source.ends_with('\n') || source.is_empty() {
-            lines.pop();
+        Self {
+            lines: lines(source),
+            source: Source::Document,
         }
-        Self { lines }
+    }
+
+    /// The same, for a file whose todos are `TODO:` comments: any file in the tree
+    /// that is not a todo document. Its lines are kept exactly as they are, so the
+    /// code around a todo is neither moved nor rewritten (RFC-016).
+    pub fn parse_inline(source: &str) -> Self {
+        Self {
+            lines: lines(source),
+            source: Source::Inline,
+        }
     }
 
     /// Every task in the file, in file order.
     pub fn tasks(&self) -> Vec<Task> {
-        scan(&self.lines)
+        match self.source {
+            Source::Document => scan(&self.lines),
+            Source::Inline => scan_inline(&self.lines),
+        }
     }
+}
+
+fn lines(source: &str) -> Vec<String> {
+    let source = source.strip_prefix('\u{feff}').unwrap_or(source);
+    let mut lines: Vec<String> = source
+        .split('\n')
+        .map(|line| line.strip_suffix('\r').unwrap_or(line).to_owned())
+        .collect();
+    if source.ends_with('\n') || source.is_empty() {
+        lines.pop();
+    }
+    lines
+}
+
+/// Walk the lines of a code file and collect its `TODO:` comments.
+///
+/// No fences and no headings: a code file is not markdown, and `# TODO:` in a shell
+/// script is a comment, not an outline. One todo per line, the first `TODO:` on it,
+/// and the code around it is the todo's lead (RFC-016).
+fn scan_inline(lines: &[String]) -> Vec<Task> {
+    lines
+        .iter()
+        .enumerate()
+        .filter_map(|(index, line)| comment_line(line, index))
+        .collect()
+}
+
+/// One line as a comment todo, or `None`.
+///
+/// The rule is the literal `TODO:` in any case, with at least one character after
+/// it that is not a space: a bare `TODO:` promises nothing and is not a todo.
+fn comment_line(line: &str, index: usize) -> Option<Task> {
+    let lower = line.to_lowercase();
+    let at = lower.find("todo:")?;
+    let colon = at + "todo:".len();
+    // the body starts after the colon and the one space that separates it, if there
+    // is one: the rest is the line's, whitespace and all
+    let start = match line[colon..].starts_with(' ') {
+        true => colon + 1,
+        false => colon,
+    };
+    let body = line[start..].trim();
+    if body.is_empty() {
+        return None;
+    }
+    let parts = spans::parts(body);
+    Some(Task {
+        line: index,
+        indent: line.len() - line.trim_start_matches(' ').len(),
+        done: false,
+        prio: parts.prio,
+        title: parts.title,
+        body: body.to_owned(),
+        tags: parts.tags,
+        assignees: parts.assignees,
+        marker: String::new(),
+        prefix: Some(line[..start].to_owned()),
+    })
 }
 
 /// Walk the lines, skipping fenced code blocks, and collect the tasks.
@@ -106,6 +172,7 @@ pub(crate) fn parse_line(line: &str, index: usize) -> Option<Task> {
         tags: parts.tags,
         assignees: parts.assignees,
         marker,
+        prefix: None,
     })
 }
 
@@ -132,6 +199,44 @@ pub(crate) fn bullet(rest: &str) -> Option<(String, &str)> {
 mod tests {
     use super::Doc;
     use crate::model::Prio;
+
+    #[test]
+    fn an_inline_file_finds_its_todo_comments_and_nothing_else() {
+        let doc = Doc::parse_inline(
+            "fn main() {\n    // TODO: ship it\n    // FIXME: not this\n    // todo: nor case-blind?\n}\n",
+        );
+        let tasks = doc.tasks();
+        assert_eq!(tasks.len(), 2, "{tasks:#?}");
+        assert_eq!(tasks[0].line, 1);
+        assert_eq!(tasks[0].title, "ship it");
+        assert_eq!(tasks[0].lead(), "    // TODO: ");
+        assert_eq!(tasks[1].line, 3);
+        assert_eq!(tasks[1].title, "nor case-blind?");
+    }
+
+    #[test]
+    fn an_inline_todo_needs_something_after_the_colon() {
+        assert!(Doc::parse_inline("// TODO:\n// TODO:   \n").tasks().is_empty());
+        assert_eq!(Doc::parse_inline("// TODO:x\n").tasks()[0].body, "x");
+    }
+
+    #[test]
+    fn a_checkbox_in_a_code_file_is_code_and_a_comment_in_markdown_is_prose() {
+        assert!(Doc::parse_inline("- [ ] not a todo here\n").tasks().is_empty());
+        assert!(Doc::parse("// TODO: not a todo here\n").tasks().is_empty());
+    }
+
+    #[test]
+    fn an_inline_todo_reads_the_priority_the_tags_and_the_people() {
+        let doc = Doc::parse_inline("/* TODO: (A) fix #infra @dave */\n");
+        let task = &doc.tasks()[0];
+        assert_eq!(task.prio, Some(Prio::A));
+        // the terminator is the code's, not the tool's: it stays in the text
+        assert_eq!(task.title, "fix */");
+        assert_eq!(task.tags[0].as_str(), "infra");
+        assert_eq!(task.assignees[0].as_str(), "dave");
+        assert_eq!(task.body, "(A) fix #infra @dave */");
+    }
 
     #[test]
     fn parses_checked_unchecked_and_indented_tasks() {
