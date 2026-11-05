@@ -27,7 +27,7 @@ the folder it will land in.
 3. The new-todo field **MUST** float under the row the todo will land after, and its
    text **MUST** be styled as the todo will read: priority yellow, tags cyan, people
    magenta, as they are typed.
-4. A field **MUST** commit with `enter` and cancel with `esc`, and cancelling **MUST**
+4. A field **MUST** submit with `enter` and cancel with `esc`, and cancelling **MUST**
    leave the document exactly as it was.
 5. A field that knows its own refusal **MUST** say so above its controls and **MUST**
    block `enter`. The new-file field refuses a path with `..` (nothing outside the root)
@@ -74,4 +74,4 @@ space is invisible until a wrap moves it — a known defect, and the reason rule
 - Should the new-todo field accept `#tag` and `@name` completion the way the file field
   completes folders? The grammar is the same shape.
 - Should the trailing-space defect be fixed by showing untrimmed text and trimming on
-  commit, or by trimming between words as they are typed?
+  submit, or by trimming between words as they are typed?

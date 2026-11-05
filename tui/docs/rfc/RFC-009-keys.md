@@ -41,7 +41,7 @@ none, and the bar offers the spelling that always arrives.
 7. A conflict **MUST NOT** be dismissible: `keep mine` and `take theirs` are the only
    two keys, because there is no third state in which nothing is chosen.
 8. A field (a todo, a heading, the search query, the new-file path) **MUST** answer
-   `esc` cancel and `enter` commit, and nothing else may be a modal key while it is up.
+   `esc` cancel and `enter` submit, and nothing else may be a modal key while it is up.
    A refusal **MUST** block `enter` rather than fail after it.
 9. `q` **MUST** quit from any panel, `esc` **MUST** cancel or dismiss, `ctrl+c` **MUST**
    quit from anywhere including inside a field, and `t` **MUST** toggle the blank row

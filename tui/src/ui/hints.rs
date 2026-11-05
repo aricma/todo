@@ -201,7 +201,7 @@ pub const BINDINGS: &[Binding] = &[
     ),
     // ---- a field: the two keys that commit or leave, and the one that is not obvious
     Binding::new("esc", "cancel", Where::TYPING, Bar::No),
-    Binding::new("enter", "commit", Where::TYPING, Bar::No),
+    Binding::new("enter", "submit", Where::TYPING, Bar::No),
     Binding::new("ctrl+u", "empty the search", Where::TYPING, Bar::No),
 ];
 
