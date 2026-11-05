@@ -1885,3 +1885,58 @@ fn the_cursor_follows_the_text_into_the_next_row_of_the_field() {
 
 
 
+
+#[test]
+fn a_code_file_shows_two_lines_around_each_todo_and_folds_the_rest() {
+    // ten lines, the todo, ten more: the fold is what keeps the todo on screen with
+    // the code it is about and not the twenty lines it is not
+    let mut source = String::new();
+    source.push_str("fn above1() {}\n");
+    source.push_str("fn above2() {}\n");
+    source.push_str("fn above3() {}\n");
+    source.push_str("fn above4() {}\n");
+    source.push_str("fn above5() {}\n");
+    source.push_str("fn above6() {}\n");
+    source.push_str("fn above7() {}\n");
+    source.push_str("fn above8() {}\n");
+    source.push_str("fn above9() {}\n");
+    source.push_str("fn above10() {}\n");
+    source.push_str("// TODO: wire it up\n");
+    source.push_str("fn below1() {}\n");
+    source.push_str("fn below2() {}\n");
+    source.push_str("fn below3() {}\n");
+    source.push_str("fn below4() {}\n");
+    source.push_str("fn below5() {}\n");
+    source.push_str("fn below6() {}\n");
+    source.push_str("fn below7() {}\n");
+    source.push_str("fn below8() {}\n");
+    source.push_str("fn below9() {}\n");
+    source.push_str("fn below10() {}\n");
+    let (_tmp, mut app) = app(&[("src/a.rs", &source)]);
+    app.pane = crate::state::action::Pane::View;
+    let text = screen(&app).join("\n");
+    // the todo, and the two lines on each side of it
+    assert!(text.contains("// TODO: wire it up"), "{text}");
+    for near in ["fn above9", "fn above10", "fn below1", "fn below2"] {
+        assert!(text.contains(near), "{near} is not in:\n{text}");
+    }
+    // the code that is not around a todo is one row, not the rest of the file
+    // one `…` for the folded code, and one in the shortened path in the header
+    assert!(text.matches('…').count() >= 2, "no fold in:\n{text}");
+    assert!(!text.contains("fn above1("), "{text}");
+    assert!(!text.contains("fn below10("), "{text}");
+}
+
+#[test]
+fn a_short_gap_between_two_windows_of_code_is_shown_rather_than_folded() {
+    // exactly five lines between the last shown line of one window and the first of
+    // the next: a fold would save one row and cost the reader a step
+    // the todo and two lines, then exactly five hidden ones, then the end
+    let source = "// TODO: first\nfn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\nfn f() {}\nfn g() {}\n";
+    let (_tmp, mut app) = app(&[("src/a.rs", source)]);
+    app.pane = crate::state::action::Pane::View;
+    let text = screen(&app).join("\n");
+    assert!(text.contains("fn g"), "{text}");
+    // the only ellipsis on screen is the shortened path in the header
+    assert_eq!(text.matches('…').count(), 1, "a fold that saves nothing:\n{text}");
+}

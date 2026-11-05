@@ -1842,3 +1842,91 @@ fn q_quits_and_saves_carry_the_open_path() {
     assert!(tmp.path().join("TODOs.md").exists());
     assert_eq!(app.press(KeyCode::Char('q')), Some(Action::Quit));
 }
+
+#[test]
+fn an_inline_file_opens_on_its_todo_comments() {
+    let (_tmp, mut app) = app(&[
+        (
+            "src/main.rs",
+            "fn main() {\n    // TODO: wire it up #infra\n}\n",
+        ),
+        ("TODOs.md", "- [ ] a document todo\n"),
+    ]);
+    // a document is what a session opens by default, however the paths sort
+    assert!(app.current().path.ends_with("TODOs.md"));
+    assert!(!app.inline());
+
+    let first = app.files[0].path.clone();
+    app.focus_file(&first);
+    app.open_current().unwrap();
+    assert!(app.inline(), "a code file is an inline file");
+    let tasks = app.tasks();
+    assert_eq!(tasks.len(), 1);
+    assert_eq!(tasks[0].title, "wire it up");
+    assert_eq!(tasks[0].line, 1);
+    // the line in the file is the line on screen: nothing was rewritten
+    assert_eq!(
+        app.doc.render(),
+        "fn main() {\n    // TODO: wire it up #infra\n}\n"
+    );
+    // and the tag it carries gathers it like any other todo
+    assert!(app
+        .files
+        .iter()
+        .any(|file| file.collections.iter().any(|one| one.name == "infra")));
+}
+
+#[test]
+fn a_comment_todo_takes_only_the_keys_that_make_sense_for_it() {
+    let (_tmp, mut app) = app(&[("src/a.rs", "// TODO: (B) fix it\nlet x = 1;\n")]);
+    assert!(app.inline());
+    app.pane = Pane::View;
+
+    // the bar offers the three keys that work and none of the four that do not
+    let bar = crate::ui::section_keys(&app);
+    for offered in ["e edit", "A-D prio", "d delete", "c copy"] {
+        assert!(bar.iter().any(|hint| hint == offered), "{offered} in {bar:?}");
+    }
+    for refused in ["x check", "n add", "K / J move", "space check"] {
+        assert!(!bar.iter().any(|hint| hint.starts_with(refused)), "{refused} in {bar:?}");
+    }
+
+    // and the keys themselves say why instead of doing nothing
+    press(&mut app, KeyCode::Char('x'));
+    assert!(app.message_text().contains("closed by deleting it"), "{:?}", app.message_text());
+    press(&mut app, KeyCode::Char('n'));
+    assert!(!matches!(app.mode, Mode::Adding(_)));
+    assert!(app.message_text().contains("written by hand"), "{:?}", app.message_text());
+    press(&mut app, KeyCode::Char('K'));
+    assert!(app.message_text().contains("stays with the code"), "{:?}", app.message_text());
+    // the line never moved
+    assert_eq!(app.doc.render(), "// TODO: (B) fix it\nlet x = 1;\n");
+}
+
+#[test]
+fn editing_a_comment_todo_keeps_the_comment_and_writes_the_text_after_it() {
+    let (_tmp, mut app) = app(&[("src/a.rs", "  // TODO: (B) fix it\n")]);
+    app.pane = Pane::View;
+    press(&mut app, KeyCode::Char('e'));
+    for _ in 0.."fix it".len() {
+        press(&mut app, KeyCode::Backspace);
+    }
+    type_text(&mut app, "ship it #x");
+    let action = press(&mut app, KeyCode::Enter);
+    let text = save_text(action);
+    assert_eq!(text, "  // TODO: (B) ship it #x\n");
+    // one history entry, and it undoes back to the line as it was
+    assert_eq!(app.history.len(), 1);
+}
+
+#[test]
+fn a_comment_todo_can_be_priced_and_deleted() {
+    let (_tmp, mut app) = app(&[("src/a.rs", "// TODO: fix it\nlet x = 1;\n")]);
+    app.pane = Pane::View;
+    let action = press(&mut app, KeyCode::Char('A'));
+    assert_eq!(save_text(action), "// TODO: (A) fix it\nlet x = 1;\n");
+
+    press(&mut app, KeyCode::Char('d'));
+    let action = press(&mut app, KeyCode::Char('Y'));
+    assert_eq!(save_text(action), "let x = 1;\n");
+}

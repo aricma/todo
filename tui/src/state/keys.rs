@@ -592,6 +592,12 @@ impl App {
     /// outline sections `x` does nothing, so a key pressed while picking a file
     /// can never change a todo.
     fn toggle(&mut self) -> Option<Action> {
+        // a comment has no checkbox to flip, and its only "done" is being deleted —
+        // or copied into a todo file to be tracked there
+        if self.inline() {
+            self.set_warning(text::INLINE_NO_CHECK);
+            return None;
+        }
         match self.pane {
             Pane::History => self.toggle_entry(),
             Pane::View | Pane::Todos | Pane::Collection => {
@@ -717,7 +723,7 @@ impl App {
             }
             return action;
         }
-        if !matches!(self.pane, Pane::View | Pane::Todos) {
+        if !matches!(self.pane, Pane::View | Pane::Todos) || self.inline() {
             self.set_warning(text::PASTE_NOT_HERE);
             return None;
         }
@@ -875,6 +881,12 @@ impl App {
     /// the disk until `enter`; `esc` takes the row out and puts the highlight back
     /// where it was.
     fn ask_add(&mut self) -> Option<Action> {
+        // an inline file's todo is a comment in the code: where it goes is the
+        // person's decision and the line is written by hand (RFC-016)
+        if self.inline() {
+            self.set_warning(text::INLINE_NO_ADD);
+            return None;
+        }
         let after = self.current_task().map(|task| task.line);
         let before = self.task_idx;
         let line = self.doc.add_placeholder(after)?;
@@ -934,6 +946,12 @@ impl App {
         // a collection's order is its files' order, so there is nothing to move
         if self.collection.is_some() {
             self.set_warning(text::NO_MOVING);
+            return None;
+        }
+        // a comment's line is where the code needs it: moving it would move the
+        // note away from the thing it is about
+        if self.inline() {
+            self.set_warning(text::INLINE_NO_MOVE);
             return None;
         }
         let line = self.current_task()?.line;

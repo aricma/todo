@@ -9,6 +9,7 @@ use std::process::Command;
 
 use super::{is_candidate, order, Entry};
 use crate::doc::{Doc, Source};
+use crate::model::Stats;
 use crate::error::Error;
 use crate::limits;
 
@@ -61,7 +62,7 @@ fn blank(path: &Path, source: Source) -> Entry {
     Entry {
         path: PathBuf::from(path),
         source,
-        stats: Default::default(),
+        stats: Stats::default(),
         too_long: false,
         collections: Vec::new(),
     }
@@ -262,7 +263,7 @@ fn entry(path: &Path, strict: bool) -> Result<(Entry, bool), Error> {
     let source = Source::of(path);
     // a big file is not read at all: no todo document and no code file worth its
     // size in waiting, and the cap is what keeps a walk through a repository short
-    let size = fs::metadata(path).map(|meta| meta.len()).unwrap_or(0);
+    let size = fs::metadata(path).map_or(0, |meta| meta.len());
     if size > limits::MAX_BYTES {
         return Ok((
             Entry {

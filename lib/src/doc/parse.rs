@@ -71,9 +71,10 @@ fn comment_line(line: &str, index: usize) -> Option<Task> {
     let colon = at + "todo:".len();
     // the body starts after the colon and the one space that separates it, if there
     // is one: the rest is the line's, whitespace and all
-    let start = match line[colon..].starts_with(' ') {
-        true => colon + 1,
-        false => colon,
+    let start = if line[colon..].starts_with(' ') {
+        colon + 1
+    } else {
+        colon
     };
     let body = line[start..].trim();
     if body.is_empty() {

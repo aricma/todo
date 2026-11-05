@@ -21,6 +21,9 @@ mod todos;
 mod wrap;
 
 pub use draw::draw;
+// the bar's second row, for the tests that assert what a file kind offers
+#[cfg(test)]
+pub use hints::section_keys;
 pub use rows::cursor_in;
 
 #[cfg(test)]

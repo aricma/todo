@@ -68,6 +68,9 @@ impl Where {
     pub const HISTORY: Self = Self(1 << 5);
     /// a field something is typed into, which is a modal rather than a panel
     pub const TYPING: Self = Self(1 << 6);
+    /// the open file's todos are `TODO:` comments: a key that needs a document is
+    /// not offered at all, because there is nothing there for it to act on (RFC-015)
+    pub const INLINE: Self = Self(1 << 7);
 
     /// Both places, for a key a collection shares with the panels that edit a file.
     pub const fn or(self, other: Self) -> Self {
@@ -97,6 +100,9 @@ pub struct Binding {
     /// Nothing happens unless something is under the cursor: a todo to check, a file
     /// to delete, an entry to undo.
     pub something: bool,
+    /// Places the key does not work in, even where its panels do: checking a todo
+    /// comment is not an operation, so `x` is not offered in an inline file.
+    pub without: Where,
 }
 
 impl Binding {
@@ -107,6 +113,7 @@ impl Binding {
             panes,
             bar,
             something: false,
+            without: Where::ANY,
         }
     }
 
@@ -117,8 +124,16 @@ impl Binding {
         }
     }
 
+    /// A key that exists in one kind of file and not the other: `x` and `n` and the
+    /// move keys need a document to write in.
+    const fn but_not(self, without: Where) -> Self {
+        Self { without, ..self }
+    }
+
     fn works(&self, here: Where, something: bool) -> bool {
-        self.panes.works(here) && (!self.something || something)
+        // a plain bit test, unlike `panes`: "not here" means none of its bits are set,
+        // and an empty mask excludes nothing
+        self.panes.works(here) && (!self.something || something) && self.without.0 & here.0 == 0
     }
 }
 
@@ -174,14 +189,22 @@ pub const BINDINGS: &[Binding] = &[
     Binding::new("enter", "open file", Where::COLLECTION, Bar::Verb).on_something(),
     // ---- the panels that edit the open file's todos, and a collection's rows
     Binding::new("↑/↓", "nav", Where::TODO.or(Where::COLLECTION), Bar::Verb),
-    Binding::new("x", "check", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
+    Binding::new("x", "check", Where::TODO.or(Where::COLLECTION), Bar::Verb)
+        .on_something()
+        .but_not(Where::INLINE),
     // the second spelling of `x`: a terminal always sends the letter, so the bar keeps
     // the shorter row and the page is where one key is told twice
-    Binding::new("space", "check", Where::TODO.or(Where::COLLECTION), Bar::No).on_something(),
-    Binding::new("K / J", "move", Where::TODO, Bar::Verb).on_something(),
-    Binding::new("ctrl+↑/↓", "move", Where::TODO, Bar::No).on_something(),
+    Binding::new("space", "check", Where::TODO.or(Where::COLLECTION), Bar::No)
+        .on_something()
+        .but_not(Where::INLINE),
+    Binding::new("K / J", "move", Where::TODO, Bar::Verb)
+        .on_something()
+        .but_not(Where::INLINE),
+    Binding::new("ctrl+↑/↓", "move", Where::TODO, Bar::No)
+        .on_something()
+        .but_not(Where::INLINE),
     Binding::new("d", "delete", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
-    Binding::new("n", "add", Where::TODO, Bar::Verb),
+    Binding::new("n", "add", Where::TODO, Bar::Verb).but_not(Where::INLINE),
     Binding::new("e", "edit", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
     Binding::new("A-D", "prio", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
     Binding::new("0", "clear prio", Where::TODO.or(Where::COLLECTION), Bar::No)
@@ -235,6 +258,11 @@ fn here(app: &App) -> Where {
     };
     if app.pane == Pane::Files && app.selected_file().is_some() {
         here = here.or(Where::FILE_ROW);
+    }
+    // the kind of file decides what can be done to its todos, and it is the open
+    // file that is being edited — a collection's rows open their own files
+    if matches!(app.pane, Pane::View | Pane::Todos | Pane::Collection) && app.inline() {
+        here = here.or(Where::INLINE);
     }
     here
 }

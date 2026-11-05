@@ -34,9 +34,17 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
         .collect();
     let lines = app.doc.lines();
     let selected = app.current_task().map(|task| task.line);
+    // in a code file, the lines around a todo are context and the rest is the file:
+    // two lines of it either side, and one `…` for what was folded away (RFC-018)
+    let (keep, gap) = if app.inline() {
+        folded(lines, &tasks)
+    } else {
+        (vec![true; lines.len()], vec![false; lines.len()])
+    };
     let heights = heights(
         lines,
         &tasks,
+        &keep,
         width,
         app.roomy.then_some(selected).flatten(),
     );
@@ -50,6 +58,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
         }
         let room = height - rows.len();
         let first = rows.len();
+        let mut numbered = true;
         match tasks.get(&index) {
             Some(task) => {
                 let editing = app.editing().filter(|_| Some(index) == selected);
@@ -73,9 +82,20 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
                     rows.push(Line::from(""));
                 }
             }
-            None => rows.push(prose(lines.get(index).map_or("", String::as_str), width)),
+            None if keep[index] => {
+                rows.push(prose(lines.get(index).map_or("", String::as_str), width));
+            }
+            // the code that was folded away, said once and in one row
+            None => {
+                if gap[index] {
+                    rows.push(gap_row(width));
+                }
+                numbered = false;
+            }
         }
-        number(&mut rows[first..], index, gutter);
+        if numbered {
+            number(&mut rows[first..], index, gutter);
+        }
     }
     frame.render_widget(Paragraph::new(rows).block(block), area);
     if let Some((x, y)) = cursor {
@@ -90,6 +110,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
 fn heights(
     lines: &[String],
     tasks: &HashMap<usize, Task>,
+    keep: &[bool],
     width: usize,
     roomy: Option<usize>,
 ) -> Vec<usize> {
@@ -97,6 +118,9 @@ fn heights(
         .iter()
         .enumerate()
         .map(|(index, _)| {
+            if !keep[index] {
+                return 0;
+            }
             let rows = tasks
                 .get(&index)
                 .map_or(1, |task| row_count(task, &task.body, width));
@@ -107,6 +131,52 @@ fn heights(
             }
         })
         .collect()
+}
+
+/// How many lines of code are shown before and after a todo in an inline file.
+pub const CONTEXT: usize = 2;
+
+/// Which lines of an inline file are worth a row, and where a run of code was
+/// folded away.
+///
+/// Every todo keeps `CONTEXT` lines above and below it, because the code around a
+/// note is what the note is about. What is left between two of those windows is one
+/// `…`, unless it is short enough to show — five lines or fewer, one line being the
+/// `…` itself — because a fold that saves one line costs more than it saves.
+fn folded(lines: &[String], tasks: &HashMap<usize, Task>) -> (Vec<bool>, Vec<bool>) {
+    let mut keep = vec![false; lines.len()];
+    for &at in tasks.keys() {
+        let from = at.saturating_sub(CONTEXT);
+        let to = (at + CONTEXT).min(lines.len().saturating_sub(1));
+        for line in &mut keep[from..=to] {
+            *line = true;
+        }
+    }
+    let mut gap = vec![false; lines.len()];
+    let mut index = 0;
+    while index < keep.len() {
+        if keep[index] {
+            index += 1;
+            continue;
+        }
+        let start = index;
+        while index < keep.len() && !keep[index] {
+            index += 1;
+        }
+        if index - start <= CONTEXT * 2 + 1 {
+            for line in &mut keep[start..index] {
+                *line = true;
+            }
+        } else {
+            gap[start] = true;
+        }
+    }
+    (keep, gap)
+}
+
+/// The row that stands for the code between two windows of it.
+fn gap_row(_width: usize) -> Line<'static> {
+    Line::from("…").style(Style::default().add_modifier(Modifier::DIM))
 }
 
 /// How wide the line-number column is: the digits of the last line, and a space.

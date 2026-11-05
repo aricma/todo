@@ -31,12 +31,13 @@ impl Source {
     /// `TODO:` comments. Markdown is never read for comments — a `<!-- TODO: -->` in
     /// a document belongs to the prose, and this tool does not hunt for it (RFC-016).
     pub fn of(path: &std::path::Path) -> Self {
-        match path
+        if path
             .extension()
             .is_some_and(|extension| extension.eq_ignore_ascii_case("md"))
         {
-            true => Self::Document,
-            false => Self::Inline,
+            Self::Document
+        } else {
+            Self::Inline
         }
     }
 }
@@ -57,6 +58,15 @@ impl Doc {
     /// Which kind of file this is: what its todos are, and what may be done to them.
     pub fn source(&self) -> Source {
         self.source
+    }
+
+    /// Parse a file as what its path says it is. Every reader uses this, so a file
+    /// read by the search, by a collection and by the editor is the same file.
+    pub fn parse_as(source: Source, text: &str) -> Self {
+        match source {
+            Source::Document => Self::parse(text),
+            Source::Inline => Self::parse_inline(text),
+        }
     }
 
     /// A document with no lines of its own, parsed as an inline file — for tests and

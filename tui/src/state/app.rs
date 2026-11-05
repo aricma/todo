@@ -15,7 +15,7 @@ use std::path::{Path, PathBuf};
 
 use aricma_todo_lib::collections;
 use aricma_todo_lib::discover::{self, Entry as FileEntry};
-use aricma_todo_lib::doc::Doc;
+use aricma_todo_lib::doc::{Doc, Source};
 use aricma_todo_lib::error::Error;
 use aricma_todo_lib::model::{Collection, Heading, Inverse, Item, Stats, Task};
 use aricma_todo_lib::store::{self, Loaded};
@@ -107,8 +107,15 @@ impl App {
             )));
         }
         // a file over the line limit is listed but never read, so opening it by
-        // accident is not an option
-        let Some(index) = scan.entries.iter().position(|entry| !entry.too_long) else {
+        // accident is not an option. A todo document wins over an inline file: a
+        // session opens where the todos were written, not on whichever source file
+        // happens to sort first (RFC-015)
+        let first = |wanted: Source| {
+            scan.entries
+                .iter()
+                .position(|entry| !entry.too_long && entry.source == wanted)
+        };
+        let Some(index) = first(Source::Document).or_else(|| first(Source::Inline)) else {
             let blocked = &scan.entries[0];
             return Err(Error::Ops(format!(
                 "{}: {}",
@@ -123,7 +130,7 @@ impl App {
         // the cursor starts on the open file, not on the first row
         let row_idx = index.min(rows.len().saturating_sub(1));
         Ok(Self {
-            doc: Doc::parse(&baseline.text),
+            doc: Doc::parse_as(scan.entries[index].source, &baseline.text),
             files: scan.entries,
             rows,
             row_idx,
@@ -670,7 +677,7 @@ impl App {
     /// pointing into a file that is no longer open is how a key press ends up
     /// touching the wrong line.
     fn show(&mut self, loaded: Loaded) {
-        self.doc = Doc::parse(&loaded.text);
+        self.doc = Doc::parse_as(Source::of(&loaded.path), &loaded.text);
         self.baseline = loaded;
         self.task_idx = 0;
         self.outline_idx = 0;
@@ -696,6 +703,7 @@ impl App {
         if !self.files.iter().any(|entry| entry.path == focus) {
             self.files.push(FileEntry {
                 path: focus.to_path_buf(),
+                source: Source::of(focus),
                 stats: Stats::default(),
                 too_long: false,
                 collections: Vec::new(),
@@ -713,6 +721,13 @@ impl App {
         self.file_idx = index;
         self.rebuild_rows();
         self.open_current()
+    }
+
+    /// Whether the open file is an inline one: `TODO:` comments in code, whose
+    /// todos can be edited, copied, priced and deleted, and nothing else. The keys
+    /// that need a document are refused rather than hidden in silence (RFC-015).
+    pub fn inline(&self) -> bool {
+        self.doc.source() == Source::Inline
     }
 
     /// Which files the scan looks at: the ones named for todos, or every markdown
