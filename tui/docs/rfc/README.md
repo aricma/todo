@@ -54,13 +54,17 @@ Everything a person reads on screen has a name, and the names are in
 | 012 | [Chapter clusters](RFC-012-chapter-clusters.md) | a chapter is its heading, its own text, then its todos — and no key splits that block |
 | 013 | [A todo is a checkbox](RFC-013-a-todo-is-a-checkbox.md) | a bullet is a shape; a checkbox is a state, and only a state is a todo |
 | 014 | [A copied todo is a document](RFC-014-a-copied-todo-is-a-document.md) | a todo leaves as OPS JSON and comes back as lines; paths, headings and tags stay strings |
+| 015 | [Three sources, and what each allows](RFC-015-sources-and-kinds.md) | a document, an inline file, a collection — and a key set that follows the file's kind |
+| 016 | [An inline todo is a `TODO:` comment](RFC-016-the-inline-todo.md) | one line, the literal `TODO:`, `(A)` after the colon, and no check, add or move |
+| 017 | [The tree is what git does not ignore](RFC-017-the-tree-is-what-git-sees.md) | the scan asks git, and reads every text file it is given, within limits |
+| 018 | [Reading an inline file](RFC-018-reading-an-inline-file.md) | two lines around each todo, one `…` for the rest, and nothing folded in a document |
 
 ### Next
 
 | # | the behaviour |
 | --- | --- |
-| 015 | Staying current: the 0.75 s poll, the reload that forgets history, and the conflict that only a person can settle |
-| 016 | The CLI: `check`, `format`, `export`, `import` — the same rules without a screen |
+| 019 | Staying current: the 0.75 s poll, the reload that forgets history, and the conflict that only a person can settle |
+| 020 | The CLI: `check`, `format`, `export`, `import` — the same rules without a screen |
 
 Written after this pass: the doc claimed `r`/`ctrl+r` forced a reload. There is no
 such key (`state/tests.rs` asserts `r` is not one), and `lazytodo.md` now says so.

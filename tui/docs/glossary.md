@@ -40,13 +40,13 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | word | what it is |
 | --- | --- |
 | **todo line** | one line of markdown: a bullet, a checkbox, an optional priority, a body |
-| **lead** | everything in front of the body: indent, bullet, checkbox, space. It is drawn dim and is not editable here |
+| **lead** | everything in front of the body: indent, bullet, checkbox, space — or, for an **inline todo**, the indent and the comment up to `TODO: `. Drawn dim, never editable here |
 | **body** | the text after the lead: the part a person writes |
 | **marker** | `- [ ]` or `- [x]` — the bullet and the state |
-| **priority** | `(A)`…`(D)`, straight after the checkbox. Yellow, and the only positional rule in the grammar |
+| **priority** | `(A)`…`(D)`, straight after the checkbox — or, for an **inline todo**, straight after `TODO: `. Yellow, and the only positional rule in the grammar |
 | **tag** | `#home` — cyan. A tag is a **collection**, and a tag is where todos live |
 | **assignee** | `@sam` — magenta. A person is a **collection** too |
-| **prose** | every line of a file that is not a todo — a bare bullet included. Drawn dim, one row, clipped |
+| **prose** | every line of a file that is not a todo — a bare bullet included, and in an **inline file** every line of code. Drawn dim, one row, clipped |
 | **finding** | a line that meant to be a todo and is not one (`--check`). Reported, never silently rewritten (RFC-013) |
 | **heading** | a markdown `#` line, what the index panel is made of |
 | **chapter** | a heading and everything under it, up to the next heading of any level: its **introduction**, then its **cluster** |
@@ -58,12 +58,17 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | word | what it is |
 | --- | --- |
 | **collection** | a tag or an assignee: the todos across every file that carry it, grouped by file. It has no line numbers of its own, because its lines are other files' lines |
-| **candidate file** | a file the scan will read at all: `TODO*`, `TASK*` or `README.md`, ending in `.md` |
+| **candidate file** | in the named scan, a file the walk reads: `TODO*`, `TASK*` or `README.md` ending in `.md`, or any other text file, which is read for `TODO:` comments (RFC-016) |
 | **listed file** | a candidate file that is worth a row: it holds a todo, a line that meant to be one, or nothing but headings |
 | **root** | the folder (or the one file) the session was opened on. The header shows it resolved |
 | **single-file session** | a session opened on one file. No files panel, no file view — the todos of that file are the right-hand column |
-| **scan** | the walk that finds listed files, up to ten levels deep, skipping dot-entries and vendor folders |
+| **scan** | the walk that finds listed files: git's own file list when there is a work tree, the folder list otherwise, up to ten levels deep and never into what git ignores (RFC-017) |
 | **dependency** | a todo that names another todo. Drawn as a chain in the history panel's graph, not in the todos panel |
+| **todo document** | a `.md` file whose `- [ ]` lines are its todos. The original source, and the one the keys were written for |
+| **inline file** | any other text file the tree holds, whose `TODO:` comments are its todos. A code file with one note in it is an inline file (RFC-015) |
+| **inline todo** | one `TODO:` comment, one line: `    // TODO: (A) fix the retry #infra`. Everything in front of the text is the line's, and the tool never rewrites it (RFC-016) |
+| **source** | which of the three a todo came from: a **todo document**, an **inline file**, or a **collection**. The source decides the keys (RFC-015) |
+| **fold** | in an inline file, the `…` row that stands for the code between the two lines either side of a todo and the next window of them (RFC-018) |
 
 ## Doing
 
