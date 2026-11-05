@@ -25,14 +25,15 @@ pub struct Entry {
 }
 
 impl Entry {
-    /// The line this write touched. A move touched two, and it is filed under the
-    /// first of them.
+    /// The line this write touched. A swap touched two, and it is filed under the
+    /// first of them; a move that crossed a heading is filed under where it landed.
     pub fn line(&self) -> usize {
         match self.forward {
             Inverse::Set { line, .. }
             | Inverse::Insert { line, .. }
             | Inverse::Remove { line, .. } => line,
             Inverse::Swap { a, .. } => a,
+            Inverse::Move { to, .. } => to,
         }
     }
 

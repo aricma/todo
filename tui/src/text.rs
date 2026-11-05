@@ -177,11 +177,6 @@ pub fn nothing_to_swap(way: &str) -> String {
     format!("nothing {way} it to swap with")
 }
 
-/// A heading ends a section, so a move stops at one.
-pub fn heading_in_the_way(way: &str) -> String {
-    format!("a heading is {way} it — a todo stays in its section")
-}
-
 /// A new file never overwrites one.
 pub fn already_there(name: &str) -> String {
     format!("{name} is already there — nothing is overwritten")

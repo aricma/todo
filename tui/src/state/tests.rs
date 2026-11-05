@@ -668,13 +668,15 @@ fn j_and_k_move_the_todo_when_the_terminal_eats_the_modifier() {
 }
 
 #[test]
-fn opt_up_at_the_top_of_a_section_does_nothing() {
+fn opt_down_crosses_a_heading_into_the_section_below() {
     let source = "## one\n- [ ] a\n## two\n- [ ] b\n";
     let (_tmp, mut app) = app(&[("TODOs.md", source)]);
     app.pane = Pane::View;
-    assert_eq!(press_with(&mut app, KeyCode::Down, KeyModifiers::ALT), None);
-    assert_eq!(app.doc.render(), source, "the heading is a wall");
-    assert!(app.history.is_empty(), "nothing was recorded");
+    assert!(press_with(&mut app, KeyCode::Down, KeyModifiers::ALT).is_some());
+    // `a` is the first todo under `## two` now, and `b` has not been dragged up
+    assert_eq!(app.doc.render(), "## one\n## two\n- [ ] a\n- [ ] b\n");
+    assert_eq!(app.current_task().unwrap().body, "a", "the cursor followed it");
+    assert_eq!(app.history.len(), 1, "one move, one entry");
 }
 
 #[test]
@@ -961,12 +963,13 @@ fn q_quits_and_never_means_close() {
 
 #[test]
 fn a_move_that_cannot_happen_says_why() {
-    // a heading above: the todo stays in its section
+    // the heading above is the document's first line: there is nothing above it
     let (_tmp, mut app) = app(&[("TODOs.md", "# inbox\n\n- [ ] a\n")]);
     app.pane = Pane::View;
     assert_eq!(press_with(&mut app, KeyCode::Up, KeyModifiers::ALT), None);
     let text = screen(&app).join("\n");
-    assert!(text.contains("a heading is above it"), "{text}");
+    assert!(text.contains("nothing above it to swap"), "{text}");
+    assert_eq!(app.doc.render(), "# inbox\n\n- [ ] a\n", "nothing moved");
 
     // and at the end of the file there is nothing to swap with
     let (_last, mut last) = crate::testing::app(&[("TODOs.md", "- [ ] only\n")]);
@@ -979,12 +982,12 @@ fn a_move_that_cannot_happen_says_why() {
 }
 
 #[test]
-fn a_single_file_session_shows_a_note_in_the_todos_frame() {
+fn a_single_file_session_says_why_a_move_did_nothing() {
     let (_tmp, mut app) = single("# inbox\n\n- [ ] a\n");
     app.pane = Pane::Todos;
     press_with(&mut app, KeyCode::Up, KeyModifiers::ALT);
     let text = screen(&app).join("\n");
-    assert!(text.contains("a heading is above it"), "{text}");
+    assert!(text.contains("nothing above it to swap"), "{text}");
 }
 
 #[test]

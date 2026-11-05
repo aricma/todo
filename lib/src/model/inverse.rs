@@ -23,6 +23,14 @@ pub enum Inverse {
         expect_a: String,
         expect_b: String,
     },
+    /// Lift one line out and put it down at `to`, which is where it ends up: the
+    /// lines between close the gap and keep their order. This is how a move crosses
+    /// a heading without dragging the todo it would have swapped with.
+    Move {
+        from: usize,
+        to: usize,
+        expect: String,
+    },
 }
 
 impl Inverse {
@@ -47,6 +55,11 @@ impl Inverse {
                 b,
                 expect_a: expect_b,
                 expect_b: expect_a,
+            },
+            Self::Move { from, to, expect } => Self::Move {
+                from: to,
+                to: from,
+                expect,
             },
         }
     }
@@ -116,6 +129,24 @@ mod tests {
             }
         );
         assert_eq!(swap.clone().flip().flip(), swap);
+    }
+
+    #[test]
+    fn a_move_flips_between_its_two_ends() {
+        let moved = Inverse::Move {
+            from: 5,
+            to: 1,
+            expect: "- [ ] a".into(),
+        };
+        assert_eq!(
+            moved.clone().flip(),
+            Inverse::Move {
+                from: 1,
+                to: 5,
+                expect: "- [ ] a".into(),
+            }
+        );
+        assert_eq!(moved.clone().flip().flip(), moved);
     }
 
     #[test]

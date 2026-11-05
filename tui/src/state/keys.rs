@@ -682,15 +682,19 @@ impl App {
         Some(Action::Copy { text })
     }
 
-    /// A move leaves the todo at the other end of its swap; keep the cursor on it.
+    /// A move leaves the todo at the other end of its swap, or where it landed when
+    /// it crossed a heading; keep the cursor on it.
     fn follow(&mut self, inverse: &Inverse) {
-        let Inverse::Swap { a, b, .. } = inverse else {
-            return;
+        let landed = match inverse {
+            Inverse::Swap { a, b, .. } => {
+                let Some(task) = self.current_task() else {
+                    return;
+                };
+                if task.line == *a { *b } else { *a }
+            }
+            Inverse::Move { to, .. } => *to,
+            _ => return,
         };
-        let Some(task) = self.current_task() else {
-            return;
-        };
-        let landed = if task.line == *a { *b } else { *a };
         if let Some(index) = self.tasks().iter().position(|task| task.line == landed) {
             self.task_idx = index;
         }
@@ -834,30 +838,19 @@ impl App {
             self.set_warning(text::NO_MOVING);
             return None;
         }
-        let task = self.current_task()?;
-        let inverse = match self.doc.move_task(task.line, up) {
+        let line = self.current_task()?.line;
+        let inverse = match self.doc.move_task(line, up) {
             Ok(inverse) => inverse,
-            Err(blocker) => {
+            Err(Blocker::Edge) => {
                 // a move that cannot happen says why: silence here reads as "the
                 // key does not work"
                 let way = if up { "above" } else { "below" };
-                self.set_warning(match blocker {
-                    Blocker::Edge => text::nothing_to_swap(way),
-                    Blocker::Heading => text::heading_in_the_way(way),
-                });
+                self.set_warning(text::nothing_to_swap(way));
                 return None;
             }
         };
-        let Inverse::Swap { a, b, .. } = inverse else {
-            return None;
-        };
-        let landed = if task.line == a { b } else { a };
-        self.task_idx = self
-            .tasks()
-            .iter()
-            .position(|task| task.line == landed)
-            .unwrap_or(0);
-        let moved = self.task_at(landed)?;
+        self.follow(&inverse);
+        let moved = self.current_task()?;
         Some(self.record(label(text::MOVE_TODO, &moved), inverse))
     }
 
