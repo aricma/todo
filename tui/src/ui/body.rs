@@ -35,7 +35,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
     let lines = app.doc.lines();
     let selected = app.current_task().map(|task| task.line);
     // in a code file, the lines around a todo are context and the rest is the file:
-    // two lines of it either side, and one `…` for what was folded away (RFC-018)
+    // one above, three below, and one `…` for what was folded away (RFC-018)
     let (keep, gap) = if app.comment() {
         folded(lines, &tasks)
     } else {
@@ -133,21 +133,27 @@ fn heights(
         .collect()
 }
 
-/// How many lines of code are shown before and after a todo in a comment todo file.
-pub const CONTEXT: usize = 2;
+/// How many lines of code are shown above and below a todo in a comment todo file.
+///
+/// Not the same number, because a comment todo is written *above* the code it is
+/// about: the line above is the block the note sits in, and the lines below are the
+/// change it asks for. Every developer writes the note first and the code after it,
+/// which is the one habit this reader can lean on.
+pub const ABOVE: usize = 1;
+pub const BELOW: usize = 3;
 
 /// Which lines of a comment todo file are worth a row, and where a run of code was
 /// folded away.
 ///
-/// Every todo keeps `CONTEXT` lines above and below it, because the code around a
-/// note is what the note is about. What is left between two of those windows is one
-/// `…`, unless it is short enough to show — five lines or fewer, one line being the
-/// `…` itself — because a fold that saves one line costs more than it saves.
+/// Every todo keeps [`ABOVE`] lines above and [`BELOW`] below it, because the code
+/// around a note is what the note is about. What is left between two of those windows
+/// is one `…`, unless it is short enough to show — five lines or fewer, one line being
+/// the `…` itself — because a fold that saves one line costs more than it saves.
 fn folded(lines: &[String], tasks: &HashMap<usize, Task>) -> (Vec<bool>, Vec<bool>) {
     let mut keep = vec![false; lines.len()];
     for &at in tasks.keys() {
-        let from = at.saturating_sub(CONTEXT);
-        let to = (at + CONTEXT).min(lines.len().saturating_sub(1));
+        let from = at.saturating_sub(ABOVE);
+        let to = (at + BELOW).min(lines.len().saturating_sub(1));
         for line in &mut keep[from..=to] {
             *line = true;
         }
@@ -163,7 +169,7 @@ fn folded(lines: &[String], tasks: &HashMap<usize, Task>) -> (Vec<bool>, Vec<boo
         while index < keep.len() && !keep[index] {
             index += 1;
         }
-        if index - start <= CONTEXT * 2 + 1 {
+        if index - start <= ABOVE + BELOW + 1 {
             for line in &mut keep[start..index] {
                 *line = true;
             }

@@ -1887,9 +1887,10 @@ fn the_cursor_follows_the_text_into_the_next_row_of_the_field() {
 
 
 #[test]
-fn a_code_file_shows_two_lines_around_each_todo_and_folds_the_rest() {
+fn a_code_file_shows_a_line_above_a_todo_and_three_below() {
     // ten lines, the todo, ten more: the fold is what keeps the todo on screen with
-    // the code it is about and not the twenty lines it is not
+    // the code it is about and not the twenty lines it is not. One line above it —
+    // the note is written above the change, so the change is what is below
     let mut source = String::new();
     source.push_str("fn above1() {}\n");
     source.push_str("fn above2() {}\n");
@@ -1915,15 +1916,16 @@ fn a_code_file_shows_two_lines_around_each_todo_and_folds_the_rest() {
     let (_tmp, mut app) = app(&[("src/a.rs", &source)]);
     app.pane = crate::state::action::Pane::View;
     let text = screen(&app).join("\n");
-    // the todo, and the two lines on each side of it
+    // the todo, the line it was written after, and the three it asks for
     assert!(text.contains("// TODO: wire it up"), "{text}");
-    for near in ["fn above9", "fn above10", "fn below1", "fn below2"] {
+    for near in ["fn above10", "fn below1", "fn below2", "fn below3"] {
         assert!(text.contains(near), "{near} is not in:\n{text}");
     }
     // the code that is not around a todo is one row, not the rest of the file
     // one `…` for the folded code, and one in the shortened path in the header
     assert!(text.matches('…').count() >= 2, "no fold in:\n{text}");
-    assert!(!text.contains("fn above1("), "{text}");
+    assert!(!text.contains("fn above9("), "{text}");
+    assert!(!text.contains("fn below4("), "{text}");
     assert!(!text.contains("fn below10("), "{text}");
 }
 

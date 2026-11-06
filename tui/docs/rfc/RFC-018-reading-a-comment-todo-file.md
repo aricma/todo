@@ -1,4 +1,4 @@
-# RFC-018: Reading a comment todo file — two lines of code, and a fold
+# RFC-018: Reading a comment todo file — a line above, three below, and a fold
 
 - **Date:** 2026-10-16
 - **Related:** [RFC-002](RFC-002-numbered-lines.md), [RFC-012](RFC-012-chapter-clusters.md), [RFC-016](RFC-016-a-comment-todo.md)
@@ -22,15 +22,16 @@ predict without counting.
 
 1. In a **document**, every line is shown, as it always was. Folding **MUST NOT** apply to
    a todo document: its prose is the document.
-2. In a **comment todo file**, a todo's line is shown, and **MUST** be shown with up to two
-   lines of code above it and two below it — `CONTEXT = 2` — so the note is read with the
-   code it is about.
+2. In a **comment todo file**, a todo's line is shown, and **MUST** be shown with up to one
+   line of code above it and three below it — `ABOVE = 1`, `BELOW = 3` — so the note is read
+   with the code it is about. The window **MUST NOT** be symmetric: see below.
 3. Lines that fall outside every such window **MUST** be replaced by a single `…` row at
    the start of the run they hide, and that row **MUST NOT** be numbered: the gutter is
    the file's, and a fold does not stand at a line of the file.
 4. A run of **five or fewer** lines outside the windows **MUST** be shown rather than
-   folded. Five is the fold's own cost plus the two lines each side of it — folding it
-   would save one row and cost the reader a scroll to see the code behind the dots.
+   folded. Five is `ABOVE + BELOW + 1`, the fold's own cost plus one line more than both
+   windows together — folding it would save one row and cost the reader a scroll to see
+   the code behind the dots.
 5. Every line shown **MUST** keep the file's own number (RFC-002), including the code
    lines around a todo, and the todo's row is drawn as a todo row: dim lead, coloured body.
 6. The todo the cursor is on **MUST** always be in a window: the windows are computed from
@@ -42,14 +43,15 @@ predict without counting.
 ## How it is proven
 
 `use-cases/tui/read-a-comment-todo` opens a 24-line Rust file holding two comments: the
-screen shows the two lines either side of each, one `…` for the eight lines between them,
+screen shows the line above each and the three below it, one `…` for the lines between
+them,
 and the file panel's row, the dim lead and the keys `e` and `d` — the case fails if the
 windows, the fold or the bar change.
 
 ## Why not the alternative
 
 **Show only the todo lines, like a grep result.** It reads as a list of matches, not as a
-file — and then the view and the todos panel are the same panel twice. The two lines of
+file — and then the view and the todos panel are the same panel twice. The four lines of
 code are what make the view worth having.
 
 **Show the whole file, dim.** Honest, and unusable: the ratio of noise to signal in a real
@@ -58,8 +60,16 @@ document, where every line is written to be read.
 
 **Fixed chunks — five lines after each todo, then a fold.** This is the shape the first
 sketch had, and it shows the wrong five: the code *below* a todo and none of the code
-above it, so a note at the end of a function loses the function. Two above and two below
-keeps the note inside its block.
+above it, so a note at the end of a function loses the function. One above and three below
+keeps the note inside its block *and* keeps the change it asked for.
+
+**The window is not symmetric, and that is the point.** A comment todo is written *above*
+the code it is about — every developer writes the note first and the change after it, and
+the habit is so universal that most style guides do not bother to say it. The line above
+the note is the block it sits in (the `if`, the signature, the `{`); the three below are the
+change. Two and two spent half the window on code the note is not about, which in a tight
+function is the line *before* the block and nothing of the body. One and three is the
+smallest window that shows a note's subject on both sides.
 
 **Collapsing to a count — `… 42 lines`.** It is a number of lines, which tells a reader
 nothing about what is in them, and it competes with the todo's own numbers for the same
@@ -72,8 +82,9 @@ kind of attention.
   must all agree that a hidden line takes no row. That is where a bug would hide.
 - A file whose todos are close together reads almost as a whole file, which is correct:
   near-neighbours in the code are why the fold has nothing to do.
-- `CONTEXT` is one constant in one place. It is a taste decision, not a law; two is what
-  keeps a function's signature above a note and its first statement below.
+- `ABOVE` and `BELOW` are two constants in one place. They are a taste decision, not a law;
+  one and three is what keeps a note's block above it and the first three lines of the
+  change below it.
 - A test must prove both directions: a long file folds and hides its far lines, and a gap
   of exactly five lines is shown whole.
 
@@ -82,6 +93,7 @@ kind of attention.
 - Should the fold row say how many lines it hides, and should that be the only place a
   line count appears? Today it is the bare `…`.
 - Should a todo at a file's very end or start get more context on the one side it has?
-  Today the window is symmetric and simply runs out.
+  Today the window simply runs out, and a note on the last line of a file shows one line
+  below it and three above — the opposite of the habit.
 - Should the fold open under the cursor — the row the cursor is on, unfolded, so `↓` walks
   the code and not only the windows? That is a reader mode this version does not have.
