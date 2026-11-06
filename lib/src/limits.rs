@@ -22,7 +22,7 @@ pub const MAX_FILES: usize = 1_000;
 pub const MAX_LINES: usize = 10_000;
 
 /// Bytes in a file the walk will open. Every file in the tree is read once, because
-/// a `TODO:` comment can be in any of them, and a lockfile or a minified bundle can
+/// a todo comment can be in any of them, and a lockfile or a minified bundle can
 /// be enormous; anything bigger is skipped unread.
 pub const MAX_BYTES: u64 = 1 << 20;
 

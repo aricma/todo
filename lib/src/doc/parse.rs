@@ -3,9 +3,10 @@
 //! `scan` is the single place that decides what counts as a task, so `tasks`,
 //! `findings` and `format` can never disagree about it.
 
+use super::comment::{self, Comment};
 use super::spans;
-use super::{Doc, Source};
-use crate::model::Task;
+use super::{Doc, Source, Syntax};
+use crate::model::{Severity, Task};
 
 impl Doc {
     /// Split a file into lines. CRLF loses its `\r`, a BOM is dropped, and the
@@ -14,16 +15,27 @@ impl Doc {
         Self {
             lines: lines(source),
             source: Source::Document,
+            syntax: Syntax::Any,
         }
     }
 
-    /// The same, for a file whose todos are `TODO:` comments: any file in the tree
-    /// that is not a todo document. Its lines are kept exactly as they are, so the
-    /// code around a todo is neither moved nor rewritten (RFC-016).
+    /// The same, for a file whose todos are todo comments: any file in the tree that
+    /// is not a todo document. Its lines are kept exactly as they are, so the code
+    /// around a todo is neither moved nor rewritten (RFC-016).
+    ///
+    /// The comment markers are [`Syntax::Any`], which is what a caller that does not
+    /// know the file's name can honestly claim — a file read with `parse_at` gets its
+    /// own language's markers (RFC-020).
     pub fn parse_comment(source: &str) -> Self {
+        Self::parse_comment_in(Syntax::Any, source)
+    }
+
+    /// The same, with the markers of a known language.
+    pub fn parse_comment_in(syntax: Syntax, source: &str) -> Self {
         Self {
             lines: lines(source),
             source: Source::Comment,
+            syntax,
         }
     }
 
@@ -31,7 +43,7 @@ impl Doc {
     pub fn tasks(&self) -> Vec<Task> {
         match self.source {
             Source::Document => scan(&self.lines),
-            Source::Comment => scan_comment(&self.lines),
+            Source::Comment => scan_comment(&self.lines, self.syntax),
         }
     }
 }
@@ -48,38 +60,44 @@ fn lines(source: &str) -> Vec<String> {
     lines
 }
 
-/// Walk the lines of a code file and collect its `TODO:` comments.
+/// Walk the lines of a code file and collect its todo comments.
 ///
 /// No fences and no headings: a code file is not markdown, and `# TODO:` in a shell
-/// script is a comment, not an outline. One todo per line, the first `TODO:` on it,
-/// and the code around it is the todo's lead (RFC-016).
-fn scan_comment(lines: &[String]) -> Vec<Task> {
-    lines
+/// script is a comment, not an outline. One todo per line, the first severity word on
+/// it that passes the rule, and the code around it is the todo's lead (RFC-016).
+fn scan_comment(lines: &[String], syntax: Syntax) -> Vec<Task> {
+    comment::comments(lines, syntax)
         .iter()
-        .enumerate()
-        .filter_map(|(index, line)| comment_line(line, index))
+        .filter_map(|comment| todo_in(&lines[comment.line], comment))
         .collect()
 }
 
-/// One line as a comment todo, or `None`.
+/// The todo this comment holds, or `None` — the second half of reading a comment
+/// todo, and where RFC-019's rule now lives.
 ///
-/// The rule is the literal `TODO:` in capitals, with at least one character after
-/// it that is not a space: a bare `TODO:` promises nothing and is not a todo, and a
-/// lowercase `todo:` is a sentence talking about one — "a file that no longer holds a
-/// todo: the bar says only what works".
-fn comment_line(line: &str, index: usize) -> Option<Task> {
-    // the first `TODO:` that a comment marker stands in front of, because the one in
-    // `let note = "TODO:"` is a string
-    let (at, _) = line
-        .match_indices("TODO:")
-        .find(|(at, _)| marked(&line[..*at]))?;
-    let colon = at + "TODO:".len();
+/// The comment is the region, and the word may be anywhere in it: `// note: FIXME: x`
+/// is a todo, because both halves are inside the comment. What still has to hold is
+/// the rule itself, one word at a time:
+///
+/// - a severity word in capitals, followed by its colon (RFC-020);
+/// - the word has to start a word — `NOTTODO:` is a longer word, not a todo;
+/// - nothing between the start of the line and the word may be a quote, which is the
+///   only thing standing between this and a `TODO:` inside a string (RFC-019);
+/// - at least one character after the colon that is not a space, because a bare
+///   `TODO:` promises something and says nothing.
+fn todo_in(line: &str, comment: &Comment) -> Option<Task> {
+    let word = severities(&line[comment.at..])
+        .into_iter()
+        .map(|(at, severity)| (comment.at + at, severity))
+        .find(|(at, _)| at_word_start(line, *at) && !quoted(&line[..*at]))?;
+    let (at, severity) = word;
+    let after = at + severity.word().len() + 1;
     // the body starts after the colon and the one space that separates it, if there
     // is one: the rest is the line's, whitespace and all
-    let start = if line[colon..].starts_with(' ') {
-        colon + 1
+    let start = if line[after..].starts_with(' ') {
+        after + 1
     } else {
-        colon
+        after
     };
     let body = line[start..].trim();
     if body.is_empty() {
@@ -87,9 +105,10 @@ fn comment_line(line: &str, index: usize) -> Option<Task> {
     }
     let parts = spans::parts(body);
     Some(Task {
-        line: index,
+        line: comment.line,
         indent: line.len() - line.trim_start_matches(' ').len(),
         done: false,
+        severity: Some(severity),
         prio: parts.prio,
         title: parts.title,
         body: body.to_owned(),
@@ -100,25 +119,36 @@ fn comment_line(line: &str, index: usize) -> Option<Task> {
     })
 }
 
-/// Whether a comment marker ends the text in front of a `TODO:` — or the line
-/// starts there, which is how a plain `.txt` list is written.
+/// Every `WORD:` in the text, earliest first.
+fn severities(text: &str) -> Vec<(usize, Severity)> {
+    let mut found: Vec<(usize, Severity)> = Vec::new();
+    for severity in Severity::ALL {
+        for (at, _) in text.match_indices(severity.word()) {
+            if severity.opens(&text[at..]) {
+                found.push((at, severity));
+            }
+        }
+    }
+    found.sort_by_key(|(at, _)| *at);
+    found
+}
+
+/// Whether the byte at `at` starts a word: `NOTTODO:` is not a todo, it is a longer
+/// word that happens to end in one.
+fn at_word_start(text: &str, at: usize) -> bool {
+    !text[..at]
+        .chars()
+        .next_back()
+        .is_some_and(|character| character.is_alphanumeric() || character == '_')
+}
+
+/// Whether a quote stands in the text in front of a word.
 ///
-/// Without this, prose about the rule is a todo of its own: `/// todos are
-/// `TODO:` comments` in this very file listed `hints.rs` for a todo it does not
-/// have. The markers are the ones a language starts a comment with — `#`, `/`,
-/// `-`, `;`, `%`, `*` — which is all of `//`, `///`, `/*`, `#!`, `--`, `<!--`
-/// and a `*` continuing a block.
-///
-/// A quote or a backtick in front of the marker means the marker is quoted: it is
-/// inside a string literal, or in prose about code. `Doc::parse_comment("// TODO:
-/// x")` is a test fixture, not a todo, and `` — a `<!-- TODO: -->` `` in a
-/// sentence is a sentence (RFC-016).
-fn marked(lead: &str) -> bool {
-    let lead = lead.trim_end();
-    let quoted = lead.chars().any(|c| matches!(c, '"' | '\'' | '`'));
-    !quoted
-        && (lead.is_empty()
-            || matches!(lead.chars().next_back(), Some('#' | '/' | '-' | ';' | '%' | '*')))
+/// This is the heuristic in place of knowing a language's strings, and it is what the
+/// rule costs: `let a = "x"; // TODO: pay rent` is a todo the tool cannot see, because
+/// it cannot tell which side of the quote it is on (RFC-019).
+fn quoted(lead: &str) -> bool {
+    lead.chars().any(|c| matches!(c, '"' | '\'' | '`'))
 }
 
 /// Walk the lines, skipping fenced code blocks, and collect the tasks.
@@ -193,6 +223,7 @@ pub(crate) fn parse_line(line: &str, index: usize) -> Option<Task> {
         line: index,
         indent,
         done,
+        severity: None,
         prio: parts.prio,
         title: parts.title,
         body: body.to_owned(),
@@ -225,29 +256,98 @@ pub(crate) fn bullet(rest: &str) -> Option<(String, &str)> {
 #[cfg(test)]
 mod tests {
     use super::Doc;
-    use crate::model::Prio;
+    use crate::model::{Prio, Severity};
 
     #[test]
     fn a_comment_todo_file_finds_its_todo_comments_and_nothing_else() {
         let doc = Doc::parse_comment(
-            "fn main() {\n    // TODO: ship it\n    // FIXME: not this\n    // todo: nor this\n}\n",
+            "fn main() {\n    // TODO: ship it\n    // FIXME: nor this\n    // todo: nor this\n}\n",
         );
         let tasks = doc.tasks();
-        assert_eq!(tasks.len(), 1, "{tasks:#?}");
+        // `FIXME:` and `TODO:` are both todos, and the lowercase word is not (RFC-020)
+        assert_eq!(tasks.len(), 2, "{tasks:#?}");
         assert_eq!(tasks[0].line, 1);
         assert_eq!(tasks[0].title, "ship it");
+        assert_eq!(tasks[0].severity, Some(Severity::Todo));
         assert_eq!(tasks[0].lead(), "    // TODO: ");
+        assert_eq!(tasks[1].severity, Some(Severity::Fixme));
+        assert_eq!(tasks[1].lead(), "    // FIXME: ");
+    }
+
+    #[test]
+    fn every_severity_word_opens_a_todo_and_says_which_it_is() {
+        let doc = Doc::parse_comment("// TODO: a\n// FIXME: b\n// HACK: c\n// XXX: d\n");
+        let tasks = doc.tasks();
+        assert_eq!(tasks.len(), 4, "{tasks:#?}");
+        assert_eq!(
+            tasks
+                .iter()
+                .map(|task| task.severity.unwrap().word())
+                .collect::<Vec<_>>(),
+            ["TODO", "FIXME", "HACK", "XXX"]
+        );
+        // the word stays in the line: the tool does not rewrite the comment, and a
+        // `FIXME:` reads as one on the screen without the model rendering it
+        assert_eq!(tasks[1].lead(), "// FIXME: ");
+        assert_eq!(tasks[1].body, "b");
+        assert_eq!(tasks[1].render(), "// FIXME: b");
+    }
+
+    #[test]
+    fn a_marker_in_the_middle_of_a_comment_still_counts() {
+        // the word is not tied to the marker right in front of it: everything inside
+        // the comment is the comment (RFC-020)
+        let doc = Doc::parse_comment("// note: FIXME: the retry is wrong\n");
+        let tasks = doc.tasks();
+        assert_eq!(tasks.len(), 1);
+        assert_eq!(tasks[0].body, "the retry is wrong");
+        assert_eq!(tasks[0].lead(), "// note: FIXME: ");
+    }
+
+    #[test]
+    fn the_severity_word_has_to_start_a_word() {
+        for line in ["// NOTTODO: x\n", "// A_TODO: x\n", "// XFIXME: x\n"] {
+            assert!(Doc::parse_comment(line).tasks().is_empty(), "{line:?}");
+        }
+    }
+
+    #[test]
+    fn only_the_marker_this_language_uses_opens_a_comment() {
+        use crate::doc::Syntax;
+        let rust = Syntax::of(std::path::Path::new("src/main.rs"));
+        // `#` is an attribute in rust, and a comment in shell
+        assert!(
+            Doc::parse_comment_in(rust, "#[derive(Debug)] // TODO: x\n")
+                .tasks()
+                .len()
+                == 1
+        );
+        assert!(Doc::parse_comment_in(rust, "# TODO: x\n")
+            .tasks()
+            .is_empty());
+        let shell = Syntax::of(std::path::Path::new("run.sh"));
+        assert_eq!(Doc::parse_comment_in(shell, "# TODO: x\n").tasks().len(), 1);
+        assert!(Doc::parse_comment_in(shell, "// TODO: x\n")
+            .tasks()
+            .is_empty());
+        // a file the tool does not know keeps every marker, and a bare line
+        assert_eq!(Doc::parse_comment("// TODO: x\n").tasks().len(), 1);
+        assert_eq!(Doc::parse_comment("TODO: x\n").tasks().len(), 1);
     }
 
     #[test]
     fn a_comment_todo_needs_something_after_the_colon() {
-        assert!(Doc::parse_comment("// TODO:\n// TODO:   \n").tasks().is_empty());
+        assert!(Doc::parse_comment("// TODO:\n// TODO:   \n")
+            .tasks()
+            .is_empty());
         assert_eq!(Doc::parse_comment("// TODO:x\n").tasks()[0].body, "x");
     }
 
     #[test]
     fn a_checkbox_in_a_code_file_is_code_and_a_comment_in_markdown_is_prose() {
-        assert!(Doc::parse_comment("- [ ] not a todo here\n").tasks().is_empty());
+        assert!(Doc::parse_comment("- [ ] not a todo here\n")
+            .tasks()
+            .is_empty());
         assert!(Doc::parse("// TODO: not a todo here\n").tasks().is_empty());
     }
 
@@ -263,9 +363,11 @@ mod tests {
             .is_empty());
         // lowercase is a sentence about a todo, not a todo: this is the noise that
         // made a test comment in hints.rs a todo of its own
-        assert!(Doc::parse_comment("// a file with no todo: the bar says less\n")
-            .tasks()
-            .is_empty());
+        assert!(
+            Doc::parse_comment("// a file with no todo: the bar says less\n")
+                .tasks()
+                .is_empty()
+        );
         // a marker in a string, or in a sentence about code, is quoted, not a comment
         assert!(Doc::parse_comment("Doc::parse_comment(\"// TODO: x\")\n")
             .tasks()
@@ -287,7 +389,12 @@ mod tests {
             assert_eq!(Doc::parse_comment(line).tasks().len(), 1, "{line:?}");
         }
         // a bare line is a list in a notes file, indented or not
-        assert_eq!(Doc::parse_comment("TODO: plain\n  TODO: indented\n").tasks().len(), 2);
+        assert_eq!(
+            Doc::parse_comment("TODO: plain\n  TODO: indented\n")
+                .tasks()
+                .len(),
+            2
+        );
     }
 
     /// The table in RFC-019, line for line. If a condition changes, this fails
@@ -307,6 +414,10 @@ mod tests {
             "let x = 1; //TODO: pay rent",
             // a quote after the colon is the todo's own text, not a quote in front
             "// TODO: a \"quoted\" word",
+            // every severity word, since RFC-020
+            "// FIXME: pay rent",
+            "// HACK: pay rent",
+            "// XXX: pay rent",
         ];
         let missed = [
             // the quote rule: the marker is quoted
@@ -319,8 +430,8 @@ mod tests {
             // the colon rule
             "// TODO pay rent",
             "// TODO(bob): pay rent",
-            "// FIXME: pay rent",
-            "// XXX: pay rent",
+            // the word rule: a severity that is the tail of a longer word
+            "// NOTTODO: pay rent",
             // the body rule
             "// TODO:",
             "// TODO:   ",
@@ -342,7 +453,9 @@ mod tests {
         // the false positive that stays: prose writing the marker unquoted, which no
         // line rule can tell from an HTML comment
         assert_eq!(
-            Doc::parse_comment("/// we use <!-- TODO: --> in prose\n").tasks().len(),
+            Doc::parse_comment("/// we use <!-- TODO: --> in prose\n")
+                .tasks()
+                .len(),
             1
         );
     }
@@ -351,7 +464,9 @@ mod tests {
     fn a_string_before_a_trailing_comment_hides_it() {
         // the cost of the quote rule: a note after code that quotes something is
         // missed, because the tool cannot tell which side of the quote it is on
-        assert!(Doc::parse_comment("let a = \"x\"; // TODO: this\n").tasks().is_empty());
+        assert!(Doc::parse_comment("let a = \"x\"; // TODO: this\n")
+            .tasks()
+            .is_empty());
     }
 
     #[test]
@@ -448,12 +563,7 @@ mod tests {
 
     #[test]
     fn a_line_that_looks_like_a_task_but_is_not_one_is_prose() {
-        for line in [
-            "- [] x\n",
-            "- [ ]\tx\n",
-            "  - [x]no space\n",
-            "- [y] x\n",
-        ] {
+        for line in ["- [] x\n", "- [ ]\tx\n", "  - [x]no space\n", "- [y] x\n"] {
             assert!(Doc::parse(line).tasks().is_empty(), "{line:?}");
         }
     }

@@ -74,7 +74,7 @@ fn the_root_is_the_real_tree_not_the_dot_that_was_typed() {
 
 #[test]
 fn a_session_on_a_file_says_what_it_cannot_read() {
-    // a code file with no `TODO:` comment has nothing to show, so naming it is an
+    // a code file with no todo comment has nothing to show, so naming it is an
     // error rather than a session with an empty panel
     let scratch = tempfile::tempdir().unwrap();
     let code = scratch.path().join("main.rs");

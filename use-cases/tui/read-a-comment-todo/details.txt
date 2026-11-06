@@ -12,4 +12,5 @@ a repository actually live. Reading them in place is the whole point; moving the
 markdown first is the work this saves.
 
 behaviour: everything in front of the note is the line's and is shown dim; the body after
-`TODO: ` is the todo. RFC-015, RFC-016, RFC-018.
+`TODO: ` is the todo, and `TODO` is one of four words — `FIXME`, `HACK`, `XXX` too. RFC-015,
+RFC-016, RFC-018, RFC-020.

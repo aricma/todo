@@ -15,7 +15,7 @@ pub fn find(files: &[Entry], query: &str) -> Result<Vec<Hit>, Error> {
     let mut hits = Vec::new();
     for file in files.iter().filter(|entry| !entry.too_long) {
         let loaded = store::load(&file.path)?;
-        for task in Doc::parse_as(file.source, &loaded.text).tasks() {
+        for task in Doc::parse_at(&file.path, &loaded.text).tasks() {
             if let Some(score) = fuzzy::score(query, &task.body) {
                 hits.push(Hit {
                     path: file.path.clone(),

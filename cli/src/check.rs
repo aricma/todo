@@ -25,7 +25,7 @@ pub fn run(path: &Path) -> Result<ExitCode, Error> {
             continue;
         }
         let loaded = store::load(&file.path)?;
-        let doc = Doc::parse(&loaded.text);
+        let doc = Doc::parse_at(&file.path, &loaded.text);
         for finding in doc.findings() {
             println!(
                 "{}:{}: {}",

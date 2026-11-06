@@ -132,23 +132,24 @@ impl App {
             // a file named on the command line is shown whatever it holds (the scan
             // says so), but a *session* on one promises there is something to read: a
             // markdown file is a todo document wherever it lives — it is where todos
-            // get written — and anything else has to hold at least one `TODO:` comment
+            // get written — and anything else has to hold at least one todo comment
             // (RFC-015, RFC-016)
             let entry = &scan.entries[index];
             if entry.source == Source::Comment && entry.stats.all == 0 {
                 return Err(Error::Ops(format!(
-                    "{}: neither a markdown todo file nor a file with a TODO comment",
+                    "{}: neither a markdown todo file nor a file with a todo comment",
                     entry.path.display()
                 )));
             }
         }
-        let baseline = store::load(&scan.entries[index].path)?;
+        let path_of_entry = &scan.entries[index].path;
+        let baseline = store::load(path_of_entry)?;
         let collections = collections::list(&scan.entries);
         let rows = Self::rows_for(&scan.entries, &collections, Showing::Both);
         // the cursor starts on the open file, not on the first row
         let row_idx = index.min(rows.len().saturating_sub(1));
         Ok(Self {
-            doc: Doc::parse_as(scan.entries[index].source, &baseline.text),
+            doc: Doc::parse_at(path_of_entry, &baseline.text),
             files: scan.entries,
             rows,
             row_idx,
@@ -717,7 +718,7 @@ impl App {
     /// pointing into a file that is no longer open is how a key press ends up
     /// touching the wrong line.
     fn show(&mut self, loaded: Loaded) {
-        self.doc = Doc::parse_as(Source::of(&loaded.path), &loaded.text);
+        self.doc = Doc::parse_at(&loaded.path, &loaded.text);
         self.baseline = loaded;
         self.task_idx = 0;
         self.outline_idx = 0;
@@ -763,7 +764,7 @@ impl App {
         self.open_current()
     }
 
-    /// Whether the open file is a comment one: `TODO:` comments in code, whose
+    /// Whether the open file is a comment one: todo comments in code, whose
     /// todos can be edited, copied, priced and deleted, and nothing else. The keys
     /// that need a document are refused rather than hidden in silence (RFC-015).
     pub fn comment(&self) -> bool {

@@ -25,7 +25,7 @@ pub fn gather(entries: &[Entry], collection: &Collection) -> Result<Vec<Item>, E
             continue;
         }
         let loaded = store::load(&entry.path)?;
-        let doc = Doc::parse_as(entry.source, &loaded.text);
+        let doc = Doc::parse_at(&entry.path, &loaded.text);
         for task in doc.tasks() {
             let carries = match collection.kind {
                 Kind::Tag => task.tags.iter().any(|tag| tag.as_str() == collection.name),

@@ -1,13 +1,15 @@
 # RFC-016: A comment todo is one line of code
 
 - **Date:** 2026-10-16
-- **Related:** [RFC-013](RFC-013-a-todo-is-a-checkbox.md), [RFC-014](RFC-014-a-copied-todo-is-a-document.md), [RFC-015](RFC-015-sources-and-kinds.md), [RFC-018](RFC-018-reading-a-comment-todo-file.md), [RFC-019](RFC-019-not-every-todo-is-a-todo.md)
+- **Related:** [RFC-013](RFC-013-a-todo-is-a-checkbox.md), [RFC-014](RFC-014-a-copied-todo-is-a-document.md), [RFC-015](RFC-015-sources-and-kinds.md), [RFC-018](RFC-018-reading-a-comment-todo-file.md), [RFC-019](RFC-019-not-every-todo-is-a-todo.md), [RFC-020](RFC-020-four-words-and-a-marker-per-language.md)
 
 ## Context
 
 A `TODO:` comment is the oldest todo format there is, and every codebase disagrees about
-its details: `TODO(x):`, `TODO [x]`, `// TODO` without a colon, `FIXME`, `XXX`, a
-`<!-- TODO: -->` in a markdown file, a `TODO:` inside a string literal. Parsing a code
+its details: `TODO(x):`, `TODO [x]`, `// TODO` without a colon, a `<!-- TODO: -->` in a
+markdown file, a `TODO:` inside a string literal. (The four words — `TODO`, `FIXME`,
+`HACK`, `XXX` — and the marker each language starts a comment with are RFC-020's subject.)
+Parsing a code
 file properly — comments, strings, nesting — is a compiler's job, and this is a todo
 reader.
 
@@ -20,17 +22,17 @@ This RFC is about the *grammar* of what a hit contains.
 ## Behaviour
 
 1. In a **comment todo file** — any file the walk reads that is not `.md` — a todo **MUST** be
-   a line that RFC-019 accepts as one, and one todo per line at most: the first accepted
-   `TODO:` on it. Everything this RFC says about a hit's shape assumes that rule, and
-   nothing here widens it.
-2. A line with `TODO:` and nothing after it is **not** a todo: it promises something and
-   says nothing. (A document's empty `- [ ]` *is* a todo, because the row is where a new
+   a line that RFC-019 and RFC-020 accept as one, and one todo per line at most: the first
+   accepted severity word on it. Everything this RFC says about a hit's shape assumes that
+   rule, and nothing here widens it.
+2. A line with a severity word and nothing after it is **not** a todo: it promises something
+   and says nothing. (A document's empty `- [ ]` *is* a todo, because the row is where a new
    todo waits; a comment has no such row.)
 3. Everything in front of the body **MUST** be preserved byte for byte, and **MUST** be
-   shown as the todo's lead: the indentation, the comment marker, and whatever the
-   language puts there — `    // TODO: `, `# TODO: `, `/* TODO: `. The tool does not own
-   the comment syntax and never rewrites it.
-4. The body is the text after `TODO:` and the one space that follows it. It is read by
+   shown as the todo's lead: the indentation, the comment marker, the severity word, and
+   whatever the language puts there — `    // TODO: `, `# FIXME: `, `/* HACK: `. The tool
+   does not own the comment syntax and never rewrites it.
+4. The body is the text after the severity word, its colon, and the one space that follows. It is read by
    the same rules as a todo document's body, and **MUST** be: a priority token `(A)`–`(D)`
    at the start, `#tags`, `@people` anywhere. That is how a comment todo gets a priority —
    **`TODO: (A) fix the retry`** — and it is why the priority is written *after* the

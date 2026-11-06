@@ -68,7 +68,7 @@ impl Where {
     pub const HISTORY: Self = Self(1 << 5);
     /// a field something is typed into, which is a modal rather than a panel
     pub const TYPING: Self = Self(1 << 6);
-    /// the open file's todos are `TODO:` comments: a key that needs a document is
+    /// the open file's todos are comments: a key that needs a document is
     /// not offered at all, because there is nothing there for it to act on (RFC-015)
     pub const COMMENT: Self = Self(1 << 7);
 

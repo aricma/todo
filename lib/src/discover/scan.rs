@@ -284,17 +284,14 @@ fn entry(path: &Path, strict: bool) -> Result<(Entry, bool), Error> {
         Err(_) if !strict => return Ok((blank(path, source), false)),
         Err(_) => return Err(Error::NotUtf8(PathBuf::from(path))),
     };
-    let doc = match source {
-        Source::Document => Doc::parse(&text),
-        Source::Comment => Doc::parse_comment(&text),
-    };
+    let doc = Doc::parse_at(path, &text);
     let stats = doc.stats();
     let too_long = doc.lines().len() > limits::MAX_LINES;
     let bare = text
         .lines()
         .all(|line| line.trim().is_empty() || line.trim_start().starts_with('#'));
     // a todo document is worth listing when it holds a task, a finding or nothing but
-    // headings; a code file only when it holds a `TODO:` comment — the rest of the
+    // headings; a code file only when it holds a todo comment — the rest of the
     // tree is code, and a file list is a list of places to go, not of files
     let worth_showing = match source {
         Source::Document => stats.all > 0 || !doc.findings().is_empty() || bare,

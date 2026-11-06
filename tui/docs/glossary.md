@@ -41,10 +41,11 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | word | what it is |
 | --- | --- |
 | **todo line** | one line of markdown: a bullet, a checkbox, an optional priority, a body |
-| **lead** | everything in front of the body: indent, bullet, checkbox, space — or, for a **comment todo**, the indent and the comment up to `TODO: `. Drawn dim, never editable here |
+| **lead** | everything in front of the body: indent, bullet, checkbox, space — or, for a **comment todo**, the indent, the comment marker and the severity word: `    // FIXME: `. Drawn dim, never editable here |
+| **severity** | the word that opens a **comment todo**: `TODO`, `FIXME`, `HACK` or `XXX`, in capitals, followed by `:`. All four are todos; the word says which kind, and it stays in the line (RFC-020) |
 | **body** | the text after the lead: the part a person writes |
 | **marker** | `- [ ]` or `- [x]` — the bullet and the state |
-| **priority** | `(A)`…`(D)`, straight after the checkbox — or, for a **comment todo**, straight after `TODO: `. Yellow, and the only positional rule in the grammar |
+| **priority** | `(A)`…`(D)`, straight after the checkbox — or, for a **comment todo**, straight after the severity word's colon. Yellow, and the only positional rule in the grammar |
 | **tag** | `#home` — cyan. A tag is a **collection**, and a tag is where todos live |
 | **assignee** | `@sam` — magenta. A person is a **collection** too |
 | **prose** | every line of a file that is not a todo — a bare bullet included, and in a **comment todo file** every line of code. Drawn dim, one row, clipped |
@@ -59,15 +60,15 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | word | what it is |
 | --- | --- |
 | **collection** | a tag or an assignee: the todos across every file that carry it, grouped by file. It has no line numbers of its own, because its lines are other files' lines |
-| **candidate file** | in the named scan, a file the walk reads: `TODO*`, `TASK*` or `README.md` ending in `.md`, or any other text file, which is read for `TODO:` comments (RFC-016) |
+| **candidate file** | in the named scan, a file the walk reads: `TODO*`, `TASK*` or `README.md` ending in `.md`, or any other text file, which is read for todo comments (RFC-016) |
 | **listed file** | a candidate file that is worth a row: it holds a todo, a line that meant to be one, or nothing but headings |
 | **root** | the folder (or the one file) the session was opened on. The header shows it resolved |
 | **single-file session** | a session opened on one file. No files panel, no file view — the todos of that file are the right-hand column |
 | **scan** | the walk that finds listed files: git's own file list when there is a work tree, the folder list otherwise, up to ten levels deep and never into what git ignores (RFC-017) |
 | **dependency** | a todo that names another todo. Drawn as a chain in the history panel's graph, not in the todos panel |
 | **todo document** | a `.md` file whose `- [ ]` lines are its todos. The original source, and the one the keys were written for |
-| **comment todo file** | any other text file the tree holds, whose `TODO:` comments are its todos. A code file with one note in it is a comment todo file (RFC-015) |
-| **comment todo** | one `TODO:` comment, one line: `    // TODO: (A) fix the retry #infra`. The word is in capitals, a comment marker stands in front of it with no quote between, or a word in a sentence would be a todo. Everything in front of the text is the line's, and the tool never rewrites it (RFC-016). Finding one is a guess that leans narrow — what it misses is RFC-019's table |
+| **comment todo file** | any other text file the tree holds, whose todo comments are its todos. A code file with one note in it is a comment todo file (RFC-015). The markers that count are its own language's, from the extension — `#` is a comment in `.py` and an attribute in `.rs` (RFC-020) |
+| **comment todo** | one todo comment, one line: `    // TODO: (A) fix the retry #infra`, `# FIXME: the retry is wrong`. A severity word in capitals, a marker the file's language starts a comment with somewhere in front of it, and no quote between, or a word in a sentence would be a todo. Everything in front of the text is the line's, and the tool never rewrites it (RFC-016). Finding one is a guess that leans narrow — what it misses is RFC-019's table |
 | **source** | which of the three a todo came from: a **todo document**, a **comment todo file**, or a **collection**. The source decides the keys (RFC-015) |
 | **fold** | in a comment todo file, the `…` row that stands for the code between the window around a todo — a line above it, three below — and the next window (RFC-018) |
 

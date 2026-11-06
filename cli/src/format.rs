@@ -23,7 +23,7 @@ pub fn run(path: &Path) -> Result<ExitCode, Error> {
             continue;
         }
         let loaded = store::load(&file.path)?;
-        let mut doc = Doc::parse(&loaded.text);
+        let mut doc = Doc::parse_at(&file.path, &loaded.text);
         if doc.format() {
             store::save(&loaded, &doc.render())?;
         }

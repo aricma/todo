@@ -8,8 +8,8 @@ use crate::model::{Collection, Stats};
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Entry {
     pub path: PathBuf,
-    /// What its todos are: checkboxes in a todo document, or `TODO:` comments in a
-    /// code file (RFC-015).
+    /// What its todos are: checkboxes in a todo document, or todo comments in a code
+    /// file — `TODO:`, `FIXME:`, `HACK:`, `XXX:` (RFC-015, RFC-020).
     pub source: Source,
     pub stats: Stats,
     /// More lines than [`crate::limits::MAX_LINES`]: shown, marked, not read.

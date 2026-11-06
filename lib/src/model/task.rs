@@ -1,4 +1,4 @@
-use crate::model::{Assignee, Prio, Tag};
+use crate::model::{Assignee, Prio, Severity, Tag};
 
 /// One todo line, derived from a single line of the file.
 ///
@@ -11,6 +11,10 @@ pub struct Task {
     /// Leading spaces; the indentation is preserved on every write.
     pub indent: usize,
     pub done: bool,
+    /// Which word opened it, for a todo that is a comment: `TODO`, `FIXME`, `HACK` or
+    /// `XXX`. `None` for a markdown todo, whose checkbox is what says it is one
+    /// (RFC-020).
+    pub severity: Option<Severity>,
     pub prio: Option<Prio>,
     pub body: String,
     /// The body with the priority token and the tags/assignees set aside.
@@ -20,7 +24,7 @@ pub struct Task {
     /// The bullet that opened the line (`-`, `*`, `+`, `1.`), kept verbatim.
     pub(crate) marker: String,
     /// For a todo that is a comment rather than a checkbox: everything in front of
-    /// the body, which is the code around it — `    // TODO: `, `/* TODO: `, `# TODO: `.
+    /// the body, which is the code around it — `    // TODO: `, `/* FIXME: `, `# HACK: `.
     /// `None` for a markdown todo, whose lead is its bullet and checkbox.
     pub(crate) prefix: Option<String>,
 }
@@ -43,7 +47,7 @@ impl Task {
         format!("{}{} [{checkbox}] ", " ".repeat(self.indent), self.marker)
     }
 
-    /// Whether this todo is a `TODO:` comment in a code file rather than a checkbox
+    /// Whether this todo is a comment in a code file rather than a checkbox
     /// in a todo document. A comment todo can be edited, copied and deleted; it can
     /// be neither checked nor moved, because the line it lives on is code (RFC-016).
     pub fn is_comment(&self) -> bool {

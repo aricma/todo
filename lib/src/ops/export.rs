@@ -15,7 +15,7 @@ pub fn write(files: &[Entry], format: Format) -> Result<Exported, Error> {
     let mut tasks = Vec::new();
     for file in files.iter().filter(|file| !file.too_long) {
         let loaded = store::load(&file.path)?;
-        let doc = Doc::parse(&loaded.text);
+        let doc = Doc::parse_at(&file.path, &loaded.text);
         for task in doc.tasks() {
             let where_ = format!("{}:{}", file.path.display(), task.line + 1);
             match ops(&task, tasks.len() + 1) {

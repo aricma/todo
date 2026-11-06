@@ -1,7 +1,7 @@
 # RFC-019: Not every line with a `TODO` in it is a todo
 
 - **Date:** 2026-10-16
-- **Related:** [RFC-007](RFC-007-search.md), [RFC-015](RFC-015-sources-and-kinds.md), [RFC-016](RFC-016-a-comment-todo.md), [RFC-017](RFC-017-the-tree-is-what-git-sees.md)
+- **Related:** [RFC-007](RFC-007-search.md), [RFC-015](RFC-015-sources-and-kinds.md), [RFC-016](RFC-016-a-comment-todo.md), [RFC-017](RFC-017-the-tree-is-what-git-sees.md), [RFC-020](RFC-020-four-words-and-a-marker-per-language.md)
 
 ## Context
 
@@ -39,17 +39,20 @@ comment marker without quoting it — is still there and is admitted below.
 1. A hit **MUST** be a fact about a *line*, never a claim about a *comment*. The tool
    says "this line holds a `TODO:` that looks like a note", not "this is a comment".
 2. All of the following **MUST** hold, or the line is not a todo:
-   - the word is `TODO` **in capitals**, followed by `:` — `todo:`, `Todo:`, `TODO(x):`,
-     `TODO` with no colon, `FIXME:` and `XXX:` are all not todos;
+   - the word is one of `TODO`, `FIXME`, `HACK`, `XXX` — four, since RFC-020 — **in
+     capitals**, followed by `:`. `todo:`, `Todo:`, `TODO(x):` and `TODO` with no colon
+     are not todos, and a word that is the tail of a longer one (`NOTTODO:`) is not
+     either;
    - at least one character after the colon that is not a space (RFC-016);
-   - the text ending where `TODO` begins **MUST** end in a comment marker — `#`, `/`,
-     `-`, `;`, `%` or `*`, which covers `#`, `//`, `///`, `/*`, `--`, `;`, `%`, `<!--`
-     and a `*` continuing a block — or in nothing but indent, which is how a list in a
-     plain `.txt` file is written;
+   - the text ending where the word begins **MUST** hold a marker the file's language
+     starts a comment with — `#`, `/`, `-`, `;`, `%` or `*` where the language is unknown,
+     which covers `#`, `//`, `///`, `/*`, `--`, `;`, `%`, `<!--` and a `*` continuing a
+     block — or be nothing but indent, which is how a list in a plain `.txt` file is
+     written;
    - that text **MUST NOT** hold `"`, `'` or a backtick: a marker behind a quote is a
      quoted marker, inside a string literal or inside prose about code.
-3. A line with more than one `TODO:` **MUST** yield the first one that satisfies the
-   rule, and only that one.
+3. A line with more than one severity word **MUST** yield the first one that satisfies
+   the rule, and only that one.
 4. The costs of each condition **MUST** be documented where a person will look for them,
    and the table in this RFC **MUST** be proven by a test, so a rule change fails the
    test before this document starts lying.
@@ -59,7 +62,8 @@ comment marker without quoting it — is still there and is admitted below.
 ## The table
 
 Normative, and asserted line for line by `the_rule_is_narrow_and_its_misses_are_known` in
-`lib/src/doc/parse.rs`.
+`lib/src/doc/parse.rs`. It is stated for `Syntax::Any` — a file whose language is unknown —
+which is what `Doc::parse_comment` means.
 
 | line | listed | why |
 | --- | --- | --- |
@@ -74,6 +78,9 @@ Normative, and asserted line for line by `the_rule_is_narrow_and_its_misses_are_
 | `let a = 1; // TODO: pay rent` | yes | a trailing note, no quote in front |
 | `let x = 1; //TODO: pay rent` | yes | the space is not required |
 | `// TODO: a "quoted" word` | yes | the quote is the todo's own text |
+| `// FIXME: pay rent` | yes | since RFC-020: a thing that is broken is a thing to do |
+| `// HACK: pay rent` | yes | the same |
+| `// XXX: pay rent` | yes | the same |
 | `let a = "x"; // TODO: pay rent` | **no** | a quote in front: the tool cannot tell which side of it the note is on |
 | `"// TODO: pay rent"` | **no** | quoted marker |
 | ``/// a `TODO:` note`` | **no** | quoted marker |
@@ -81,10 +88,22 @@ Normative, and asserted line for line by `the_rule_is_narrow_and_its_misses_are_
 | `// Todo: pay rent` | **no** | the same |
 | `// TODO pay rent` | **no** | no colon |
 | `// TODO(bob): pay rent` | **no** | the colon is not the word's colon; `(bob)` means *who*, not *how urgent* (RFC-016) |
-| `// FIXME: pay rent` | **no** | not in the rule; open question |
-| `// XXX: pay rent` | **no** | the same |
+| `// NOTTODO: pay rent` | **no** | the word is the tail of a longer word |
 | `// TODO:` / `// TODO:   ` | **no** | promises something, says nothing |
 | `/// we use <!-- TODO: --> in prose` | **yes** | *the false positive that stays*: an unquoted `<!--` in a sentence is indistinguishable from an HTML comment by any line rule |
+
+### What a known language changes
+
+RFC-020 reads the marker from the file's extension, so the same line is a todo in one file
+and not in another. Asserted by `only_the_marker_this_language_uses_opens_a_comment`.
+
+| line | listed | why |
+| --- | --- | --- |
+| `# TODO: pay rent` in a `.py` | yes | `#` is a comment there |
+| `# TODO: pay rent` in a `.rs` | **no** | `#` is an attribute there, and the line's own language says so |
+| `// TODO: pay rent` in a `.rs` | yes | the marker that language does use |
+| `TODO: pay rent` in a `.txt` | yes | no marker, no language: a notes list |
+| `TODO: pay rent` in a `.sh` | **no** | in a known language a bare line is a syntax error |
 
 ## Why not the alternative
 
@@ -120,9 +139,10 @@ quiet behaviour of the tree.
   reads.
 - **A miss is discoverable.** The note is in the file, at the line the person wrote it; the
   escape from a miss is reading the code, which is where the note already is.
-- **The rule is one function and one literal.** `marked` and the `TODO:` in
-  `comment_line` are the whole of it; the table's test is the guard. Changing a condition
-  is a small, reviewable diff plus an RFC amendment, not a rewrite.
+- **The rule is two small steps, and the words are a table.** Where a file's comments are
+  is `doc::comment`; which one is a todo is `todo_in`, and the four words are
+  `Severity::ALL` (RFC-020). The table's test is still the guard, and changing a condition
+  is still a small diff plus an RFC amendment.
 - **The tool's own test fixtures are not todos** — and a real project's fixtures will be,
   if they put `TODO:` at the start of a comment line. There is no way to know a fixture
   from a note, and this RFC does not pretend otherwise.
@@ -144,9 +164,8 @@ quiet behaviour of the tree.
 - Should there be an explicit loose mode — a `--loose` flag or a "show every `TODO:`" view —
   for the person who would rather filter than miss? It is a second rule to keep true, and
   it is not needed until someone is caught by a miss in practice.
-- Is `FIXME:` a todo? Readers of this tool have said yes and no in the same breath. Today
-  it is not, because a stronger word for "this is broken" is not the same list as "this is
-  not done yet".
+- ~~Is `FIXME:` a todo?~~ Answered by RFC-020: yes, along with `HACK:` and `XXX:`, and the
+  task keeps which word opened it.
 - Should a file that holds `TODO` lines the rule refused be marked, so a person can see
   that the tool looked and declined? It would say, in the tree, that the rule is a guess —
   which this RFC says in prose and the screen does not.
