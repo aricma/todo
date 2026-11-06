@@ -3,13 +3,13 @@ source: tui/src/ui/tests.rs
 expression: "masked(&app, &screen(&app).join(\"\\n\"))"
 ---
  ✅  aricma-lazytodo · …s/mt/b98d1vks095gz2d9f2l0zyj80000gn/T/<tree>/TODOs.md
-                                ╭ index ───────────────────────────────────────╮
+                                ╭ [2] index ───────────────────────────────────╮
                                 │                                              │
                                 │                                              │
                                 │                                              │
                                 │                                              │
                                 ╰──────────────────────────────────────────────╯
-                                ╭ ● todos ─────────────────────────────────────╮
+                                ╭ ● [4] todos ─────────────────────────────────╮
                                 │ 1 - [ ] (A) @dave fix the worst bug of the   │
                                 │         century before the release #bug      │
                                 │         #infra                               │
@@ -18,7 +18,7 @@ expression: "masked(&app, &screen(&app).join(\"\\n\"))"
                                 │                                              │
                                 │                                              │
                                 ╰───────────────────────────────── 1/2  #2  @1 ╯
-                                ╭ history ─────────────────────────────────────╮
+                                ╭ [3] history ─────────────────────────────────╮
                                 │                                              │
                                 │                                              │
                                 │                                              │

@@ -84,6 +84,51 @@ fn a_single_file_session_starts_on_its_todos_and_has_no_file_list() {
 }
 
 #[test]
+fn a_number_goes_to_the_panel_that_carries_it() {
+    let (_tmp, mut app) = app(&[("TODOs.md", "# one\n\n- [ ] a\n")]);
+    assert_eq!(app.pane, Pane::Files);
+    press(&mut app, KeyCode::Char('3'));
+    assert_eq!(app.pane, Pane::History);
+    press(&mut app, KeyCode::Char('2'));
+    assert_eq!(app.pane, Pane::Outline);
+    press(&mut app, KeyCode::Char('4'));
+    assert_eq!(app.pane, Pane::View);
+    press(&mut app, KeyCode::Char('1'));
+    assert_eq!(app.pane, Pane::Files);
+
+    // a panel that is not on screen is not a destination: a single file has no
+    // file list, so `1` does nothing at all
+    let (_tmp, mut alone) = single("- [ ] a\n");
+    assert_eq!(alone.pane, Pane::Todos);
+    press(&mut alone, KeyCode::Char('1'));
+    assert_eq!(alone.pane, Pane::Todos);
+    press(&mut alone, KeyCode::Char('4'));
+    assert_eq!(alone.pane, Pane::Todos);
+
+    // `0` is still the priority that is no priority
+    let (_tmp, mut prio) = single("- [ ] (A) a\n");
+    assert_eq!(prio.tasks()[0].prio, Some(aricma_todo_lib::model::Prio::A));
+    let action = press(&mut prio, KeyCode::Char('0'));
+    assert!(save_text(action).contains("- [ ] a"), "0 still clears a prio");
+}
+
+#[test]
+fn a_collection_takes_the_number_of_the_panel_it_replaces() {
+    let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] a #home\n")]);
+    press(&mut app, KeyCode::Char('3'));
+    // the collection row is under the files cursor, so open it from there
+    press(&mut app, KeyCode::Char('1'));
+    press(&mut app, KeyCode::Down);
+    press(&mut app, KeyCode::Right);
+    assert_eq!(app.pane, Pane::Collection);
+    press(&mut app, KeyCode::Char('4'));
+    assert_eq!(app.pane, Pane::Collection);
+    // and the index is gone while one is open, so `2` leaves the cursor alone
+    press(&mut app, KeyCode::Char('2'));
+    assert_eq!(app.pane, Pane::Collection);
+}
+
+#[test]
 fn tab_loops_the_sidebar_and_the_arrows_cross_to_the_view() {
     let (_tmp, mut app) = app(&[("TODOs.md", "# one\n\n- [ ] a\n\n## two\n\n- [ ] b\n")]);
     assert_eq!(app.sections(), [Pane::Files, Pane::Outline, Pane::History]);

@@ -13,7 +13,8 @@ use crate::state::App;
 use crate::text;
 
 pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
-    let width = panel(text::INDEX, focused).inner(area).width as usize;
+    let title = text::titled(2, text::INDEX);
+    let width = panel(&title, focused).inner(area).width as usize;
     let mut rows: Vec<Line<'static>> = Vec::new();
     // how many rows each heading takes, so a long one can be scrolled to
     let mut heights = Vec::new();
@@ -52,18 +53,18 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
 
     // the cursor can land on a wrapped heading near the bottom, so the panel follows
     // it: the offset is counted in rows
-    let height = panel(text::INDEX, focused).inner(area).height as usize;
+    let height = panel(&title, focused).inner(area).height as usize;
     let (line, skip) = row_helpers::offset_for(&heights, Some(app.outline_idx), height);
     let scroll: usize = heights.iter().take(line).sum::<usize>() + skip;
     frame.render_widget(
         Paragraph::new(rows)
             .scroll((as_u16(scroll), 0))
-            .block(panel(text::INDEX, focused)),
+            .block(panel(&title, focused)),
         area,
     );
     row_helpers::bar(
         frame,
-        panel(text::INDEX, focused).inner(area),
+        panel(&title, focused).inner(area),
         heights.iter().sum(),
         height,
         scroll,

@@ -484,14 +484,14 @@ fn files_panel(app: &crate::state::App) -> Vec<String> {
 fn the_active_panel_says_so_with_a_dot_and_not_only_a_colour() {
     let (_tmp, mut app) = app(&[("TODOs.md", "# one\n\n- [ ] a\n\n## two\n")]);
     let text = texts(&app);
-    assert!(text.contains("╭ ● files"), "{text}");
+    assert!(text.contains("╭ ● [1] files"), "{text}");
     assert_eq!(text.matches('●').count(), 1, "one dot, one cursor: {text}");
 
     // and the dot moves with the cursor
     press(&mut app, ratatui::crossterm::event::KeyCode::Tab);
     let text = texts(&app);
-    assert!(text.contains("╭ ● index"), "{text}");
-    assert!(!text.contains("● files"), "{text}");
+    assert!(text.contains("╭ ● [2] index"), "{text}");
+    assert!(!text.contains("● [1] files"), "{text}");
 }
 
 #[test]
@@ -1115,7 +1115,7 @@ fn a_collection_hides_the_index_because_a_collection_has_no_headings() {
     )]);
     app.pane = crate::state::action::Pane::Files;
     // the file panel, with the file's own headings beside it
-    assert!(screen(&app).iter().any(|line| line.contains("╭ index")));
+    assert!(screen(&app).iter().any(|line| line.contains("╭ [2] index")));
 
     // the cursor on the collection row previews it, and the index goes: the
     // headings on screen would be the open file's, not the collection's
@@ -1134,7 +1134,7 @@ fn a_collection_hides_the_index_because_a_collection_has_no_headings() {
     // and back on a file row the index returns, with the file's headings in it
     press(&mut app, ratatui::crossterm::event::KeyCode::Up);
     let lines = screen_at(&app, 96, 24);
-    assert!(lines.iter().any(|line| line.contains("╭ index")));
+    assert!(lines.iter().any(|line| line.contains("╭ [2] index")));
     assert!(lines.iter().any(|line| line.contains("## later")));
 }
 

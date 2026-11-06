@@ -14,10 +14,11 @@ use crate::state::App;
 use crate::text;
 
 pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
-    let width = panel(text::TODOS, focused).inner(area).width as usize;
+    let title = text::titled(4, text::TODOS);
+    let width = panel(&title, focused).inner(area).width as usize;
     let rows = rows(app, width);
     // the counts ride on this panel's own frame: they belong to the todos it shows
-    let block = panel(text::TODOS, focused).title_bottom(counts(app, focused));
+    let block = panel(&title, focused).title_bottom(counts(app, focused));
     // a single file has no file panel to put a note under, so the note goes in the
     // frame of the panel that is on screen
     let block = match app.panel_message() {
@@ -82,7 +83,7 @@ fn gutter(app: &App) -> usize {
 /// Where the cursor goes while a todo is edited in the list.
 fn cursor(app: &App, area: Rect, width: usize) -> Option<(u16, u16)> {
     let prompt = app.editing()?;
-    let inner = panel(text::TODOS, true).inner(area);
+    let inner = panel(&text::titled(4, text::TODOS), true).inner(area);
     let before: String = prompt.text().chars().take(prompt.cursor()).collect();
     let tasks = app.tasks();
     // the rows are wrapped inside the line-number gutter, so the cursor is too

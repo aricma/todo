@@ -455,6 +455,13 @@ impl App {
                 None
             }
             KeyCode::Char('e') => self.ask_edit(),
+            // a number jumps to the panel whose title carries it (RFC-001), and `0`
+            // is not one of them: `0` clears a priority, and a panel number that
+            // unset something would be a trap
+            KeyCode::Char(digit @ '1'..='4') => {
+                self.jump_panel(digit);
+                None
+            }
             KeyCode::Char('0') => self.priority(None),
             KeyCode::Char(letter @ 'A'..='D') => {
                 let prio = Prio::from_letter(letter)?;
@@ -472,6 +479,28 @@ impl App {
     /// file view, `tab` goes back to the sidebar rather than staying on the right.
     pub fn focus(&mut self, forward: bool) {
         if let Some(pane) = self.focus_target(forward) {
+            self.pane = pane;
+        }
+    }
+
+    /// Go to the panel whose title carries this number.
+    ///
+    /// A panel that is not on screen is not a destination: `1` in a single-file
+    /// session does nothing, because the files panel is not there (RFC-001). Landing
+    /// the cursor in a panel that is not drawn would leave the screen with no focused
+    /// panel at all.
+    fn jump_panel(&mut self, digit: char) {
+        let pane = match digit {
+            '1' => Pane::Files,
+            '2' => Pane::Outline,
+            '3' => Pane::History,
+            // the right-hand column: the todos panel in a single-file session, a
+            // collection while one is open, the file view otherwise
+            _ if self.single => Pane::Todos,
+            _ if self.viewing().is_some() => Pane::Collection,
+            _ => Pane::View,
+        };
+        if self.sections().contains(&pane) || matches!(pane, Pane::View | Pane::Collection) {
             self.pane = pane;
         }
     }

@@ -33,7 +33,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
     // a collection shows the history of the file the highlighted todo came from, so
     // the panel says which file that is
     let title = app.viewing().map_or_else(
-        || text::HISTORY.to_owned(),
+        || text::titled(3, text::HISTORY),
         |_| text::history_of(&app.display(&app.current().path)),
     );
     let width = super::frame::panel(&title, focused).inner(area).width as usize;
@@ -92,7 +92,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
     }
     // the cursor can land on a wrapped entry near the bottom, so the panel follows
     // it: one row per line, so the offset is counted in rows
-    let height = super::frame::panel(text::HISTORY, focused)
+    let height = super::frame::panel(&title, focused)
         .inner(area)
         .height as usize;
     let (line, skip) = super::rows::offset_for(&heights, Some(app.history_idx), height);

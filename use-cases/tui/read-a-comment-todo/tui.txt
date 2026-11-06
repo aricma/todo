@@ -1,7 +1,7 @@
 wait: retry.rs
 key: right
 wait: back off before retry
-screen: ● retry.rs
+screen: ● [4] retry.rs
 screen: 6 fn f6() {}
 screen: fn f8() {}
 screen: 19 fn f19() {}

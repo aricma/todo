@@ -14,11 +14,12 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 use super::frame::{footer, panel};
 use super::rows::{body_width, cursor_at, offset_for, row_count, todo_rows};
 use crate::state::App;
+use crate::text;
 
 pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
     let focused = app.pane == crate::state::action::Pane::View;
-    let block =
-        panel(&app.display(&app.current().path), focused).title_bottom(footer(app, focused));
+    let title = text::titled(4, &app.display(&app.current().path));
+    let block = panel(&title, focused).title_bottom(footer(app, focused));
     let inner = block.inner(area);
     let height = inner.height as usize;
     // the number column: the digits of the last line, and a space after it. The

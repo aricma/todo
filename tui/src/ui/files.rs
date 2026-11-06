@@ -16,8 +16,9 @@ use crate::state::App;
 use crate::text;
 
 pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
-    let rows = rows(app, panel(text::FILES, focused).inner(area).width as usize);
-    let block = panel(text::FILES, focused);
+    let title = text::titled(1, text::FILES);
+    let rows = rows(app, panel(&title, focused).inner(area).width as usize);
+    let block = panel(&title, focused);
     let inner = block.inner(area);
     frame.render_widget(block, area);
 

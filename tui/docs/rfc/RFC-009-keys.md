@@ -55,6 +55,7 @@ none, and the bar offers the spelling that always arrives.
 | where | key | does | why this key |
 | --- | --- | --- | --- |
 | anywhere | `tab` / `shift+tab` | next / prev section | the only key every terminal agrees on; the bar names the destination (`tab index`) because which section comes next is the thing a person cannot guess |
+| anywhere | `1`–`4` | that panel | the number is in the panel's title (`[3] history`), so the key is the label: a person reading the screen can already press it. Not `0`: `0` clears a priority, and a panel number that silently unset something would be a trap. A panel that is not on screen takes no number — `1` in a single-file session does nothing |
 | anywhere | `→` / `←` | into the view / back out | the two arrows that look like the two columns; the bar names what `→` would open, a file path or `#home` |
 | anywhere | `g` / `G`, `home`/`end`, `shift+↑/↓` | first / last | three spellings of one jump, for the three kinds of terminal (letters, always-sent keys, modifier-reporting keys) |
 | anywhere | `f` | search | `cmd+f` and `ctrl+f` belong to the terminal or to scrolling; one letter is free and memorable |

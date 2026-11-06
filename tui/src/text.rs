@@ -15,6 +15,15 @@ pub const FILES: &str = "files";
 pub const INDEX: &str = "index";
 pub const HISTORY: &str = "history";
 pub const TODOS: &str = "todos";
+
+/// A panel's title: `[n] files`, the number being the key that jumps to it.
+///
+/// Fixed numbers, not reading order: the layout changes between a folder session and
+/// a single-file one, and a number that moved with the layout would be a different key
+/// in each (RFC-001).
+pub fn titled(number: u8, name: &str) -> String {
+    format!("[{number}] {name}")
+}
 pub const COLLECTION: &str = "collection";
 pub const VIEW: &str = "view";
 pub const GENERAL: &str = "general";
@@ -124,7 +133,7 @@ pub fn collection_heading(kind: &str, name: &str) -> String {
 
 /// What the history panel is showing while a collection is open.
 pub fn history_of(path: &str) -> String {
-    format!("{HISTORY} · {path}")
+    format!("{} · {path}", titled(3, HISTORY))
 }
 
 /// A collection is a view, not a place: there is no line to move a todo to.

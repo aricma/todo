@@ -45,7 +45,14 @@ file view shows *a file*, and a todo in it is one line among prose.
    open file's headings, and moving in it would walk another file's sections.
 7. The wording of a message **MUST** name the panel it is about, in these words,
    wherever the panel it is about is not the one on screen.
-8. A panel whose rows do not fit **MUST** show a thumb (`▐`) on its inner right edge,
+8. A panel's title **MUST** start with the number of the key that jumps to it, `[1]`
+   for the files panel through `[4]` for the right-hand one (the todos panel, the file
+   view, or a collection, which take that place in turn). The numbers **MUST NOT**
+   follow the layout: a number that moved between a folder session and a single-file
+   one would be a different key in each. `0` **MUST NOT** be a panel number — it clears
+   a priority — and a panel that is not on screen **MUST NOT** be reachable by its
+   number.
+9. A panel whose rows do not fit **MUST** show a thumb (`▐`) on its inner right edge,
    and a panel whose rows fit **MUST NOT** show one. The track is not drawn: an empty
    column of track glyphs is a second border. A thumb that is always full says nothing,
    and on a narrow panel its column is a row's worth of text. The thumb is dim, so it
