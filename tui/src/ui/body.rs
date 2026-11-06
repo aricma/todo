@@ -45,6 +45,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
         lines,
         &tasks,
         &keep,
+        &gap,
         width,
         app.roomy.then_some(selected).flatten(),
     );
@@ -111,6 +112,7 @@ fn heights(
     lines: &[String],
     tasks: &HashMap<usize, Task>,
     keep: &[bool],
+    gap: &[bool],
     width: usize,
     roomy: Option<usize>,
 ) -> Vec<usize> {
@@ -118,6 +120,11 @@ fn heights(
         .iter()
         .enumerate()
         .map(|(index, _)| {
+            // the fold is one row and the line it stands for is none: the scroll
+            // arithmetic and the drawing have to agree, or the fold falls off the top
+            if gap[index] {
+                return 1;
+            }
             if !keep[index] {
                 return 0;
             }
@@ -146,9 +153,10 @@ pub const BELOW: usize = 3;
 /// folded away.
 ///
 /// Every todo keeps [`ABOVE`] lines above and [`BELOW`] below it, because the code
-/// around a note is what the note is about. What is left between two of those windows
-/// is one `…`, unless it is short enough to show — five lines or fewer, one line being
-/// the `…` itself — because a fold that saves one line costs more than it saves.
+/// around a note is what the note is about. Everything else is one `…` — the window is
+/// a promise, and a file whose first note sits on line 900 does not open with five lines
+/// of imports. The one exception is a run of a single line: a `…` replaces it with one
+/// row and takes a line away, so it costs without saving.
 fn folded(lines: &[String], tasks: &HashMap<usize, Task>) -> (Vec<bool>, Vec<bool>) {
     let mut keep = vec![false; lines.len()];
     for &at in tasks.keys() {
@@ -169,7 +177,7 @@ fn folded(lines: &[String], tasks: &HashMap<usize, Task>) -> (Vec<bool>, Vec<boo
         while index < keep.len() && !keep[index] {
             index += 1;
         }
-        if index - start <= ABOVE + BELOW + 1 {
+        if index - start == 1 {
             for line in &mut keep[start..index] {
                 *line = true;
             }

@@ -28,10 +28,11 @@ predict without counting.
 3. Lines that fall outside every such window **MUST** be replaced by a single `…` row at
    the start of the run they hide, and that row **MUST NOT** be numbered: the gutter is
    the file's, and a fold does not stand at a line of the file.
-4. A run of **five or fewer** lines outside the windows **MUST** be shown rather than
-   folded. Five is `ABOVE + BELOW + 1`, the fold's own cost plus one line more than both
-   windows together — folding it would save one row and cost the reader a scroll to see
-   the code behind the dots.
+4. A run of **one** line outside the windows **MUST** be shown rather than folded, and a
+   run of two or more **MUST** be one `…`. The fold is one row, so it buys nothing against
+   a single line and saves a row against two — and this is the rule at the start and end of
+   a file too, which is what makes the window a promise: a file does not open on its
+   imports and close on its trailing newline.
 5. Every line shown **MUST** keep the file's own number (RFC-002), including the code
    lines around a todo, and the todo's row is drawn as a todo row: dim lead, coloured body.
 6. The todo the cursor is on **MUST** always be in a window: the windows are computed from
@@ -43,8 +44,8 @@ predict without counting.
 ## How it is proven
 
 `use-cases/tui/read-a-comment-todo` opens a 24-line Rust file holding two comments: the
-screen shows the line above each and the three below it, one `…` for the lines between
-them,
+screen shows `…` where the first five lines were, the line above each note and the three
+below it, one `…` for the lines between them,
 and the file panel's row, the dim lead and the keys `e` and `d` — the case fails if the
 windows, the fold or the bar change.
 
@@ -85,8 +86,16 @@ kind of attention.
 - `ABOVE` and `BELOW` are two constants in one place. They are a taste decision, not a law;
   one and three is what keeps a note's block above it and the first three lines of the
   change below it.
-- A test must prove both directions: a long file folds and hides its far lines, and a gap
-  of exactly five lines is shown whole.
+- **The fold and the scroll arithmetic must agree**, and did not at first. A hidden line
+  costs no row and the `…` that replaces a run costs one; giving the `…` zero height in
+  the row heights made `offset_for` return the first line *after* a folded run at the top
+  of a file, so the fold was computed, drawn nowhere, and the window started one line
+  above the note with the rest of the file simply absent. The bug only appeared once the
+  windows stopped hiding the start of a file — a five-line run at the top used to be shown
+  whole — which is the argument for the rule in the first place.
+- A test must prove every boundary: a long file folds and hides its far lines, a file does
+  not open on the code above its first note, a single line outside a window is shown, and
+  two are folded.
 
 ## Open questions
 

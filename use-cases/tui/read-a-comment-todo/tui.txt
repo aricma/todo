@@ -2,7 +2,9 @@ wait: retry.rs
 key: right
 wait: back off before retry
 screen: ● retry.rs
+screen: 6 fn f6() {}
 screen: fn f8() {}
+screen: 19 fn f19() {}
 screen: …
 screen: stop asking for the token twice
 screen: e edit

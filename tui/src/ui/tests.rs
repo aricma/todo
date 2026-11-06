@@ -2,6 +2,8 @@
 //! Isolated in its own file because the drawing code it checks is short and these
 //! are not.
 
+use std::fmt::Write as _;
+
 use ratatui::style::Modifier;
 
 use crate::state::prompt::{Mode, Prompt};
@@ -1930,15 +1932,39 @@ fn a_code_file_shows_a_line_above_a_todo_and_three_below() {
 }
 
 #[test]
-fn a_short_gap_between_two_windows_of_code_is_shown_rather_than_folded() {
-    // exactly five lines between the last shown line of one window and the first of
-    // the next: a fold would save one row and cost the reader a step
-    // the todo and two lines, then exactly five hidden ones, then the end
-    let source = "// TODO: first\nfn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\nfn f() {}\nfn g() {}\n";
-    let (_tmp, mut app) = app(&[("src/a.rs", source)]);
-    app.pane = crate::state::action::Pane::View;
-    let text = screen(&app).join("\n");
-    assert!(text.contains("fn g"), "{text}");
+fn a_single_line_outside_a_window_is_shown_and_two_are_folded() {
+    // a `…` replaces one line with one row: it hides a line and saves nothing, so the
+    // line stays. Two lines is a row saved, so they go behind the fold.
+    let source = "// TODO: first\nfn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\n";
+    let (_tmp, mut one) = app(&[("src/a.rs", source)]);
+    one.pane = crate::state::action::Pane::View;
+    let text = screen(&one).join("\n");
+    // the window is the todo and the three lines under it; `d` is the one left over
+    assert!(text.contains("fn d"), "{text}");
     // the only ellipsis on screen is the shortened path in the header
     assert_eq!(text.matches('…').count(), 1, "a fold that saves nothing:\n{text}");
+
+    let longer = "// TODO: first\nfn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\n";
+    let (_tmp, mut two) = app(&[("src/b.rs", longer)]);
+    two.pane = crate::state::action::Pane::View;
+    let text = screen(&two).join("\n");
+    assert!(!text.contains("fn e"), "two lines are a row saved:\n{text}");
+    assert!(text.matches('…').count() >= 2, "no fold in:\n{text}");
+}
+
+#[test]
+fn a_file_does_not_open_on_the_code_before_its_first_todo() {
+    // the window is a promise: one line above the first note, however far down it is
+    let mut source = String::new();
+    for n in 1..=10 {
+        let _ = writeln!(source, "fn above{n}() {{}}");
+    }
+    source.push_str("// TODO: wire it up\nfn below() {}\n");
+    let (_tmp, mut app) = app(&[("src/a.rs", &source)]);
+    app.pane = crate::state::action::Pane::View;
+    let text = screen(&app).join("\n");
+    assert!(text.contains("fn above10"), "{text}");
+    assert!(!text.contains("fn above1("), "{text}");
+    assert!(!text.contains("fn above9("), "{text}");
+    assert!(text.matches('…').count() >= 2, "no fold in:\n{text}");
 }
