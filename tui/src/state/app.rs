@@ -123,8 +123,22 @@ impl App {
                 blocked.skipped_reason().unwrap_or_default()
             )));
         };
-        let baseline = store::load(&scan.entries[index].path)?;
         let single = path.is_file();
+        if single {
+            // a file named on the command line is shown whatever it holds (the scan
+            // says so), but a *session* on one promises there is something to read: a
+            // markdown file is a todo document wherever it lives — it is where todos
+            // get written — and anything else has to hold at least one `TODO:` comment
+            // (RFC-015, RFC-016)
+            let entry = &scan.entries[index];
+            if entry.source == Source::Comment && entry.stats.all == 0 {
+                return Err(Error::Ops(format!(
+                    "{}: neither a markdown todo file nor a file with a TODO comment",
+                    entry.path.display()
+                )));
+            }
+        }
+        let baseline = store::load(&scan.entries[index].path)?;
         let collections = collections::list(&scan.entries);
         let rows = Self::rows_for(&scan.entries, &collections, Showing::Both);
         // the cursor starts on the open file, not on the first row

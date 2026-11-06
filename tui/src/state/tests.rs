@@ -73,6 +73,35 @@ fn the_root_is_the_real_tree_not_the_dot_that_was_typed() {
 }
 
 #[test]
+fn a_session_on_a_file_says_what_it_cannot_read() {
+    // a code file with no `TODO:` comment has nothing to show, so naming it is an
+    // error rather than a session with an empty panel
+    let scratch = tempfile::tempdir().unwrap();
+    let code = scratch.path().join("main.rs");
+    std::fs::write(&code, "fn main() {}\n").unwrap();
+    let Err(error) = crate::state::App::open(&code) else {
+        panic!("a file with no todos opened a session");
+    };
+    assert!(
+        error.to_string().contains("neither a markdown todo file"),
+        "{error}"
+    );
+
+    // the same file with one comment is a session
+    std::fs::write(&code, "fn main() {} // TODO: check this\n").unwrap();
+    let (_tmp, app) = (scratch, crate::state::App::open(&code).expect("a comment todo"));
+    assert!(app.single);
+    assert_eq!(app.tasks().len(), 1);
+
+    // and a markdown file with no todos is still a place to write one
+    let notes = std::env::temp_dir().join("aricma-empty-notes.md");
+    std::fs::write(&notes, "# notes\n").unwrap();
+    let app = crate::state::App::open(&notes).expect("an empty document");
+    assert!(app.single);
+    let _ = std::fs::remove_file(&notes);
+}
+
+#[test]
 fn a_single_file_session_starts_on_its_todos_and_has_no_file_list() {
     let (_tmp, mut app) = single("- [ ] a\n");
     assert_eq!(app.pane, Pane::Todos);

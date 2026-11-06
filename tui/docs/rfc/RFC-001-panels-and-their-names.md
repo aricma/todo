@@ -37,7 +37,11 @@ file view shows *a file*, and a todo in it is one line among prose.
    collection. A source is a file or a collection, never both.
 4. Anything that is true of the todos panel **SHOULD** be true of it for either
    source: numbering (RFC-002), wrapping under the body, the band keeping a tag's
-   colour, the stats on its frame, the edit cursor inside a row.
+   colour, the stats on its frame, the edit cursor inside a row — and **scrolling**,
+   which is the same arithmetic as the file view's and the collection's: a height per
+   row, an offset that keeps the cursor where a reader expects it, and a thumb when the
+   rows do not fit. A panel that draws every row into its rect clips its list and lets
+   the cursor walk off the bottom, which is what the todos panel did until it caught up.
 5. The **file view MUST** show the whole document, in file order, with prose — it is
    the one place the prose around a todo can be read. It **MUST NOT** grow
    collection rows or todo stats: it is not a panel about todos.

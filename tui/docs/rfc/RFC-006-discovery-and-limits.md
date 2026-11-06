@@ -41,6 +41,13 @@ walks the same tree and the two must never disagree about what "the files" means
    its name is — the person named it.
 8. The header **MUST** name the **resolved** root, not the argument, so two sessions on
    two checkouts can be told apart.
+9. A **session opened on a file** — not a folder — **MUST** refuse a file it cannot read
+   as one of the three sources: a `.md` file is a todo document wherever it lives, and any
+   other file **MUST** hold at least one `TODO:` comment (RFC-016, RFC-019). Otherwise the
+   session **MUST** fail with a sentence naming the file and what is missing — *neither a
+   markdown todo file nor a file with a TODO comment* — rather than open a screen with an
+   empty panel and nothing to type into. Being **shown** in a listing (rule 7) and being
+   **opened as a session** are two different promises, and only the second is broken here.
 
 ## Why not the alternative
 
@@ -58,6 +65,10 @@ bound the *read*, not the display: the 10,000-line file is exactly the case wher
 parsing it is the cost.
 
 ## Consequences
+
+- A file named on the command line is still always *shown* — no rule above is narrowed —
+  but a session on one now has a floor: something to read. Naming a source file with no
+  notes in it is a mistake worth a sentence, not a screen that looks broken.
 
 - The listed-file rule is shared with `--check`, so a change to it is a change to
   what the CLI lints. One test asserts the three reasons a file can be listed.

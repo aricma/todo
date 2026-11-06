@@ -1890,6 +1890,24 @@ fn the_cursor_follows_the_text_into_the_next_row_of_the_field() {
 
 
 #[test]
+fn a_single_file_scrolls_its_todos_like_every_other_panel() {
+    let mut source = String::from("# many\n\n");
+    for n in 1..=30 {
+        let _ = writeln!(source, "- [ ] todo {n}");
+    }
+    let (_tmp, mut app) = single(&source);
+    assert_eq!(app.pane, crate::state::action::Pane::Todos);
+    // the list is longer than the panel: the last todo is not on screen yet
+    assert!(!texts(&app).contains("todo 30"), "{}", texts(&app));
+
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('G'));
+    let after = texts(&app);
+    assert!(after.contains("todo 30"), "the panel scrolled to it:\n{after}");
+    // and it has a thumb, because it has more rows than room
+    assert!(screen(&app).join("\n").contains('▐'), "no thumb:\n{after}");
+}
+
+#[test]
 fn a_panel_shows_a_thumb_only_when_it_has_more_rows_than_room() {
     let names: Vec<String> = (1..=30).map(|n| format!("d{n}/TODOs.md")).collect();
     let files: Vec<(&str, &str)> = names.iter().map(|n| (n.as_str(), "- [ ] a\n")).collect();
