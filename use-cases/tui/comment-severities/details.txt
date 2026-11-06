@@ -1,0 +1,17 @@
+who: a developer whose notes are not all the same kind — some are work to do, some are
+broken, some are deliberate.
+
+given: a Rust file with one note of each of the four words, and two lines that look
+almost like one: a lowercase `todo:` and `NOTTODO:`.
+
+expect: the file is listed with a count of four, and opening it shows the four notes as
+todos, each reading with the word it was written with.
+
+why: a `FIXME:` is the one word every codebase writes for "this is broken", and a tool
+that only reads `TODO:` quietly drops the notes that matter most. The word is not folded
+into `TODO:` in the display either — the line is not rewritten, so a `FIXME:` still says
+`FIXME:`.
+
+behaviour: a severity word in capitals followed by `:`; the word is kept in the line's
+lead and reported on the task; a word that continues a longer one is not a severity.
+RFC-020.

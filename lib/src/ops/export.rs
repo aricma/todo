@@ -4,7 +4,7 @@ use ops_lib::v0::{Format, Metadata, MetadataValue, Status, Task as OpsTask};
 
 use super::Exported;
 use crate::discover::Entry;
-use crate::doc::{spans, Doc};
+use crate::doc::Doc;
 use crate::error::Error;
 use crate::model::Task;
 use crate::store;
@@ -44,8 +44,7 @@ pub fn one(task: &Task) -> Result<String, Error> {
 /// One task as OPS, or `None` when OPS would not take it: no title, or a title past
 /// the spec's 1 KiB bound.
 fn ops(task: &Task, index: usize) -> Option<OpsTask> {
-    let parts = spans::parts(&task.body);
-    if parts.title.trim().is_empty() {
+    if task.title.trim().is_empty() {
         return None;
     }
     let title = title(task);
@@ -54,7 +53,7 @@ fn ops(task: &Task, index: usize) -> Option<OpsTask> {
     }
     let mut ops = OpsTask::new(title, status(task));
     ops.id = Some(format!("md-{index}"));
-    let metadata = metadata(&parts);
+    let metadata = metadata(task);
     if !metadata.is_empty() {
         ops.metadata = Some(metadata);
     }
@@ -63,8 +62,7 @@ fn ops(task: &Task, index: usize) -> Option<OpsTask> {
 
 /// What an export could not take, and why.
 fn skip(task: &Task, where_: &str) -> String {
-    let parts = spans::parts(&task.body);
-    if parts.title.trim().is_empty() {
+    if task.title.trim().is_empty() {
         return format!("{where_}: no title");
     }
     format!(
@@ -93,21 +91,30 @@ fn status(task: &Task) -> Status {
 
 /// The spec's recommended keys: `priority`, `tags`, and `assignee` for one
 /// assignee or `assignees` for several, mirroring `attachment`/`attachments`.
-fn metadata(parts: &crate::model::Parts) -> Metadata {
+fn metadata(task: &Task) -> Metadata {
     let mut metadata = Metadata::new();
-    if let Some(prio) = parts.prio {
+    if let Some(prio) = task.prio {
         metadata.insert(
             "priority".to_owned(),
             MetadataValue::String(prio.letter().to_string()),
         );
     }
-    if !parts.tags.is_empty() {
+    // a ticket has no common key in the spec, so it goes under a namespaced one: a
+    // reader that does not know this tool passes it through, and one that does reads it
+    // as a ticket (OPS RFC-019, RFC-021)
+    if let Some(ticket) = &task.ticket {
         metadata.insert(
-            "tags".to_owned(),
-            list(parts.tags.iter().map(|tag| tag.as_str().to_owned())),
+            "aricma_ticket".to_owned(),
+            MetadataValue::String(ticket.as_str().to_owned()),
         );
     }
-    let assignees: Vec<String> = parts
+    if !task.tags.is_empty() {
+        metadata.insert(
+            "tags".to_owned(),
+            list(task.tags.iter().map(|tag| tag.as_str().to_owned())),
+        );
+    }
+    let assignees: Vec<String> = task
         .assignees
         .iter()
         .map(|assignee| assignee.as_str().to_owned())
@@ -174,13 +181,25 @@ mod tests {
     }
 
     #[test]
+    fn a_ticket_travels_under_a_namespaced_key() {
+        // the spec recommends no key for a ticket, so it is the tool's own (OPS RFC-019)
+        let doc = Doc::parse_comment("// TODO(alice): #102 fix the retry\n");
+        let copied = super::one(&doc.tasks()[0]).unwrap();
+        let json: Value = serde_json::from_str(&copied).unwrap();
+        assert_eq!(json["metadata"]["aricma_ticket"], "102");
+        assert_eq!(json["metadata"]["assignee"], "alice");
+        assert!(json["metadata"].get("tags").is_none(), "{json}");
+    }
+
+    #[test]
     fn a_copied_todo_pastes_back_as_the_same_line() {
         use ops_lib::v0::Format;
         let doc = Doc::parse("  * [x] (A) ship it #x @dave\n");
         let task = doc.tasks()[0].clone();
         let copied = super::one(&task).unwrap();
         let mut into = Doc::parse("## todos\n");
-        let written = crate::ops::import::insert_document(&mut into, &copied, Format::Json, 1).unwrap();
+        let written =
+            crate::ops::import::insert_document(&mut into, &copied, Format::Json, 1).unwrap();
         assert_eq!(written, vec![1], "one line, where it was asked for");
         assert_eq!(into.render(), "## todos\n- [x] (A) ship it #x @dave\n");
     }

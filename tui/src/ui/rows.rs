@@ -231,6 +231,7 @@ pub fn styled(pieces: Vec<(Span<'static>, Segment)>, selected: bool) -> Vec<Span
                 span.style = match role {
                     Segment::Tag => super::consts::selection_name(super::prompt::TAG),
                     Segment::Assignee => super::consts::selection_name(super::prompt::ASSIGNEE),
+                    Segment::Ticket => super::consts::selection_name(super::prompt::TICKET),
                     Segment::Title | Segment::Prio => super::consts::selection(),
                 };
             }

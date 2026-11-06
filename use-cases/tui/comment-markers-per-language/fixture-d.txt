@@ -1,0 +1,3 @@
+TODO: a notes file needs no marker
+# TODO: and it takes any marker there is
+// TODO: this one too

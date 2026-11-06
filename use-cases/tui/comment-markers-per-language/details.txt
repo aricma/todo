@@ -1,0 +1,17 @@
+who: someone reading todos in a mixed repository — Rust, Python, SQL, and a plain notes
+file.
+
+given: four files, each holding one note in its own language's comment syntax and one in
+another language's.
+
+expect: every file is listed, and each count is the markers that file's language actually
+has: `a.rs` one, `b.py` one, `c.sql` one, and the `.txt` all three, because a file with no
+language accepts every marker and a bare line as well.
+
+why: `#` starts a comment in Python and an attribute in Rust; `--` starts one in SQL and
+is subtraction in C. Reading one set of markers into every file lists lines that are not
+comments, and every false positive in the tree is a row a person has to read before they
+trust the panel.
+
+behaviour: the marker set comes from the extension, or from the name when there is none
+(`Makefile`, `.gitignore`); an unknown language gets all of them. RFC-020, RFC-019.

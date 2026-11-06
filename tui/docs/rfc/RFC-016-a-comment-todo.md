@@ -1,7 +1,7 @@
 # RFC-016: A comment todo is one line of code
 
 - **Date:** 2026-10-16
-- **Related:** [RFC-013](RFC-013-a-todo-is-a-checkbox.md), [RFC-014](RFC-014-a-copied-todo-is-a-document.md), [RFC-015](RFC-015-sources-and-kinds.md), [RFC-018](RFC-018-reading-a-comment-todo-file.md), [RFC-019](RFC-019-not-every-todo-is-a-todo.md), [RFC-020](RFC-020-four-words-and-a-marker-per-language.md)
+- **Related:** [RFC-013](RFC-013-a-todo-is-a-checkbox.md), [RFC-014](RFC-014-a-copied-todo-is-a-document.md), [RFC-015](RFC-015-sources-and-kinds.md), [RFC-018](RFC-018-reading-a-comment-todo-file.md), [RFC-019](RFC-019-not-every-todo-is-a-todo.md), [RFC-020](RFC-020-four-words-and-a-marker-per-language.md), [RFC-021](RFC-021-who-it-is-for-and-which-ticket.md)
 
 ## Context
 
@@ -32,11 +32,13 @@ This RFC is about the *grammar* of what a hit contains.
    shown as the todo's lead: the indentation, the comment marker, the severity word, and
    whatever the language puts there — `    // TODO: `, `# FIXME: `, `/* HACK: `. The tool
    does not own the comment syntax and never rewrites it.
-4. The body is the text after the severity word, its colon, and the one space that follows. It is read by
-   the same rules as a todo document's body, and **MUST** be: a priority token `(A)`–`(D)`
-   at the start, `#tags`, `@people` anywhere. That is how a comment todo gets a priority —
-   **`TODO: (A) fix the retry`** — and it is why the priority is written *after* the
-   colon rather than inside the comment marker.
+4. The body is the text after the severity word, its colon, and the one space that follows.
+   It is read by the same rules as a todo document's body, and **MUST** be: a priority token
+   `(A)`–`(D)` at the start, `#tags`, `@people`, a `#102` ticket anywhere (RFC-021). That is
+   how a comment todo gets a priority — **`TODO: (A) fix the retry`** — and it is why the
+   priority is written *after* the colon rather than inside the comment marker.
+   A person **MAY** also be named between the word and its colon — `TODO(alice): ` — and is
+   then one of the body's `@people`, never a second field, and never a priority (RFC-021).
 5. Editing a comment todo **MUST** rewrite only the body. The code in front of it and
    after it on the same line is untouched.
 6. A comment todo **MUST** be able to be: edited, copied, priced, deleted. It **MUST NOT**

@@ -1,0 +1,1 @@
+Four words open a todo comment — `TODO`, `FIXME`, `HACK`, `XXX` — and lower case or a longer word does not.

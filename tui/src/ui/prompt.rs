@@ -5,10 +5,13 @@ use aricma_todo_lib::model::Segment;
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 
-/// Priority, tag and assignee colours. Deliberately few: a title is uncoloured.
+/// Priority, tag, assignee and ticket colours. Deliberately few: a title is uncoloured.
 pub const PRIO: Color = Color::Yellow;
 pub const TAG: Color = Color::Cyan;
 pub const ASSIGNEE: Color = Color::Magenta;
+/// A ticket is the one thing in a body that points somewhere else, so it gets the one
+/// colour nothing else has.
+pub const TICKET: Color = Color::Blue;
 
 /// The style for one recognised piece.
 pub fn style(segment: Segment) -> Style {
@@ -16,6 +19,7 @@ pub fn style(segment: Segment) -> Style {
         Segment::Prio => Style::default().fg(PRIO).add_modifier(Modifier::BOLD),
         Segment::Tag => Style::default().fg(TAG),
         Segment::Assignee => Style::default().fg(ASSIGNEE),
+        Segment::Ticket => Style::default().fg(TICKET),
         Segment::Title => Style::default(),
     }
 }
@@ -63,13 +67,14 @@ pub fn pieces(body: &str) -> Vec<(Span<'static>, Segment)> {
 mod tests {
     use aricma_todo_lib::model::Segment;
 
-    use super::{line, style, ASSIGNEE, PRIO, TAG};
+    use super::{line, style, ASSIGNEE, PRIO, TAG, TICKET};
 
     #[test]
     fn recognised_pieces_get_their_colour_and_title_does_not() {
         assert_eq!(style(Segment::Prio).fg, Some(PRIO));
         assert_eq!(style(Segment::Tag).fg, Some(TAG));
         assert_eq!(style(Segment::Assignee).fg, Some(ASSIGNEE));
+        assert_eq!(style(Segment::Ticket).fg, Some(TICKET));
         assert_eq!(style(Segment::Title).fg, None);
     }
 

@@ -1,0 +1,8 @@
+wait: notes.rs
+screen: notes.rs
+key: right
+wait: pay the invoice
+screen: FIXME: the retry doubles the
+screen: HACK: the cache is cleared
+screen: XXX: this branch is never taken
+screen: 0/4

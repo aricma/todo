@@ -103,15 +103,18 @@ every file is a compromise every language loses.
     reported as `Task::severity`. The tool does not rewrite a comment's marker or its word
     (RFC-016 rule 3), so the screen shows `// FIXME:` without the model having to render it.
 
-### What is not added
+### What was not added here, and what RFC-021 added afterwards
 
-17. `TODO(alice):` **MUST NOT** be read as an assignee. A body already has
+17. `TODO(alice):` was **not** read as an assignee in this RFC. A body already has
     `@alice` (RFC-016 rule 4), and a second spelling of one field is how two parsers start
-    disagreeing about the same line. `// TODO(bob): pay rent` stays a miss in RFC-019's
-    table, and the RFC-019 test still asserts it as one.
-18. A ticket **MUST NOT** be a field of its own. `#102` is a tag today, and a number in a
-    tag is a tag: a second kind of `#` token would have to be re-taught to collections,
-    findings, copy and search to buy nothing but a label.
+    disagreeing about the same line. **Reversed by [RFC-021](RFC-021-who-it-is-for-and-which-ticket.md)**:
+    the parentheses are read, and they are normalised into the one list of people rather
+    than into a second field — the worry here was about storage, and it stands.
+18. A ticket was **not** a field of its own in this RFC: `#102` is a tag, and a second kind
+    of `#` token would have to be re-taught to collections, findings, copy and search to buy
+    nothing but a label. **Reversed by [RFC-021](RFC-021-who-it-is-for-and-which-ticket.md)**:
+    a ticket-shaped `#` token is a `Ticket`, it is what the label was for, and the rules
+    that had to be re-taught are named there.
 
 ## Why not the alternative
 
@@ -147,6 +150,8 @@ shown because it is still in the line.
 - **`FIXME:`, `HACK:` and `XXX:` are todos now.** RFC-019's open question — *is `FIXME:` a
   todo?* — is answered yes, and the answer is a `Severity` on the task rather than a second
   list.
+- **`TODO(bob):` is a todo too, as of RFC-021.** The miss this RFC's table carried is gone:
+  the parentheses name a person, and RFC-019's table records the change.
 - **A note in the middle of a comment is found.** `// note: FIXME: x` and
   `/* note — TODO: x */` were missed; the marker only had to be adjacent. That is the
   widening this RFC buys, and it is inside a comment, which is where precision is cheap.

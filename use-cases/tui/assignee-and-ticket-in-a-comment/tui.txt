@@ -1,0 +1,8 @@
+wait: ticket.rs
+screen: ticket.rs  0/2  @2
+key: right
+wait: FIXME(alice): (A) #102 the retry
+screen: TODO(alice): (B) #PROJ-404 ship it
+screen: @alice  0/2
+screen: @bob  0/1
+screen: 0/2  @2

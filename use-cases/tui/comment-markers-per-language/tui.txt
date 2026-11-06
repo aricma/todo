@@ -1,0 +1,10 @@
+wait: a.rs
+screen: a.rs
+screen: b.py
+screen: c.sql
+screen: d.txt
+screen: 0/3
+key: right
+wait: a slash is a comment here
+screen: a hash is an attribute, not a com
+screen: 0/1

@@ -1,4 +1,4 @@
-use crate::model::{Assignee, Prio, Tag};
+use crate::model::{Assignee, Prio, Tag, Ticket};
 
 /// A task body cut into what this tool recognises.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -10,6 +10,8 @@ pub struct Parts {
     pub title: String,
     pub tags: Vec<Tag>,
     pub assignees: Vec<Assignee>,
+    /// The first `#` token that looks like a ticket number (RFC-021).
+    pub ticket: Option<Ticket>,
 }
 
 #[cfg(test)]
@@ -25,6 +27,7 @@ mod tests {
                 title: String::new(),
                 tags: Vec::new(),
                 assignees: Vec::new(),
+                ticket: None,
             }
         );
     }

@@ -10,7 +10,12 @@ impl Assignee {
     /// Parse a whole token, `@` included. `None` means "not an assignee", and
     /// the token stays plain text in the body.
     pub fn parse(raw: &str) -> Option<Self> {
-        let word = raw.strip_prefix('@')?;
+        Self::bare(raw.strip_prefix('@')?)
+    }
+
+    /// Parse a bare word, without the `@`: the `alice` of `TODO(alice): `, which is a
+    /// comment's way of naming the same person the body names with `@alice` (RFC-021).
+    pub fn bare(word: &str) -> Option<Self> {
         is_word(word).then(|| Self(word.to_owned()))
     }
 

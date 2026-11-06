@@ -6,7 +6,7 @@
 use super::comment::{self, Comment};
 use super::spans;
 use super::{Doc, Source, Syntax};
-use crate::model::{Severity, Task};
+use crate::model::{Assignee, Severity, Task};
 
 impl Doc {
     /// Split a file into lines. CRLF loses its `\r`, a BOM is dropped, and the
@@ -79,57 +79,106 @@ fn scan_comment(lines: &[String], syntax: Syntax) -> Vec<Task> {
 /// is a todo, because both halves are inside the comment. What still has to hold is
 /// the rule itself, one word at a time:
 ///
-/// - a severity word in capitals, followed by its colon (RFC-020);
+/// - a severity word in capitals, followed by its colon — or by an assignee in
+///   parentheses and then its colon: `TODO(alice): ` (RFC-020, RFC-021);
 /// - the word has to start a word — `NOTTODO:` is a longer word, not a todo;
 /// - nothing between the start of the line and the word may be a quote, which is the
 ///   only thing standing between this and a `TODO:` inside a string (RFC-019);
 /// - at least one character after the colon that is not a space, because a bare
 ///   `TODO:` promises something and says nothing.
 fn todo_in(line: &str, comment: &Comment) -> Option<Task> {
-    let word = severities(&line[comment.at..])
+    let word = words(&line[comment.at..])
         .into_iter()
-        .map(|(at, severity)| (comment.at + at, severity))
-        .find(|(at, _)| at_word_start(line, *at) && !quoted(&line[..*at]))?;
-    let (at, severity) = word;
-    let after = at + severity.word().len() + 1;
+        .map(|word| Word {
+            at: comment.at + word.at,
+            after: comment.at + word.after,
+            ..word
+        })
+        .find(|word| at_word_start(line, word.at) && !quoted(&line[..word.at]))?;
     // the body starts after the colon and the one space that separates it, if there
     // is one: the rest is the line's, whitespace and all
-    let start = if line[after..].starts_with(' ') {
-        after + 1
+    let start = if line[word.after..].starts_with(' ') {
+        word.after + 1
     } else {
-        after
+        word.after
     };
     let body = line[start..].trim();
     if body.is_empty() {
         return None;
     }
     let parts = spans::parts(body);
+    // whoever the word named is in the same list as whoever the body named, once: a
+    // todo is one thing with one set of people on it, however the line spells them
+    let mut assignees = parts.assignees;
+    if let Some(assignee) = word.assignee {
+        if !assignees.contains(&assignee) {
+            assignees.insert(0, assignee);
+        }
+    }
     Some(Task {
         line: comment.line,
         indent: line.len() - line.trim_start_matches(' ').len(),
         done: false,
-        severity: Some(severity),
+        severity: Some(word.severity),
         prio: parts.prio,
         title: parts.title,
         body: body.to_owned(),
         tags: parts.tags,
-        assignees: parts.assignees,
+        assignees,
+        ticket: parts.ticket,
         marker: String::new(),
+        // everything the tool does not own, the assignee in parentheses included
         prefix: Some(line[..start].to_owned()),
     })
 }
 
-/// Every `WORD:` in the text, earliest first.
-fn severities(text: &str) -> Vec<(usize, Severity)> {
-    let mut found: Vec<(usize, Severity)> = Vec::new();
+/// One severity word with its colon, and what a comment may put between them.
+struct Word {
+    /// Byte offset of the word in the text it was found in.
+    at: usize,
+    severity: Severity,
+    /// The `(alice)` of `TODO(alice): `, which is an assignee and never a priority: a
+    /// priority is written after the colon, where the body is (RFC-021).
+    assignee: Option<Assignee>,
+    /// Byte offset just after the colon.
+    after: usize,
+}
+
+/// The word of `TODO(alice): `, the assignee, and how many bytes it takes.
+///
+/// `None` when what follows the word is neither `:` nor `(a word):` — `TODO (x): `, a
+/// parenthesis that never closes, and `TODO(): ` are not a todo's word.
+fn in_parens(text: &str) -> Option<(Assignee, usize)> {
+    let rest = text.strip_prefix('(')?;
+    let (word, after) = rest.split_once(')')?;
+    let after = after.strip_prefix(':')?;
+    Some((Assignee::bare(word)?, text.len() - after.len()))
+}
+
+/// Every severity word that opens a todo, earliest first.
+fn words(text: &str) -> Vec<Word> {
+    let mut found: Vec<Word> = Vec::new();
     for severity in Severity::ALL {
         for (at, _) in text.match_indices(severity.word()) {
+            let rest = &text[at + severity.word().len()..];
             if severity.opens(&text[at..]) {
-                found.push((at, severity));
+                found.push(Word {
+                    at,
+                    severity,
+                    assignee: None,
+                    after: at + severity.word().len() + 1,
+                });
+            } else if let Some((assignee, taken)) = in_parens(rest) {
+                found.push(Word {
+                    at,
+                    severity,
+                    assignee: Some(assignee),
+                    after: at + severity.word().len() + taken,
+                });
             }
         }
     }
-    found.sort_by_key(|(at, _)| *at);
+    found.sort_by_key(|word| word.at);
     found
 }
 
@@ -229,6 +278,7 @@ pub(crate) fn parse_line(line: &str, index: usize) -> Option<Task> {
         body: body.to_owned(),
         tags: parts.tags,
         assignees: parts.assignees,
+        ticket: parts.ticket,
         marker,
         prefix: None,
     })
@@ -256,7 +306,7 @@ pub(crate) fn bullet(rest: &str) -> Option<(String, &str)> {
 #[cfg(test)]
 mod tests {
     use super::Doc;
-    use crate::model::{Prio, Severity};
+    use crate::model::{Prio, Severity, Ticket};
 
     #[test]
     fn a_comment_todo_file_finds_its_todo_comments_and_nothing_else() {
@@ -291,6 +341,85 @@ mod tests {
         assert_eq!(tasks[1].lead(), "// FIXME: ");
         assert_eq!(tasks[1].body, "b");
         assert_eq!(tasks[1].render(), "// FIXME: b");
+    }
+
+    #[test]
+    fn a_word_may_name_who_it_is_for() {
+        let doc = Doc::parse_comment("// FIXME(alice): the retry is wrong\n");
+        let task = &doc.tasks()[0];
+        // the person is in the same list the body's `@alice` would go in, and the text
+        // stays in the lead: the tool never rewrites a comment's own grammar
+        assert_eq!(
+            task.assignees
+                .iter()
+                .map(|who| who.as_str().to_owned())
+                .collect::<Vec<_>>(),
+            ["alice"]
+        );
+        assert_eq!(task.lead(), "// FIXME(alice): ");
+        assert_eq!(task.body, "the retry is wrong");
+        assert_eq!(task.render(), "// FIXME(alice): the retry is wrong");
+        assert_eq!(task.title, "the retry is wrong");
+    }
+
+    #[test]
+    fn the_people_in_the_word_and_in_the_body_are_one_list() {
+        let doc = Doc::parse_comment("// TODO(alice): ship it @bob\n");
+        let task = &doc.tasks()[0];
+        assert_eq!(
+            task.assignees
+                .iter()
+                .map(|who| who.as_str().to_owned())
+                .collect::<Vec<_>>(),
+            ["alice", "bob"]
+        );
+        // and naming one person twice is still one person
+        let twice = Doc::parse_comment("// TODO(alice): ship it @alice\n");
+        assert_eq!(twice.tasks()[0].assignees.len(), 1);
+    }
+
+    #[test]
+    fn the_parentheses_are_an_assignee_and_never_a_priority() {
+        // `(A)` between the word and the colon is a person called A, because a priority
+        // is written after the colon, where the body is (RFC-021)
+        let doc = Doc::parse_comment("// TODO(A): pay rent\n");
+        let task = &doc.tasks()[0];
+        assert_eq!(task.prio, None);
+        assert_eq!(task.assignees[0].as_str(), "A");
+
+        let priority = &Doc::parse_comment("// TODO(alice): (A) pay rent\n").tasks()[0];
+        assert_eq!(priority.prio, Some(Prio::A));
+        assert_eq!(priority.assignees[0].as_str(), "alice");
+    }
+
+    #[test]
+    fn a_ticket_number_is_not_a_tag() {
+        for (line, ticket) in [
+            ("// TODO: #102 fix the retry\n", "102"),
+            ("// FIXME(alice): #PROJ-404 the retry\n", "PROJ-404"),
+        ] {
+            let doc = Doc::parse_comment(line);
+            let task = &doc.tasks()[0];
+            assert_eq!(
+                task.ticket.as_ref().map(Ticket::as_str),
+                Some(ticket),
+                "{line:?}"
+            );
+            assert!(task.tags.is_empty(), "{line:?}: {task:#?}");
+            assert!(!task.title.contains(ticket), "{line:?}: {}", task.title);
+        }
+        // a tag with letters in it stays a tag, and a second ticket-shaped token is one
+        // too — a line names the ticket it is about first
+        let doc = Doc::parse_comment("// TODO: #home #102 #103 ship it\n");
+        let task = &doc.tasks()[0];
+        assert_eq!(task.ticket.as_ref().map(Ticket::as_str), Some("102"));
+        assert_eq!(
+            task.tags
+                .iter()
+                .map(|tag| tag.as_str().to_owned())
+                .collect::<Vec<_>>(),
+            ["home", "103"]
+        );
     }
 
     #[test]
@@ -418,6 +547,9 @@ mod tests {
             "// FIXME: pay rent",
             "// HACK: pay rent",
             "// XXX: pay rent",
+            // an assignee between the word and its colon, since RFC-021
+            "// TODO(bob): pay rent",
+            "// FIXME(bob): pay rent",
         ];
         let missed = [
             // the quote rule: the marker is quoted
@@ -429,7 +561,11 @@ mod tests {
             "// Todo: pay rent",
             // the colon rule
             "// TODO pay rent",
-            "// TODO(bob): pay rent",
+            // a space before the parentheses is not the word's assignee, and a
+            // parenthesis that does not close on a word is nobody
+            "// TODO (bob): pay rent",
+            "// TODO(): pay rent",
+            "// TODO(bob pay rent",
             // the word rule: a severity that is the tail of a longer word
             "// NOTTODO: pay rent",
             // the body rule

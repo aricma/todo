@@ -1,4 +1,4 @@
-use crate::model::{Assignee, Prio, Severity, Tag};
+use crate::model::{Assignee, Prio, Severity, Tag, Ticket};
 
 /// One todo line, derived from a single line of the file.
 ///
@@ -21,6 +21,9 @@ pub struct Task {
     pub title: String,
     pub tags: Vec<Tag>,
     pub assignees: Vec<Assignee>,
+    /// The `#102` this todo is about, when its body holds one: a ticket number is not a
+    /// tag, and it is what a person reads to go and look at the issue (RFC-021).
+    pub ticket: Option<Ticket>,
     /// The bullet that opened the line (`-`, `*`, `+`, `1.`), kept verbatim.
     pub(crate) marker: String,
     /// For a todo that is a comment rather than a checkbox: everything in front of

@@ -6,7 +6,7 @@
 
 use std::ops::Range;
 
-use crate::model::{Assignee, Parts, Prio, Segment, Tag};
+use crate::model::{Assignee, Parts, Prio, Segment, Tag, Ticket};
 
 /// A task body cut into what this tool recognises.
 pub fn parts(body: &str) -> Parts {
@@ -15,6 +15,18 @@ pub fn parts(body: &str) -> Parts {
     for token in tokens(body) {
         match token.kind {
             Kind::Prio(prio) => parts.prio = Some(prio),
+            Kind::Ticket => {
+                // the first ticket-shaped token is the ticket; a second one is a tag,
+                // because a line that names two tickets has one it is *about*
+                match Ticket::parse(&body[token.range.clone()]) {
+                    Some(ticket) if parts.ticket.is_none() => parts.ticket = Some(ticket),
+                    _ => {
+                        if let Some(tag) = Tag::parse(&body[token.range]) {
+                            parts.tags.push(tag);
+                        }
+                    }
+                }
+            }
             Kind::Tag => {
                 if let Some(tag) = Tag::parse(&body[token.range]) {
                     parts.tags.push(tag);
@@ -43,6 +55,7 @@ pub fn segments(body: &str) -> Vec<(Segment, Range<usize>)> {
             Kind::Prio(_) => Segment::Prio,
             Kind::Tag => Segment::Tag,
             Kind::Assignee => Segment::Assignee,
+            Kind::Ticket => Segment::Ticket,
             // Consecutive words are one title run, gaps included.
             Kind::Text => match segments.last_mut() {
                 Some((Segment::Title, range)) => {
@@ -64,6 +77,7 @@ enum Kind {
     Text,
     Tag,
     Assignee,
+    Ticket,
 }
 
 struct Token {
@@ -97,7 +111,10 @@ fn tokens(body: &str) -> Vec<Token> {
 }
 
 fn classify(text: &str, start: usize) -> Token {
-    let kind = if Tag::parse(text).is_some() {
+    let kind = if Ticket::parse(text).is_some() {
+        // a ticket is checked first, so `#102` is a ticket and not a tag
+        Kind::Ticket
+    } else if Tag::parse(text).is_some() {
         Kind::Tag
     } else if Assignee::parse(text).is_some() {
         Kind::Assignee

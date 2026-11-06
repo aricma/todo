@@ -60,14 +60,15 @@ Everything a person reads on screen has a name, and the names are in
 | 018 | [Reading a comment todo file](RFC-018-reading-a-comment-todo-file.md) | a line above each todo, three below, one `…` for the rest, and nothing folded in a document |
 | 019 | [Not every line with a `TODO` in it is a todo](RFC-019-not-every-todo-is-a-todo.md) | the rule is a guess, it guesses narrow, and the table of what it misses is normative |
 | 020 | [Four words, and a marker each language uses](RFC-020-four-words-and-a-marker-per-language.md) | comments first, then todos in them; `TODO`/`FIXME`/`HACK`/`XXX`; the marker comes from the file's extension |
+| 021 | [Who it is for, and which ticket](RFC-021-who-it-is-for-and-which-ticket.md) | `TODO(alice):` is one of the body's people; `#102`/`#PROJ-404` is a ticket and not a tag |
 
 ### Next
 
 | # | the behaviour |
 | --- | --- |
-| 021 | Staying current: the 0.75 s poll, the reload that forgets history, and the conflict that only a person can settle |
-| 022 | The CLI: `check`, `format`, `export`, `import` — the same rules without a screen |
-| 023 | Block comments: `/* … */` and `<!-- … -->` spanning lines, and what a range does to edit, undo and copy |
+| 022 | Block comments: `/* … */` and `<!-- … -->` spanning lines, and what a range does to edit, undo and copy |
+| 023 | Staying current: the 0.75 s poll, the reload that forgets history, and the conflict that only a person can settle |
+| 024 | The CLI: `check`, `format`, `export`, `import` — the same rules without a screen |
 
 Written after this pass: the doc claimed `r`/`ctrl+r` forced a reload. There is no
 such key (`state/tests.rs` asserts `r` is not one), and `lazytodo.md` now says so.

@@ -1,0 +1,1 @@
+The marker that opens a comment comes from the file's own language, so a hash in a Rust file is not one.
