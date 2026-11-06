@@ -583,17 +583,17 @@ fn a_deleted_todo_toggles_once_each_way_and_never_duplicates() {
 
     app.pane = Pane::History;
     app.history_idx = 0;
-    press(&mut app, KeyCode::Char('x'));
+    press(&mut app, KeyCode::Char(' '));
     assert_eq!(app.doc.render(), "- [ ] a\n- [ ] b\n", "undone");
     assert!(!app.history[0].applied, "the row says it is undone");
 
     // and redoing is the delete again, not another copy of the line
-    press(&mut app, KeyCode::Char('x'));
+    press(&mut app, KeyCode::Char(' '));
     assert_eq!(app.doc.render(), "- [ ] b\n", "redone");
     assert!(app.history[0].applied, "the row says it is applied");
 
     // a third press undoes it again, once
-    press(&mut app, KeyCode::Char('x'));
+    press(&mut app, KeyCode::Char(' '));
     assert_eq!(app.doc.render(), "- [ ] a\n- [ ] b\n");
 }
 
@@ -608,14 +608,14 @@ fn an_added_todo_toggles_once_each_way_and_never_duplicates() {
 
     app.pane = Pane::History;
     app.history_idx = 0;
-    press(&mut app, KeyCode::Char('x'));
+    press(&mut app, KeyCode::Char(' '));
     assert_eq!(app.doc.render(), "- [ ] a\n", "undone");
-    press(&mut app, KeyCode::Char('x'));
+    press(&mut app, KeyCode::Char(' '));
     assert_eq!(app.doc.render(), "- [ ] a\n- [ ] new\n", "redone once");
 }
 
 #[test]
-fn x_on_a_history_entry_reverts_it_and_x_again_redoes_it() {
+fn space_on_a_history_entry_reverts_it_and_space_again_redoes_it() {
     let (_tmp, mut app) = app(&[(
         "TODOs.md", "- [ ] a
 ",
@@ -624,7 +624,9 @@ fn x_on_a_history_entry_reverts_it_and_x_again_redoes_it() {
     app.press(KeyCode::Char('x'));
     app.pane = Pane::History;
 
-    let text = save_text(app.press(KeyCode::Char('x')));
+    // `x` is the todo's key and does nothing here: a write is not a checkbox
+    assert_eq!(app.press(KeyCode::Char('x')), None);
+    let text = save_text(app.press(KeyCode::Char(' ')));
     assert_eq!(
         text,
         "- [ ] a
@@ -632,7 +634,7 @@ fn x_on_a_history_entry_reverts_it_and_x_again_redoes_it() {
     );
     assert!(!app.history[0].applied);
 
-    let text = save_text(app.press(KeyCode::Char('x')));
+    let text = save_text(app.press(KeyCode::Char(' ')));
     assert_eq!(
         text,
         "- [x] a
@@ -655,7 +657,7 @@ fn reverting_a_stale_entry_is_refused_with_a_message() {
         "- [x] someone else
 ",
     );
-    assert_eq!(app.press(KeyCode::Char('x')), None);
+    assert_eq!(app.press(KeyCode::Char(' ')), None);
     assert!(app.history[0].applied);
     let message = app.history[0].message.clone().expect("the row says why");
     assert!(message.text.contains("changed since then"), "{message:?}");
@@ -674,7 +676,7 @@ fn opt_down_swaps_a_todo_with_the_one_below_it_and_the_cursor_follows() {
     // and the move is one write, undone as one
     app.pane = Pane::History;
     app.history_idx = 0;
-    press(&mut app, KeyCode::Char('x'));
+    press(&mut app, KeyCode::Char(' '));
     assert_eq!(app.doc.render(), "- [ ] a\n- [ ] b\n- [ ] c\n");
     assert_eq!(app.current_task().unwrap().body, "a", "back where it was");
 }
@@ -1283,7 +1285,7 @@ fn d_on_a_reverted_entry_forgets_it_without_redoing_it() {
     app.pane = Pane::View;
     press(&mut app, KeyCode::Char('x'));
     app.pane = Pane::History;
-    press(&mut app, KeyCode::Char('x')); // uncheck the entry: file is back to [ ]
+    press(&mut app, KeyCode::Char(' ')); // undo the entry: file is back to [ ]
     assert!(!app.history[0].applied);
 
     assert_eq!(
@@ -1317,7 +1319,7 @@ fn undoing_a_write_undoes_the_writes_that_sit_on_it() {
 
     // the oldest write: everything above it goes with it
     app.history_idx = 2;
-    assert!(press(&mut app, KeyCode::Char('x')).is_some());
+    assert!(press(&mut app, KeyCode::Char(' ')).is_some());
     assert_eq!(app.doc.render(), "- [ ] a\n", "back to the start");
     assert!(app.history.iter().all(|entry| !entry.applied));
 }
@@ -1326,7 +1328,7 @@ fn undoing_a_write_undoes_the_writes_that_sit_on_it() {
 fn undoing_the_newest_write_leaves_its_parent_alone() {
     let (_tmp, mut app) = chain();
     app.history_idx = 0;
-    assert!(press(&mut app, KeyCode::Char('x')).is_some());
+    assert!(press(&mut app, KeyCode::Char(' ')).is_some());
     assert_eq!(app.doc.render(), "- [ ] a\n", "one step back");
     assert!(!app.history[0].applied);
     assert!(app.history[1].applied, "its parent is still in effect");
@@ -1337,13 +1339,13 @@ fn undoing_the_newest_write_leaves_its_parent_alone() {
 fn a_write_cannot_be_redone_before_the_one_under_it() {
     let (_tmp, mut app) = chain();
     app.history_idx = 2;
-    press(&mut app, KeyCode::Char('x'));
+    press(&mut app, KeyCode::Char(' '));
     assert_eq!(app.doc.render(), "- [ ] a\n");
 
     // the newest write goes on top of the middle one, which is also undone
     app.history_idx = 0;
     let before = app.doc.render();
-    assert_eq!(press(&mut app, KeyCode::Char('x')), None, "no write");
+    assert_eq!(press(&mut app, KeyCode::Char(' ')), None, "no write");
     assert_eq!(app.doc.render(), before);
     // the row says why by itself, without anything being stored
     assert_eq!(app.message, None, "nothing is carried around");
@@ -1354,13 +1356,13 @@ fn a_write_cannot_be_redone_before_the_one_under_it() {
 
     // bottom up, and it works
     app.history_idx = 2;
-    assert!(press(&mut app, KeyCode::Char('x')).is_some());
+    assert!(press(&mut app, KeyCode::Char(' ')).is_some());
     assert_eq!(app.doc.render(), "- [x] a\n");
     app.history_idx = 1;
-    assert!(press(&mut app, KeyCode::Char('x')).is_some());
+    assert!(press(&mut app, KeyCode::Char(' ')).is_some());
     assert_eq!(app.doc.render(), "- [ ] a\n");
     app.history_idx = 0;
-    assert!(press(&mut app, KeyCode::Char('x')).is_some());
+    assert!(press(&mut app, KeyCode::Char(' ')).is_some());
     assert_eq!(app.doc.render(), "- [x] a\n");
 }
 
@@ -1439,7 +1441,7 @@ fn undoing_a_write_leaves_the_writes_it_does_not_undo_applied() {
 
     // undo the check: the uncheck hangs on it, the priority writes do not
     app.history_idx = 3;
-    assert!(press(&mut app, KeyCode::Char('x')).is_some());
+    assert!(press(&mut app, KeyCode::Char(' ')).is_some());
     assert_eq!(app.doc.render(), "- [ ] write the README\n");
     assert!(!app.history[3].applied, "the check is undone");
     assert!(!app.history[1].applied, "and the uncheck that hung on it");
@@ -1448,7 +1450,7 @@ fn undoing_a_write_leaves_the_writes_it_does_not_undo_applied() {
 
     // the newest priority write, undone on its own: only its own pair moves
     app.history_idx = 0;
-    assert!(press(&mut app, KeyCode::Char('x')).is_some());
+    assert!(press(&mut app, KeyCode::Char(' ')).is_some());
     assert_eq!(app.doc.render(), "- [ ] (B) write the README\n");
     assert!(!app.history[0].applied);
     assert!(app.history[2].applied, "the pair below it is untouched");

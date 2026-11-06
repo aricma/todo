@@ -49,10 +49,14 @@ three writes ago, and everything that hung on it".
 
 11. An entry **MUST** be one row by default: a label too long for the panel is cut with
     `…` at the panel's edge. `h` **MUST** switch between that and wrapping, per session,
-    and the bar **MUST** say which way it goes (`h wrap` / `h one line`). One row is the
-    default because the trail is what the panel is for: three long write names push a
-    session's history off the panel, and a history you have to scroll to read is a history
-    you stop reading.
+    and the bar **MUST** say which way it goes — `h unhide` while the labels are one line,
+    `h hide` while they are wrapped. One row is the default because the trail is what the
+    panel is for: three long write names push a session's history off the panel, and a
+    history you have to scroll to read is a history you stop reading.
+12. The undo **MUST** be `space` alone, and `x` **MUST NOT** undo or redo anything: a
+    history entry is a write, not a todo, so it has no checkbox for the todo's key to be
+    the twin of. The two keys were the same key for a while, and that read as a checkbox
+    the panel had borrowed from the other one.
 
 ## Why not the alternative
 

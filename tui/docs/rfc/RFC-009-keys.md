@@ -65,7 +65,7 @@ none, and the bar offers the spelling that always arrives.
 | every panel | `↑/↓` | nav | the arrows move the *cursor*, not the thing under it. The bar used to name that thing (`↑/↓ todo`, `↑/↓ entry`, `↑/↓ file / collection`, `↑/↓ heading`), which read as a series of verbs beside `x check` and `d delete`; one idea is one word, so every panel says the same |
 | files panel | `n` | new file | new where files are chosen |
 | files panel | `d` | delete file | the panel's own destructive verb, behind `Y` |
-| files panel, history panel | `h` | hide / unhide | one idea, show less of the list: in the file panel it widens or narrows the scan to `*.md`, in the history it switches a write's label between one row clipped with `…` and as many rows as it needs. The bar names the direction, since a toggle that says "hide" while everything is visible reads as its opposite |
+| files panel, history panel | `h` | hide / unhide | one idea, show less of the list: in the file panel it widens or narrows the scan to `*.md`, in the history it switches a write's label between one row clipped with `…` and as many rows as it needs. It comes **after** the panel's own verbs, because it is about the list and not about the row under the cursor. The bar names the direction — `h hide` while the labels are wrapped, `h unhide` while they are one line — since a toggle that names what it just did reads as its opposite |
 | files panel | `v` | what to list | cycles files → tags → people, the three kinds of row |
 | index panel | `n` | new heading | new where headings are |
 | todos panel, file view | `x` / `space` | check | the checkbox, and the key that cannot arrive wrong |
@@ -74,7 +74,7 @@ none, and the bar offers the spelling that always arrives.
 | todos panel, file view | `A`–`D` | set / clear priority | the letters are the priorities, and the letter a todo already carries clears it: `0` used to do that too, and gave up its key when `0` became the todos panel's number, which cost nothing — two spellings of "no priority" were one too many |
 | todos panel, file view, collection | `d` | delete | the same verb as the file panel's, on the row's own kind |
 | collection | `enter` | open file | the one key a collection has that no other panel does: it says "show me where this line lives" |
-| history panel | `x` / `space` | undo / redo | the panel's own verb: "this row, now" |
+| history panel | `space` | undo / redo | the panel's own verb: "this row, now". Not `x`: a write is not a todo, and `x` is the checkbox key — a history row has no box for it to be the twin of, so `x` does nothing there rather than doing something almost right |
 | history panel | `d` | forget | forget is a different act from undo, and it is destructive, so it is a letter, not `x` |
 | files, index, todos, collection | `c` | copy | "copy", and it never writes anything (RFC-004) |
 

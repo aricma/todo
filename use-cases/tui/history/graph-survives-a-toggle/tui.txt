@@ -11,9 +11,9 @@ wait: ╭──● clear prio
 key: down
 key: down
 key: down
-key: x
+key: space
 wait: ╰─○ check
-key: x
+key: space
 key: up
 key: up
 wait: ○ uncheck todo

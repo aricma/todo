@@ -1305,7 +1305,8 @@ fn history_rows_are_dots_that_hollow_when_reverted() {
     );
 
     app.pane = crate::state::action::Pane::History;
-    app.press(ratatui::crossterm::event::KeyCode::Char('x'));
+    // `space`, not `x`: a write is not a todo, so it has no checkbox to press
+    app.press(ratatui::crossterm::event::KeyCode::Char(' '));
     assert!(
         texts(&app).contains("○ check todo · a"),
         "{}",
@@ -1381,7 +1382,7 @@ fn a_row_that_cannot_be_toggled_says_why_under_itself() {
     // undo the check: the uncheck hangs on it, so it cannot be redone yet
     app.pane = crate::state::action::Pane::History;
     app.history_idx = 1;
-    app.press(ratatui::crossterm::event::KeyCode::Char('x'));
+    app.press(ratatui::crossterm::event::KeyCode::Char(' '));
     app.press(ratatui::crossterm::event::KeyCode::Up);
 
     let lines = screen_at(&app, 120, 40);
@@ -1817,8 +1818,10 @@ fn the_whole_screen_at_80x24() {
     ]);
     app.pane = crate::state::action::Pane::Todos;
     app.press(ratatui::crossterm::event::KeyCode::Char('x'));
+    // one check, then undo it from the history: the screen shows a hollow dot and a
+    // band on the row the cursor is on
     app.pane = crate::state::action::Pane::History;
-    app.press(ratatui::crossterm::event::KeyCode::Char('x'));
+    app.press(ratatui::crossterm::event::KeyCode::Char(' '));
     insta::assert_snapshot!(masked(&app, &screen(&app).join("\n")));
 }
 

@@ -5,5 +5,5 @@ key: left
 key: tab
 key: tab
 wait: ● check todo · pay rent
-key: x
+key: space
 wait: [ ] (A) pay rent

@@ -182,11 +182,9 @@ pub const BINDINGS: &[Binding] = &[
     Binding::new("↑/↓", "nav", Where::FILES, Bar::Verb),
     Binding::new("n", "new file", Where::FILE_ROW, Bar::Verb),
     Binding::new("d", "delete file", Where::FILE_ROW, Bar::Verb),
-    // one key, two panels, one idea — show less of the list. The page has one row for
-    // it (a second row costs the page a row it does not have at 80×24); the bar says
-    // what it would do *here*, `hide *.md` in the file panel and `one line` or `wrap`
-    // in the history
-    Binding::new("h", "hide / unhide", Where::FILES.or(Where::HISTORY), Bar::Verb),
+    // one key, two panels, one idea — show less of the list. It lives with the panels
+    // that have a list long enough to need it; the bar says what it would do *here*
+    Binding::new("h", "hide / unhide", Where::FILES, Bar::Verb),
     Binding::new("v", "what to list", Where::FILES, Bar::No),
     // ---- the index of headings
     Binding::new("↑/↓", "nav", Where::OUTLINE, Bar::Verb),
@@ -216,11 +214,12 @@ pub const BINDINGS: &[Binding] = &[
     Binding::new("A-D", "prio", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
     Binding::new("0", "clear prio", Where::TODO.or(Where::COLLECTION), Bar::No)
         .on_something(),
-    // ---- the history
+    // ---- the history. A write is not a todo: its undo is `space`, never `x`, and
+    // `h` comes after the entry's own verbs because it is about the panel, not the row
     Binding::new("↑/↓", "nav", Where::HISTORY, Bar::Verb),
-    Binding::new("x", "undo / redo", Where::HISTORY, Bar::Verb).on_something(),
-    Binding::new("space", "undo / redo", Where::HISTORY, Bar::No).on_something(),
+    Binding::new("space", "undo / redo", Where::HISTORY, Bar::Verb).on_something(),
     Binding::new("d", "forget", Where::HISTORY, Bar::Verb).on_something(),
+    Binding::new("h", "hide / unhide", Where::HISTORY, Bar::Verb),
     // ---- every panel with something to copy: a file row the path, a todo the line, a
     // heading its text, a collection its name
     Binding::new(
@@ -342,9 +341,9 @@ fn does_now(app: &App, binding: &Binding) -> &'static str {
         // two panels, two meanings, one key: each says what pressing it here would do
         "h" if app.pane == Pane::History => {
             if app.history_one_line {
-                text::WRAP
+                text::UNHIDE
             } else {
-                text::ONE_LINE
+                text::HIDE
             }
         }
         "h" => {
@@ -509,15 +508,18 @@ mod tests {
         app.pane = Pane::History;
         // nothing has been written, so there is no entry to undo: the bar offers the
         // cursor and `h` (the panel's own way of showing less), and nothing about todos
-        assert_eq!(super::section_keys(&app), ["h wrap", "↑/↓ nav"]);
+        assert_eq!(super::section_keys(&app), ["↑/↓ nav", "h unhide"]);
 
         // one check, and there is something to undo
         app.pane = Pane::Todos;
         let _ = app.press(ratatui::crossterm::event::KeyCode::Char('x'));
         app.pane = Pane::History;
         let hints = super::section_keys(&app);
-        assert!(hints.contains(&"x undo / redo".to_owned()), "{hints:?}");
-        assert!(hints.contains(&"d forget".to_owned()), "{hints:?}");
+        // a write is undone with `space`: `x` is the todo's key and is not offered here
+        assert_eq!(
+            hints,
+            ["↑/↓ nav", "space undo / redo", "d forget", "h unhide"]
+        );
         for absent in ["n add", "e edit", "A-D prio"] {
             assert!(!hints.contains(&absent.to_owned()), "{absent} in {hints:?}");
         }

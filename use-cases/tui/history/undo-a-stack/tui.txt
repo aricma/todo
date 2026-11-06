@@ -10,19 +10,19 @@ key: tab
 wait: ╭─● check todo · a
 key: down
 key: down
-key: x
+key: space
 wait: - [ ] a
 key: up
 key: up
-key: x
+key: space
 wait: enable the write below
 key: down
 key: down
-key: x
+key: space
 wait: - [x] a
 key: up
-key: x
+key: space
 wait: - [ ] a
 key: up
-key: x
+key: space
 wait: - [x] a

@@ -387,6 +387,10 @@ impl App {
             // modifiers at all (see "Terminals that eat the modifier")
             KeyCode::Char('g') | KeyCode::Home => self.jump(false),
             KeyCode::Char('G') | KeyCode::End => self.jump(true),
+            // `x` checks a todo; a history entry is a write, not a todo, so the undo is
+            // `space` alone — there is no checkbox for `x` to be the twin of
+            KeyCode::Char('x') if self.pane == Pane::History => None,
+            KeyCode::Char(' ') if self.pane == Pane::History => self.toggle(),
             KeyCode::Char('x' | ' ') => self.toggle(),
             // the plain fallback: a terminal that eats the arrow's modifier still
             // sends a letter, and `K`/`J` sit beside the cursor keys
