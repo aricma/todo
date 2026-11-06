@@ -25,6 +25,10 @@ three writes ago, and everything that hung on it".
    and a write about a todo is not a todo: the two glyphs would read as the same idea in
    two panels, which is exactly the confusion RFC-012 works to avoid. A filled dot is a
    write that is in the file; a hollow one is a write that was taken back.
+   The dot and the dependency lanes are the entry's **gutter**, so the band the cursor
+   draws **MUST** start at the label and not at the dot: a highlight over a gutter reads
+   as a highlighted line number. It still runs to the end of the panel's text area, so
+   the row reads as filled rather than as marked-up words.
 4. `x` **MUST** act on the selected entry — undo an entry in effect, redo an undone one
    — one direction per press, and never past the file it was recorded against.
 5. An entry that added or deleted a line **MUST** replay literally: undoing a delete puts
@@ -44,6 +48,13 @@ three writes ago, and everything that hung on it".
 
 ## Why not the alternative
 
+**A band across the whole row, gutter included.** It was there first, and it made the
+cursor a fact about the *panel* rather than about an entry: the dot sat on the same green
+as the label, so the two things the panel says — "this write is in effect" and "the cursor
+is here" — were drawn in one colour and one band. Marking only the label keeps them
+apart, and it matches the todos panel, where the line number stays outside the band.
+
+
 **The todo's own checkbox on a history row.** It was there first, and it was wrong in a way
 that only shows at a glance: an entry reading `[ ] check todo · pay rent` looks like a todo
 that is not done, so the panel looked like a second todos panel with the boxes out of sync.
@@ -62,6 +73,11 @@ session's, and a second file in the person's tree would be a second thing to exp
 clean and git-ignore.
 
 ## Consequences
+
+- `the_history_band_is_on_the_label_and_not_on_the_dot` reads the buffer's backgrounds:
+  the dot's cell is not the selection's green, the label's is, and the band still reaches
+  the last cell of the text area — a band that stopped at the words would read as marked-up
+  text, which is the shape row R-1 rejected on the way here.
 
 - Undo depends on line identity, so any write this program did not make — an editor, a
   formatter, `git checkout` — invalidates it: the gap between the two is the refusal.

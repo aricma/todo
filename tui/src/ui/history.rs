@@ -4,6 +4,7 @@
 use ratatui::layout::Rect;
 use ratatui::style::{Modifier, Style};
 use ratatui::text::Line;
+use unicode_width::UnicodeWidthStr;
 use ratatui::Frame;
 
 use super::consts::message_style;
@@ -73,11 +74,10 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
             .enumerate()
         {
             let prefix = if line == 0 { lead.clone() } else { pad.clone() };
-            let row = Line::from(format!("{prefix}{chunk}"));
             rows.push(if here {
-                super::rows::banded(row, width)
+                banded_label(&prefix, &chunk, width, style)
             } else {
-                row.style(style)
+                Line::from(format!("{prefix}{chunk}")).style(style)
             });
         }
         // what this row cannot do, right under it: never in the status bar, and
@@ -110,6 +110,21 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
         height,
         scroll,
     );
+}
+
+/// The row the cursor is on: the label banded to the end of the panel, the lanes and
+/// the dot not banded at all.
+///
+/// The gutter is not part of the entry — it is where the entry hangs — and a highlight
+/// over a gutter reads as a highlighted line number. The band starts at the text and
+/// runs to the panel's edge, so the row still reads as filled rather than as marked-up
+/// words (RFC-008).
+fn banded_label(prefix: &str, chunk: &str, width: usize, style: Style) -> Line<'static> {
+    let mut row = Line::from(ratatui::text::Span::styled(prefix.to_owned(), style));
+    let room = width.saturating_sub(UnicodeWidthStr::width(prefix));
+    let banded = super::rows::banded(Line::from(chunk.to_owned()), room);
+    row.spans.extend(banded.spans);
+    row
 }
 
 /// A hint in the row's own gutter, so it reads as a note on that row.

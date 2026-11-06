@@ -1991,6 +1991,52 @@ fn no_panel_lets_its_band_paint_over_the_thumb() {
 }
 
 #[test]
+fn the_history_band_is_on_the_label_and_not_on_the_dot() {
+    let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] a\n")]);
+    app.pane = crate::state::action::Pane::View;
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('x'));
+    app.pane = crate::state::action::Pane::History;
+
+    let terminal = terminal(&app, WIDTH, HEIGHT);
+    let buffer = terminal.backend().buffer();
+    let text = screen(&app).join("\n");
+    // the write's own row: the one whose label is the entry
+    let y = (0..HEIGHT)
+        .find(|y| {
+            (0..WIDTH)
+                .map(|x| buffer[(x, *y)].symbol())
+                .collect::<String>()
+                .contains("check todo")
+        })
+        .unwrap_or_else(|| panic!("{text}"));
+    let dot = (0..WIDTH)
+        .find(|x| buffer[(*x, y)].symbol() == "●")
+        .unwrap_or_else(|| panic!("{text}"));
+
+    // the dot is the gutter's, so it keeps the panel's ground; the label is banded
+    assert_ne!(
+        buffer[(dot, y)].bg,
+        crate::ui::consts::selection().bg.unwrap_or_default(),
+        "the band runs over the dot:\n{text}"
+    );
+    assert_eq!(
+        buffer[(dot + 2, y)].bg,
+        crate::ui::consts::selection().bg.unwrap_or_default(),
+        "the label is not banded:\n{text}"
+    );
+    // and the band still runs to the end of the text area, not just under the words.
+    // Two cells in from the border: the frame's own padding is not the paragraph's
+    let border = (dot..WIDTH)
+        .find(|x| buffer[(*x, y)].symbol() == "│")
+        .unwrap_or_else(|| panic!("{text}"));
+    assert_eq!(
+        buffer[(border - 2, y)].bg,
+        crate::ui::consts::selection().bg.unwrap_or_default(),
+        "the band stops short at {border}, dot {dot}\n{text}"
+    );
+}
+
+#[test]
 fn the_thumb_is_not_banded() {
     // a full panel whose cursor is on a row the bar runs over: the band stops before
     // the thumb, because a thumb on the selection's green is a highlight of a highlight
