@@ -30,19 +30,24 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
             .into_iter()
             .enumerate()
         {
-            let mut row = if line == 0 {
-                Line::from(vec![
+            let prefix = if line == 0 {
+                vec![
                     Span::raw(indent.clone()),
                     Span::styled(hashes.clone(), Style::default().add_modifier(Modifier::DIM)),
-                    Span::raw(chunk),
-                ])
+                ]
             } else {
-                Line::from(vec![Span::raw(pad.clone()), Span::raw(chunk)])
+                vec![Span::raw(pad.clone())]
             };
-            if index == app.outline_idx {
-                row = row_helpers::banded(row, width);
-            }
-            rows.push(row);
+            // the indent and the `#`s are the heading's level, drawn dim like a line
+            // number, so the band starts at the text: a highlight over a level mark reads
+            // as a highlighted number
+            rows.push(if index == app.outline_idx {
+                row_helpers::banded_after(Line::from(prefix), &chunk, width)
+            } else {
+                let mut spans = prefix;
+                spans.push(Span::raw(chunk));
+                Line::from(spans)
+            });
         }
         // more line height: one blank row between the headings
         if app.roomy {

@@ -611,8 +611,9 @@ fn every_selection_looks_the_same() {
         super::consts::SELECTED,
         "file"
     );
-    // the outline's first heading is the one the cursor is on
-    assert_eq!(band("index", "# first"), super::consts::SELECTED, "heading");
+    // the outline's first heading is the one the cursor is on. The probe is the text and
+    // not the `#`: a heading's level is its gutter, like a line number
+    assert_eq!(band("index", "first"), super::consts::SELECTED, "heading");
     assert_eq!(
         band("TODOs.md ─", "- [ ] a"),
         super::consts::SELECTED,
@@ -1991,6 +1992,42 @@ fn no_panel_lets_its_band_paint_over_the_thumb() {
 }
 
 #[test]
+fn a_heading_band_starts_after_its_hashes() {
+    let (_tmp, app) = app(&[("TODOs.md", "# first\n\n- [ ] a\n")]);
+    let terminal = terminal(&app, WIDTH, HEIGHT);
+    let buffer = terminal.backend().buffer();
+    let text = screen(&app).join("\n");
+    // the index panel's row, not the file view's (which numbers the line)
+    let (y, line) = screen(&app)
+        .into_iter()
+        .enumerate()
+        .find(|(_, line)| line.contains("│ # first"))
+        .unwrap_or_else(|| panic!("{text}"));
+    // columns, not bytes: the border and the arrow-less gutter are multi-byte
+    let column = |needle: &str| {
+        let at = line.find(needle).unwrap();
+        u16::try_from(line[..at].chars().count()).unwrap()
+    };
+    let (hash, word) = (column("#"), column("first"));
+    let row = u16::try_from(y).unwrap();
+    assert_ne!(
+        buffer[(hash, row)].bg,
+        super::consts::SELECTED,
+        "the level mark is banded:\n{text}"
+    );
+    assert_eq!(
+        buffer[(word, row)].bg,
+        super::consts::SELECTED,
+        "the heading's text is not banded:\n{text}"
+    );
+    assert_eq!(
+        buffer[(word, u16::try_from(y).unwrap())].bg,
+        super::consts::SELECTED,
+        "the heading's text is not banded:\n{text}"
+    );
+}
+
+#[test]
 fn the_history_band_is_on_the_label_and_not_on_the_dot() {
     let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] a\n")]);
     app.pane = crate::state::action::Pane::View;
@@ -2025,12 +2062,13 @@ fn the_history_band_is_on_the_label_and_not_on_the_dot() {
         "the label is not banded:\n{text}"
     );
     // and the band still runs to the end of the text area, not just under the words.
-    // Two cells in from the border: the frame's own padding is not the paragraph's
+    // Three cells in from the border: the frame's own padding is not the paragraph's, and
+    // the band stops one column before the bar's
     let border = (dot..WIDTH)
         .find(|x| buffer[(*x, y)].symbol() == "│")
         .unwrap_or_else(|| panic!("{text}"));
     assert_eq!(
-        buffer[(border - 2, y)].bg,
+        buffer[(border - 3, y)].bg,
         crate::ui::consts::selection().bg.unwrap_or_default(),
         "the band stops short at {border}, dot {dot}\n{text}"
     );

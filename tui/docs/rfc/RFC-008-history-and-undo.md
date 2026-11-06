@@ -27,8 +27,9 @@ three writes ago, and everything that hung on it".
    write that is in the file; a hollow one is a write that was taken back.
    The dot and the dependency lanes are the entry's **gutter**, so the band the cursor
    draws **MUST** start at the label and not at the dot: a highlight over a gutter reads
-   as a highlighted line number. It still runs to the end of the panel's text area, so
-   the row reads as filled rather than as marked-up words.
+   as a highlighted line number. It still runs from there to the end of the panel's text
+   area, less the column the bar lives in (RFC-001 rule 10), so the row reads as filled
+   rather than as marked-up words.
 4. `x` **MUST** act on the selected entry — undo an entry in effect, redo an undone one
    — one direction per press, and never past the file it was recorded against.
 5. An entry that added or deleted a line **MUST** replay literally: undoing a delete puts

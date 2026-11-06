@@ -60,14 +60,16 @@ file view shows *a file*, and a todo in it is one line among prose.
    and on a narrow panel its column is a row's worth of text. The thumb is dim, so it
    reads as furniture rather than content, and it never replaces the frame's border —
    it sits inside it, one cell in.
-10. The thumb **MUST NOT** take the band, and the band **MUST NOT** take the thumb: the
-    bar is drawn on the panel's own background (`.bg(Reset)`, so a highlighted row's
-    highlight stops before it) and it is drawn **after** the panel's rows, because a band
-    runs the full width of a panel and would otherwise be painted over the thumb — the
-    symptom is a thumb with a hole in it wherever a banded row crosses it, which is worse
-    than the colour, because a bar with a hole reads as two bars. The cursor is a fact
-    about a row; the bar is the panel's furniture, and one must not paint the other.
-11. The thumb's **top MUST be at the track's top when the panel is scrolled to the
+10. A band **MUST** stop one column before the panel's text edge — the column the bar
+    lives in — whether or not a bar is up. The bar then needs no background of its own
+    and no special case: it is drawn on the panel's ground like any other glyph. That one
+    column is what a bar costs a panel, and the right edge of a panel is air.
+11. The bar **MUST** be drawn **after** the panel's rows. A band that reaches the bar's
+    column would otherwise be painted over the thumb, and the symptom is worse than a
+    colour: a thumb with a hole in it wherever a banded row crosses it reads as two bars.
+    Rule 10 is what makes this a matter of plain ordering rather than a style to keep in
+    step in five places.
+12. The thumb's **top MUST be at the track's top when the panel is scrolled to the
     top**, and its **bottom MUST be at the track's bottom at the furthest scroll**. It
     **MUST** grow with the ratio of visible rows to rows, so a long list gets a short
     thumb and a list that nearly fits gets a long one. ratatui's `ScrollbarState` takes
@@ -102,7 +104,8 @@ job, done worse.
   glossary is a bug, not a style choice.
 - `the_thumb_is_not_banded` reads the buffer's backgrounds rather than its text: the
   thumb's cell is `Reset` while the banded row beside it is the selection's green, which
-  is the only way to prove a colour rule from a screen made of strings.
+  is the only way to prove a colour rule from a screen made of strings. It passes by
+  construction now: the band stops before the bar (rule 10), so nothing paints there.
 - `no_panel_lets_its_band_paint_over_the_thumb` renders two overflowing panels at once —
   the files list and a code file's view, each with a banded row crossing its bar — and
   asserts every thumb cell is on the panel's background **and that the cells of each

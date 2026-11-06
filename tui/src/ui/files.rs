@@ -77,7 +77,7 @@ fn rows(app: &App, width: usize) -> Vec<Line<'static>> {
             crate::state::row::Row::Collection(collection) => collection_row(collection, width),
         };
         rows.push(if selected {
-            super::rows::banded(line, width)
+            super::rows::banded(line, super::rows::band_end(width))
         } else {
             line
         });

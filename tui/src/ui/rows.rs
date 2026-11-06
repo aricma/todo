@@ -14,6 +14,15 @@ use super::prompt;
 use super::wrap;
 use crate::helpers::as_u16;
 
+/// The columns a band may fill: the panel's text, less the one the bar lives in.
+///
+/// A band stops *before* the bar rather than underneath it, so the bar needs no
+/// background of its own: it is drawn on the panel's ground and never has to know what
+/// it covers. One column is also nothing to lose — the right edge of a panel is air.
+pub fn band_end(width: usize) -> usize {
+    width.saturating_sub(1)
+}
+
 /// Where the viewport starts: a document line, and how many of its first rows to
 /// skip.
 ///
@@ -78,14 +87,9 @@ pub fn bar(frame: &mut Frame, inner: Rect, total: usize, view: usize, scroll: us
             .end_symbol(None)
             .track_symbol(None)
             .thumb_symbol("▐")
-            // `Reset` on the background, not "whatever is under it": the bar runs over
-            // the banded row, and a thumb in the selection's green is a highlight of a
-            // highlight. The thumb is furniture, so it takes the panel's own ground
-            .style(
-                Style::default()
-                    .add_modifier(Modifier::DIM)
-                    .bg(ratatui::style::Color::Reset),
-            ),
+            // no background: the band stops a column before this one (`band_end`), so
+            // the thumb is drawn on the panel's own ground and never colours itself
+            .style(Style::default().add_modifier(Modifier::DIM)),
         inner,
         &mut state,
     );
@@ -132,6 +136,21 @@ pub fn todo_rows(
     line_rows(&task.lead(), body, selected, width)
 }
 
+/// A row whose band starts after a prefix: a heading's `##`, a history entry's dot and
+/// lanes, a line number.
+///
+/// The prefix says *where* the row sits, not what it says, so it stays on the panel's
+/// ground — a highlight over a line number reads as a highlighted line number. The band
+/// still runs from the prefix to the panel's text edge, less the bar's column, because a
+/// band that stops at the last character reads as marked-up text.
+pub fn banded_after(prefix: Line<'static>, text: &str, width: usize) -> Line<'static> {
+    let room = band_end(width).saturating_sub(prefix.width());
+    let mut row = prefix;
+    row.spans
+        .extend(banded(Line::from(text.to_owned()), room).spans);
+    row
+}
+
 /// The row a new todo is waiting in, while its field is open.
 ///
 /// The line in the file is an empty checkbox — `- [ ]` and nothing else — which on its
@@ -169,7 +188,7 @@ pub fn line_rows(
             spans.extend(styled(prompt::pieces(&chunk), selected));
             let line = Line::from(spans);
             if selected {
-                pad_with_band(line, width)
+                pad_with_band(line, band_end(width))
             } else {
                 line
             }
