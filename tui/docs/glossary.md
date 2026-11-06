@@ -13,6 +13,7 @@ list is right and the code is the bug.
 | **header** | the top line: `✅ aricma-lazytodo · /where/it/was/opened`, and the right-hand end of it, where a **success message** appears |
 | **status bar** | the bottom line: the keys that work where the cursor is, and a **failure** or a rule explained |
 | **panel** | one framed box in the body of the screen. A panel draws one thing and has one title |
+| **thumb** | the dim `▐` on a panel's inner right edge, when its rows do not fit. No track, and none at all when they do (RFC-001) |
 | **focused panel** | the panel the cursor is in. Its border is bright, its title carries `●`, and the status bar speaks for it |
 | **band** | the highlight on the row the cursor is on. A banded row keeps its tag and assignee colours |
 | **gutter** | the dim column of line numbers down the left of a panel that shows document lines |

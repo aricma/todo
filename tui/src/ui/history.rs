@@ -103,6 +103,13 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
             .block(super::frame::panel(&title, focused)),
         area,
     );
+    super::rows::bar(
+        frame,
+        super::frame::panel(&title, focused).inner(area),
+        heights.iter().sum(),
+        height,
+        scroll,
+    );
 }
 
 /// A hint in the row's own gutter, so it reads as a note on that row.

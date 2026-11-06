@@ -45,6 +45,12 @@ file view shows *a file*, and a todo in it is one line among prose.
    open file's headings, and moving in it would walk another file's sections.
 7. The wording of a message **MUST** name the panel it is about, in these words,
    wherever the panel it is about is not the one on screen.
+8. A panel whose rows do not fit **MUST** show a thumb (`▐`) on its inner right edge,
+   and a panel whose rows fit **MUST NOT** show one. The track is not drawn: an empty
+   column of track glyphs is a second border. A thumb that is always full says nothing,
+   and on a narrow panel its column is a row's worth of text. The thumb is dim, so it
+   reads as furniture rather than content, and it never replaces the frame's border —
+   it sits inside it, one cell in.
 
 ## Why not the alternative
 
@@ -70,8 +76,15 @@ job, done worse.
   what makes that acceptable: the same rules, tested in both.
 - The glossary is now load-bearing: code that names a panel differently from the
   glossary is a bug, not a style choice.
+- The thumb costs one cell of width in the panel it appears in, and it appears only
+  when the panel is full — so a panel can lose its last column of text at the moment
+  its content grows. That is the trade for knowing that there is more to scroll to;
+  the alternative, a fixed column of gutter, spends the cell on every panel always.
 
 ## Open questions
+
+- Should the thumb be clickable, or should a click in the panel's column jump a page?
+  Today the panels are keyboard-first and a mouse does nothing there.
 
 - Should the todos panel take the file view's place in a folder session (so `→` on a
   file row lands in a todos panel, not in the file view), with the file view one

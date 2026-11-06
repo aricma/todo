@@ -3,8 +3,9 @@
 
 use aricma_todo_lib::model::{Segment, Task};
 use ratatui::layout::Rect;
-use ratatui::style::Style;
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
+use ratatui::widgets::{Scrollbar, ScrollbarOrientation, ScrollbarState};
 use ratatui::Frame;
 use unicode_width::UnicodeWidthStr;
 
@@ -46,6 +47,29 @@ pub fn offset_for(heights: &[usize], selected: Option<usize>, height: usize) -> 
         accumulated += rows;
     }
     (selected, 0)
+}
+
+/// A thumb on a panel's right inner edge, when it has more rows than room.
+///
+/// Nothing is drawn when the content fits: a bar that is always full says nothing, and
+/// its column would be taken from a panel that is already narrow.
+pub fn bar(frame: &mut Frame, inner: Rect, total: usize, view: usize, scroll: usize) {
+    if total <= view || view < 2 {
+        return;
+    }
+    let mut state = ScrollbarState::new(total)
+        .viewport_content_length(view)
+        .position(scroll);
+    frame.render_stateful_widget(
+        Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .begin_symbol(None)
+            .end_symbol(None)
+            .track_symbol(None)
+            .thumb_symbol("▐")
+            .style(Style::default().add_modifier(Modifier::DIM)),
+        inner,
+        &mut state,
+    );
 }
 
 /// A row that has the cursor: the band runs to the end of the panel, not just under

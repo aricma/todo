@@ -61,4 +61,11 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
             .block(panel(text::INDEX, focused)),
         area,
     );
+    row_helpers::bar(
+        frame,
+        panel(text::INDEX, focused).inner(area),
+        heights.iter().sum(),
+        height,
+        scroll,
+    );
 }

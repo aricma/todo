@@ -1889,6 +1889,20 @@ fn the_cursor_follows_the_text_into_the_next_row_of_the_field() {
 
 
 #[test]
+fn a_panel_shows_a_thumb_only_when_it_has_more_rows_than_room() {
+    let names: Vec<String> = (1..=30).map(|n| format!("d{n}/TODOs.md")).collect();
+    let files: Vec<(&str, &str)> = names.iter().map(|n| (n.as_str(), "- [ ] a\n")).collect();
+    let (_tmp, many) = app(&files);
+    let text = screen(&many).join("\n");
+    // a thumb on the files panel's inner right edge, and a track that is not drawn
+    assert!(text.contains('▐'), "no thumb in:\n{text}");
+
+    let (_tmp, small) = app(&[("TODOs.md", "- [ ] a\n")]);
+    let text = screen(&small).join("\n");
+    assert!(!text.contains('▐'), "a thumb with nothing to scroll:\n{text}");
+}
+
+#[test]
 fn a_code_file_shows_a_line_above_a_todo_and_three_below() {
     // ten lines, the todo, ten more: the fold is what keeps the todo on screen with
     // the code it is about and not the twenty lines it is not. One line above it —

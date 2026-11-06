@@ -110,6 +110,8 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
         area,
     );
 
+    super::rows::bar(frame, inner, heights.iter().sum(), height, scroll);
+
     if let Some((x, y)) = cursor(app, inner, width, gutter, before_the_cursor, scroll) {
         frame.set_cursor_position((x, y));
     }

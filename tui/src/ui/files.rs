@@ -48,6 +48,13 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
     let heights = vec![if app.roomy { 2 } else { 1 }; app.rows.len()]; 
     let (first, _) = offset_for(&heights, Some(app.row_idx), list.height as usize);
     frame.render_widget(Paragraph::new(rows).scroll((as_u16(first), 0)), list);
+    super::rows::bar(
+        frame,
+        list,
+        heights.iter().sum(),
+        list.height as usize,
+        first,
+    );
     if let Some((notes, area)) = footer {
         frame.render_widget(notes, area);
     }

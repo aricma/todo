@@ -98,6 +98,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
             number(&mut rows[first..], index, gutter);
         }
     }
+    super::rows::bar(frame, inner, heights.iter().sum(), height, offset.0);
     frame.render_widget(Paragraph::new(rows).block(block), area);
     if let Some((x, y)) = cursor {
         frame.set_cursor_position((x, y));
