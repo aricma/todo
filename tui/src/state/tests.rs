@@ -124,6 +124,16 @@ fn a_single_file_session_starts_on_its_todos_and_has_no_file_list() {
     assert_eq!(app.pane, Pane::Todos);
     press(&mut app, KeyCode::Left);
     assert_eq!(app.pane, Pane::Outline, "`←` back to the sidebar");
+    // and `→` crosses back into it: the two arrows are one pair, in both layouts
+    press(&mut app, KeyCode::Right);
+    assert_eq!(app.pane, Pane::Todos, "`→` into the right-hand panel");
+    press(&mut app, KeyCode::Left);
+    press(&mut app, KeyCode::Tab);
+    assert_eq!(app.pane, Pane::History);
+    press(&mut app, KeyCode::Right);
+    assert_eq!(app.pane, Pane::Todos);
+    press(&mut app, KeyCode::Left);
+    assert_eq!(app.pane, Pane::History, "`←` returns to the section it left");
 }
 
 #[test]

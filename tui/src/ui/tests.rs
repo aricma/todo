@@ -1898,6 +1898,20 @@ fn the_cursor_follows_the_text_into_the_next_row_of_the_field() {
 
 
 #[test]
+fn a_single_file_names_the_panel_both_arrows_cross_to() {
+    let (_tmp, mut app) = single("# h\n\n- [ ] a\n");
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('2'));
+    let bar = texts(&app);
+    // the arrow names where it goes: there is no file to name, so it names the panel
+    assert!(bar.contains("→ todos"), "{bar}");
+
+    press(&mut app, ratatui::crossterm::event::KeyCode::Right);
+    let bar = texts(&app);
+    assert!(bar.contains("← index"), "{bar}");
+    assert!(!bar.contains("→ todos"), "{bar}");
+}
+
+#[test]
 fn a_single_file_scrolls_its_todos_like_every_other_panel() {
     let mut source = String::from("# many\n\n");
     for n in 1..=30 {

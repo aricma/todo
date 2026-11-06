@@ -305,7 +305,10 @@ fn nav(app: &App, binding: &Binding) -> Option<String> {
         "←" if app.crossing() => format!("← {}", app.last_sidebar.name()),
         // what the arrow would put you in — a file, or the collection the cursor is
         // on — rather than the word "view"
-        "→" if !app.crossing() && !app.single => {
+        // in a single-file session the right-hand panel is the todos of the one file,
+        // so the arrow names the panel rather than a file or a collection
+        "→" if !app.crossing() && app.single => format!("→ {}", text::TODOS),
+        "→" if !app.crossing() => {
             let what = match app.selected_row().and_then(Row::collection) {
                 Some(collection) => collection.to_string(),
                 None => shorten(&app.display(&app.current().path), SHORT_PATH),

@@ -36,6 +36,10 @@ file view shows *a file*, and a todo in it is one line among prose.
    panel: the sections down the left column (the index above the history) and one panel
    down the right. It **MUST NOT** stack its sections on the right instead — that was the
    shape it had, and it made one file look like a different program from two.
+   `→` and `←` **MUST** cross between the two columns in both layouts, and come back to
+   the section they left: the right-hand panel is the todo panel of a single file, so the
+   pair of arrows is the same pair, and the bar **MUST** name the destination (`→ todos`,
+   `← index`) rather than leaving a person to find out.
 3. The **todos panel MUST** draw the todos of exactly one source, and **MUST** say
    which in its title: `todos` for a file, `<tag> todos` / `@<person> todos` for a
    collection. A source is a file or a collection, never both.

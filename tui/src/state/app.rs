@@ -332,9 +332,9 @@ impl App {
         Some(after.or(before).unwrap_or(0))
     }
 
-    /// Cross into the file view, remembering the section to come back to.
+    /// Cross into the right-hand panel, remembering the section to come back to.
     pub fn enter_view(&mut self) -> Result<(), Error> {
-        if self.pane == Pane::View || self.pane == Pane::Collection {
+        if self.crossing() {
             return Ok(());
         }
         // a collection row steps into the collection that is already drawn beside it
@@ -348,14 +348,15 @@ impl App {
             self.pane = Pane::Collection;
             return Ok(());
         }
-        if self.single {
-            return Ok(());
-        }
+        // the outline hands its heading's todo to whichever panel is on the right, so
+        // `→` from the index lands on the todo under that heading either way
         if self.pane == Pane::Outline {
             self.jump_from_outline();
         }
         self.last_sidebar = self.pane;
-        self.pane = Pane::View;
+        // a single-file session's right-hand panel is the todos of the one file; a
+        // folder session's is the file view (RFC-001)
+        self.pane = if self.single { Pane::Todos } else { Pane::View };
         Ok(())
     }
 
