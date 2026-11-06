@@ -435,6 +435,12 @@ impl App {
             // changes what the *scan* found, and the collection panel is reading
             // todos rather than looking for files. A previewed collection is
             // gathered again, or it would keep showing todos from a hidden file
+            // `h` in the history is the same idea one panel over: show less of a row.
+            // A wrapped write name is readable and pushes the trail off the panel
+            KeyCode::Char('h') if self.pane == Pane::History => {
+                self.history_one_line = !self.history_one_line;
+                None
+            }
             KeyCode::Char('h') if self.pane == Pane::Files => {
                 self.show_all = !self.show_all;
                 let focus = self.current().path.clone();

@@ -65,7 +65,7 @@ none, and the bar offers the spelling that always arrives.
 | every panel | `↑/↓` | nav | the arrows move the *cursor*, not the thing under it. The bar used to name that thing (`↑/↓ todo`, `↑/↓ entry`, `↑/↓ file / collection`, `↑/↓ heading`), which read as a series of verbs beside `x check` and `d delete`; one idea is one word, so every panel says the same |
 | files panel | `n` | new file | new where files are chosen |
 | files panel | `d` | delete file | the panel's own destructive verb, behind `Y` |
-| files panel | `h` | hide / unhide | "hidden files": widen the scan to every `*.md` and back |
+| files panel, history panel | `h` | hide / unhide | one idea, show less of the list: in the file panel it widens or narrows the scan to `*.md`, in the history it switches a write's label between one row clipped with `…` and as many rows as it needs. The bar names the direction, since a toggle that says "hide" while everything is visible reads as its opposite |
 | files panel | `v` | what to list | cycles files → tags → people, the three kinds of row |
 | index panel | `n` | new heading | new where headings are |
 | todos panel, file view | `x` / `space` | check | the checkbox, and the key that cannot arrive wrong |

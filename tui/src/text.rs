@@ -61,6 +61,9 @@ pub fn set_prio(letter: char) -> String {
 
 pub const HIDE_MD: &str = "hide *.md";
 pub const UNHIDE_MD: &str = "unhide *.md";
+/// The history panel's `h`: a write's label clipped to one row, or wrapped.
+pub const ONE_LINE: &str = "one line";
+pub const WRAP: &str = "wrap";
 
 // --- popup titles -----------------------------------------------------------
 

@@ -9,10 +9,11 @@ use ratatui::Frame;
 use super::consts::message_style;
 use super::consts::MIN_WRAP;
 use super::wrap;
-use crate::helpers::as_u16;
+use crate::helpers::{as_u16, truncate};
 use crate::state::message::Message;
 use crate::state::App;
 use crate::text;
+use unicode_width::UnicodeWidthStr;
 
 /// One lane of the graph: a dependency is a line running down the sidebar from
 /// the write that undoes something to the write it undoes.
@@ -67,11 +68,17 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
         // a dependency line is a line and not a line with holes in it; the dot's
         // column stays blank, because a write has one state, on its first row
         let pad = format!("{}{}", graph.through(index), " ".repeat(2));
-        let room = width.saturating_sub(pad.len());
-        for (line, chunk) in wrap::lines(&entry.label, room.max(MIN_WRAP))
-            .into_iter()
-            .enumerate()
-        {
+        // cells, not bytes: a lane is one cell and three bytes, and the ellipsis has to
+        // land on the panel's edge rather than short of it
+        let room = width.saturating_sub(UnicodeWidthStr::width(pad.as_str()));
+        // one row by default, clipped with `…`; `h` wraps it. The trail is what the
+        // panel is for, and one long write name pushes the rest of it off the panel
+        let chunks = if app.history_one_line {
+            vec![truncate(&entry.label, room.max(MIN_WRAP))]
+        } else {
+            wrap::lines(&entry.label, room.max(MIN_WRAP))
+        };
+        for (line, chunk) in chunks.into_iter().enumerate() {
             let prefix = if line == 0 { lead.clone() } else { pad.clone() };
             rows.push(if here {
                 super::rows::banded_after(

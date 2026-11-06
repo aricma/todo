@@ -47,7 +47,21 @@ three writes ago, and everything that hung on it".
 10. The reload of an externally changed file **MUST** forget the history, and **MUST** say
     it did: every entry is anchored to text that just changed.
 
+11. An entry **MUST** be one row by default: a label too long for the panel is cut with
+    `…` at the panel's edge. `h` **MUST** switch between that and wrapping, per session,
+    and the bar **MUST** say which way it goes (`h wrap` / `h one line`). One row is the
+    default because the trail is what the panel is for: three long write names push a
+    session's history off the panel, and a history you have to scroll to read is a history
+    you stop reading.
+
 ## Why not the alternative
+
+**Wrapped rows only.** It was the first shape, and it is the right shape for *one* entry:
+the title of a write is worth reading in full. It is the wrong shape for the panel, where
+the reader is scanning for "what did I do" and the answer is the label's first few words.
+`h` keeps both: a glance by default, and the full label when a row is the one being
+examined.
+
 
 **A band across the whole row, gutter included.** It was there first, and it made the
 cursor a fact about the *panel* rather than about an entry: the dot sat on the same green

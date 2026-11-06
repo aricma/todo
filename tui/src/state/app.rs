@@ -89,6 +89,10 @@ pub struct App {
     /// has no half-line, so "more line height" costs a whole row per item and
     /// halves what fits. `t` turns it on.
     pub roomy: bool,
+    /// Whether a history entry is one row with an ellipsis rather than as many rows as
+    /// its label needs. On by default: a long write name pushes the rest of the trail
+    /// off the panel, and the trail is what the panel is for. `h` widens it.
+    pub history_one_line: bool,
     pub quit: bool,
 }
 
@@ -171,6 +175,7 @@ impl App {
             last_key: None,
             show: Showing::Both,
             roomy: false,
+            history_one_line: true,
             quit: false,
         })
     }

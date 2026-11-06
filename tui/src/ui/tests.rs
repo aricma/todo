@@ -671,7 +671,7 @@ fn more_line_height_is_a_switch() {
 }
 
 #[test]
-fn a_long_history_entry_wraps_under_its_own_label() {
+fn a_long_history_entry_wraps_under_its_own_label_when_it_is_told_to() {
     let (_tmp, mut app) = app(&[(
         "TODOs.md",
         "- [ ] a todo with a title long enough to need two rows in this narrow sidebar\n",
@@ -679,6 +679,8 @@ fn a_long_history_entry_wraps_under_its_own_label() {
     app.pane = crate::state::action::Pane::View;
     press(&mut app, ratatui::crossterm::event::KeyCode::Char('x'));
     app.pane = crate::state::action::Pane::History;
+    // `h` wraps: the panel is one line per entry by default
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('h'));
     let lines = screen_at(&app, 80, 24);
     let text = lines.join("\n");
     let first = lines
@@ -713,6 +715,9 @@ fn a_wrapped_history_entry_keeps_its_lane_running() {
     press(&mut app, ratatui::crossterm::event::KeyCode::Char('x'));
     press(&mut app, ratatui::crossterm::event::KeyCode::Char('x'));
     app.pane = crate::state::action::Pane::History;
+    // the lanes are drawn on the rows a wrapped label runs onto, so this is the wide
+    // shape: `h` is the switch between the two
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('h'));
     let lines = screen_at(&app, 80, 24);
     let first = lines
         .iter()
@@ -1896,6 +1901,40 @@ fn the_cursor_follows_the_text_into_the_next_row_of_the_field() {
 
 
 
+
+#[test]
+fn a_history_entry_is_one_line_with_an_ellipsis_until_h_wraps_it() {
+    let (_tmp, mut app) = app(&[(
+        "TODOs.md",
+        "- [ ] a todo with a title long enough to need two rows in this narrow sidebar\n",
+    )]);
+    app.pane = crate::state::action::Pane::View;
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('x'));
+    app.pane = crate::state::action::Pane::History;
+
+    let lines = screen_at(&app, 80, 24);
+    let text = lines.join("\n");
+    let first = lines
+        .iter()
+        .position(|line| line.contains("check todo"))
+        .unwrap_or_else(|| panic!("{text}"));
+    // one row, cut with the ellipsis at the panel's edge
+    assert!(lines[first].contains('…'), "the label is clipped:\n{text}");
+    assert!(
+        !lines[first + 1].contains("title"),
+        "nothing wrapped onto the row below:\n{text}"
+    );
+
+    // and `h` wraps it: the row under it belongs to the same entry again
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('h'));
+    let lines = screen_at(&app, 80, 24);
+    let text = lines.join("\n");
+    let first = lines
+        .iter()
+        .position(|line| line.contains("check todo"))
+        .unwrap_or_else(|| panic!("{text}"));
+    assert!(lines[first + 1].contains("title"), "it wraps now:\n{text}");
+}
 
 #[test]
 fn a_single_file_names_the_panel_both_arrows_cross_to() {

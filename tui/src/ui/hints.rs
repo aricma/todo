@@ -182,7 +182,11 @@ pub const BINDINGS: &[Binding] = &[
     Binding::new("↑/↓", "nav", Where::FILES, Bar::Verb),
     Binding::new("n", "new file", Where::FILE_ROW, Bar::Verb),
     Binding::new("d", "delete file", Where::FILE_ROW, Bar::Verb),
-    Binding::new("h", "hide / unhide", Where::FILES, Bar::Verb),
+    // one key, two panels, one idea — show less of the list. The page has one row for
+    // it (a second row costs the page a row it does not have at 80×24); the bar says
+    // what it would do *here*, `hide *.md` in the file panel and `one line` or `wrap`
+    // in the history
+    Binding::new("h", "hide / unhide", Where::FILES.or(Where::HISTORY), Bar::Verb),
     Binding::new("v", "what to list", Where::FILES, Bar::No),
     // ---- the index of headings
     Binding::new("↑/↓", "nav", Where::OUTLINE, Bar::Verb),
@@ -334,13 +338,23 @@ pub fn section_keys(app: &App) -> Vec<String> {
 
 /// `h` is a switch, so its row says which way it goes.
 fn does_now(app: &App, binding: &Binding) -> &'static str {
-    if binding.keys != "h" {
-        return binding.does;
-    }
-    if app.show_all {
-        text::HIDE_MD
-    } else {
-        text::UNHIDE_MD
+    match binding.keys {
+        // two panels, two meanings, one key: each says what pressing it here would do
+        "h" if app.pane == Pane::History => {
+            if app.history_one_line {
+                text::WRAP
+            } else {
+                text::ONE_LINE
+            }
+        }
+        "h" => {
+            if app.show_all {
+                text::HIDE_MD
+            } else {
+                text::UNHIDE_MD
+            }
+        }
+        _ => binding.does,
     }
 }
 
@@ -493,9 +507,9 @@ mod tests {
     fn the_history_section_offers_undo_and_not_editing() {
         let (_tmp, mut app) = crate::testing::app(&[("TODOs.md", "- [ ] a\n")]);
         app.pane = Pane::History;
-        // nothing has been written, so there is no entry to undo and the bar offers
-        // only the cursor
-        assert_eq!(super::section_keys(&app), ["↑/↓ nav"]);
+        // nothing has been written, so there is no entry to undo: the bar offers the
+        // cursor and `h` (the panel's own way of showing less), and nothing about todos
+        assert_eq!(super::section_keys(&app), ["h wrap", "↑/↓ nav"]);
 
         // one check, and there is something to undo
         app.pane = Pane::Todos;
