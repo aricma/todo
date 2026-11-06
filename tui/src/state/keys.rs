@@ -455,14 +455,14 @@ impl App {
                 None
             }
             KeyCode::Char('e') => self.ask_edit(),
-            // a number jumps to the panel whose title carries it (RFC-001), and `0`
-            // is not one of them: `0` clears a priority, and a panel number that
-            // unset something would be a trap
-            KeyCode::Char(digit @ '1'..='4') => {
+            // a number jumps to the panel whose title carries it (RFC-001), and the
+            // panel a person works in most is `0` — the one thing lazygit and this
+            // screen agree on. `0` used to clear a priority; the letter a todo already
+            // carries does that, so nothing was lost
+            KeyCode::Char(digit @ '0'..='3') => {
                 self.jump_panel(digit);
                 None
             }
-            KeyCode::Char('0') => self.priority(None),
             KeyCode::Char(letter @ 'A'..='D') => {
                 let prio = Prio::from_letter(letter)?;
                 self.priority(Some(prio))
@@ -494,8 +494,8 @@ impl App {
             '1' => Pane::Files,
             '2' => Pane::Outline,
             '3' => Pane::History,
-            // the right-hand column: the todos panel in a single-file session, a
-            // collection while one is open, the file view otherwise
+            // `0` is the right-hand column: the todos panel in a single-file session,
+            // a collection while one is open, the file view otherwise
             _ if self.single => Pane::Todos,
             _ if self.viewing().is_some() => Pane::Collection,
             _ => Pane::View,

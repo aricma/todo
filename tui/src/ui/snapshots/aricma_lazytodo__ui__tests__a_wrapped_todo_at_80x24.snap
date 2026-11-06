@@ -9,7 +9,7 @@ expression: "masked(&app, &screen(&app).join(\"\\n\"))"
                                 │                                              │
                                 │                                              │
                                 ╰──────────────────────────────────────────────╯
-                                ╭ ● [4] todos ─────────────────────────────────╮
+                                ╭ ● [0] todos ─────────────────────────────────╮
                                 │ 1 - [ ] (A) @dave fix the worst bug of the   │
                                 │         century before the release #bug      │
                                 │         #infra                               │

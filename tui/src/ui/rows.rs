@@ -57,16 +57,29 @@ pub fn bar(frame: &mut Frame, inner: Rect, total: usize, view: usize, scroll: us
     if total <= view || view < 2 {
         return;
     }
-    let mut state = ScrollbarState::new(total)
+    // the state is the number of scroll *positions*, not the number of rows: it travels
+    // from `content_length - 1` plus a viewport, so handing it the row count makes the
+    // thumb stop two thirds of the way down and stay there. One more than the furthest
+    // scroll puts the top of the thumb at the top and its bottom at the bottom, which is
+    // the only promise a thumb makes.
+    let furthest = total - view;
+    let mut state = ScrollbarState::new(furthest + 1)
         .viewport_content_length(view)
-        .position(scroll);
+        .position(scroll.min(furthest));
     frame.render_stateful_widget(
         Scrollbar::new(ScrollbarOrientation::VerticalRight)
             .begin_symbol(None)
             .end_symbol(None)
             .track_symbol(None)
             .thumb_symbol("▐")
-            .style(Style::default().add_modifier(Modifier::DIM)),
+            // `Reset` on the background, not "whatever is under it": the bar runs over
+            // the banded row, and a thumb in the selection's green is a highlight of a
+            // highlight. The thumb is furniture, so it takes the panel's own ground
+            .style(
+                Style::default()
+                    .add_modifier(Modifier::DIM)
+                    .bg(ratatui::style::Color::Reset),
+            ),
         inner,
         &mut state,
     );

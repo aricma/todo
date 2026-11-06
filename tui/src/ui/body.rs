@@ -18,7 +18,7 @@ use crate::text;
 
 pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
     let focused = app.pane == crate::state::action::Pane::View;
-    let title = text::titled(4, &app.display(&app.current().path));
+    let title = text::titled(0, &app.display(&app.current().path));
     let block = panel(&title, focused).title_bottom(footer(app, focused));
     let inner = block.inner(area);
     let height = inner.height as usize;

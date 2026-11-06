@@ -1321,7 +1321,7 @@ fn a_dependency_line_runs_past_the_writes_between_it() {
 fn the_graph_runs_a_line_from_each_write_down_to_the_one_it_undoes() {
     let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] (A) write the README\n")]);
     app.pane = crate::state::action::Pane::View;
-    for key in ['x', 'B', 'x', '0'] {
+    for key in ['x', 'B', 'x', 'B'] {
         app.press(ratatui::crossterm::event::KeyCode::Char(key));
     }
     let lines = screen_at(&app, 160, 40);
@@ -1900,6 +1900,57 @@ fn a_panel_shows_a_thumb_only_when_it_has_more_rows_than_room() {
     let (_tmp, small) = app(&[("TODOs.md", "- [ ] a\n")]);
     let text = screen(&small).join("\n");
     assert!(!text.contains('▐'), "a thumb with nothing to scroll:\n{text}");
+}
+
+#[test]
+fn a_thumb_starts_at_the_top_and_stops_at_the_bottom() {
+    let names: Vec<String> = (1..=30).map(|n| format!("d{n}/TODOs.md")).collect();
+    let files: Vec<(&str, &str)> = names.iter().map(|n| (n.as_str(), "- [ ] a\n")).collect();
+    let (_tmp, mut app) = app(&files);
+    let lines = screen(&app);
+    let first = lines
+        .iter()
+        .position(|line| line.contains("[1] files"))
+        .expect("the files panel") + 1;
+    assert!(lines[first].contains('▐'), "the top row:\n{}", lines.join("\n"));
+
+    // the last row inside the panel, just above its bottom border
+    press(&mut app, ratatui::crossterm::event::KeyCode::Char('G'));
+    let lines = screen(&app);
+    let bottom = lines
+        .iter()
+        .position(|line| line.contains('╰'))
+        .expect("the panel's bottom border");
+    assert!(
+        lines[bottom - 1].contains('▐'),
+        "the thumb ends at the bottom, not before it:\n{}",
+        lines.join("\n")
+    );
+}
+
+#[test]
+fn the_thumb_is_not_banded() {
+    // a full panel whose cursor is on a row the bar runs over: the band stops before
+    // the thumb, because a thumb on the selection's green is a highlight of a highlight
+    let names: Vec<String> = (1..=30).map(|n| format!("d{n}/TODOs.md")).collect();
+    let files: Vec<(&str, &str)> = names.iter().map(|n| (n.as_str(), "- [ ] a\n")).collect();
+    let (_tmp, app) = app(&files);
+    let terminal = terminal(&app, WIDTH, HEIGHT);
+    let buffer = terminal.backend().buffer();
+    let row = 2; // the first row inside the files panel, which is banded
+    let width = usize::from(WIDTH);
+    let at = |x: usize| u16::try_from(x).unwrap_or(u16::MAX);
+    let thumb = (0..width)
+        .find(|x| buffer[(at(*x), row)].symbol() == "▐")
+        .expect("a thumb on that row");
+    let band = buffer[(at(thumb - 1), row)].bg;
+    assert_ne!(
+        buffer[(at(thumb), row)].bg,
+        band,
+        "the thumb takes the band's background"
+    );
+    // the row really is banded, or this test proves nothing
+    assert_ne!(band, ratatui::style::Color::Reset);
 }
 
 #[test]

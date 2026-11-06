@@ -148,9 +148,9 @@ pub const BINDINGS: &[Binding] = &[
     // thing under the cursor
     Binding::new("tab", "next section", Where::ANY, Bar::Nav),
     Binding::new("shift+tab", "prev", Where::ANY, Bar::Nav),
-    // the number in a panel's title is the key that jumps to it. `0` is not one:
-    // `0` clears a priority, and the page says so under the priorities
-    Binding::new("1-4", "that panel", Where::ANY, Bar::No),
+    // the number in a panel's title is the key that jumps to it, and `0` is the
+    // panel a person works in most — the same 0 lazygit uses
+    Binding::new("0-3", "that panel", Where::ANY, Bar::No),
     Binding::new("→", "into view", Where::ANY, Bar::Nav),
     Binding::new("←", "back out", Where::ANY, Bar::Nav),
     Binding::new("g / G", "first / last", Where::ANY, Bar::No),

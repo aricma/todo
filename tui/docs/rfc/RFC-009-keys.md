@@ -55,7 +55,7 @@ none, and the bar offers the spelling that always arrives.
 | where | key | does | why this key |
 | --- | --- | --- | --- |
 | anywhere | `tab` / `shift+tab` | next / prev section | the only key every terminal agrees on; the bar names the destination (`tab index`) because which section comes next is the thing a person cannot guess |
-| anywhere | `1`–`4` | that panel | the number is in the panel's title (`[3] history`), so the key is the label: a person reading the screen can already press it. Not `0`: `0` clears a priority, and a panel number that silently unset something would be a trap. A panel that is not on screen takes no number — `1` in a single-file session does nothing |
+| anywhere | `0`–`3` | that panel | the number is in the panel's title (`[3] history`), so the key is the label: a person reading the screen can already press it. `0` is the todos panel, as it is in lazygit, because that is the panel a person is in most. A panel that is not on screen takes no number — `1` in a single-file session does nothing |
 | anywhere | `→` / `←` | into the view / back out | the two arrows that look like the two columns; the bar names what `→` would open, a file path or `#home` |
 | anywhere | `g` / `G`, `home`/`end`, `shift+↑/↓` | first / last | three spellings of one jump, for the three kinds of terminal (letters, always-sent keys, modifier-reporting keys) |
 | anywhere | `f` | search | `cmd+f` and `ctrl+f` belong to the terminal or to scrolling; one letter is free and memorable |
@@ -71,7 +71,7 @@ none, and the bar offers the spelling that always arrives.
 | todos panel, file view | `x` / `space` | check | the checkbox, and the key that cannot arrive wrong |
 | todos panel, file view | `K` / `J`, `ctrl+↑/↓` | move the todo | the letters sit beside the arrows, so a terminal that eats the modifier still moves |
 | todos panel, file view | `e` | edit in place | RFC-003 |
-| todos panel, file view | `A`–`D`, `0` | set / clear priority | the letters are the priorities; `0` is "no priority", the absence of a letter |
+| todos panel, file view | `A`–`D` | set / clear priority | the letters are the priorities, and the letter a todo already carries clears it: `0` used to do that too, and gave up its key when `0` became the todos panel's number, which cost nothing — two spellings of "no priority" were one too many |
 | todos panel, file view, collection | `d` | delete | the same verb as the file panel's, on the row's own kind |
 | collection | `enter` | open file | the one key a collection has that no other panel does: it says "show me where this line lives" |
 | history panel | `x` / `space` | undo / redo | the panel's own verb: "this row, now" |

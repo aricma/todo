@@ -26,7 +26,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
     let Some(collection) = app.viewing() else {
         return;
     };
-    let title = text::titled(4, &format!("{} {}", collection, text::TODOS));
+    let title = text::titled(0, &format!("{} {}", collection, text::TODOS));
     let block = panel(&title, focused).title_bottom(footer(app, focused));
     let inner = block.inner(area);
     let width = inner.width as usize;

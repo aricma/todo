@@ -14,7 +14,7 @@ use crate::state::App;
 use crate::text;
 
 pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
-    let title = text::titled(4, text::TODOS);
+    let title = text::titled(0, text::TODOS);
     let width = panel(&title, focused).inner(area).width as usize;
     let rows = rows(app, width);
     // the counts ride on this panel's own frame: they belong to the todos it shows
@@ -83,7 +83,7 @@ fn gutter(app: &App) -> usize {
 /// Where the cursor goes while a todo is edited in the list.
 fn cursor(app: &App, area: Rect, width: usize) -> Option<(u16, u16)> {
     let prompt = app.editing()?;
-    let inner = panel(&text::titled(4, text::TODOS), true).inner(area);
+    let inner = panel(&text::titled(0, text::TODOS), true).inner(area);
     let before: String = prompt.text().chars().take(prompt.cursor()).collect();
     let tasks = app.tasks();
     // the rows are wrapped inside the line-number gutter, so the cursor is too

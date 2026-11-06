@@ -45,19 +45,33 @@ file view shows *a file*, and a todo in it is one line among prose.
    open file's headings, and moving in it would walk another file's sections.
 7. The wording of a message **MUST** name the panel it is about, in these words,
    wherever the panel it is about is not the one on screen.
-8. A panel's title **MUST** start with the number of the key that jumps to it, `[1]`
-   for the files panel through `[4]` for the right-hand one (the todos panel, the file
-   view, or a collection, which take that place in turn). The numbers **MUST NOT**
-   follow the layout: a number that moved between a folder session and a single-file
-   one would be a different key in each. `0` **MUST NOT** be a panel number — it clears
-   a priority — and a panel that is not on screen **MUST NOT** be reachable by its
-   number.
+8. A panel's title **MUST** start with the number of the key that jumps to it: `[0]`
+   for the right-hand one (the todos panel, the file view, or a collection, which take
+   that place in turn), then `[1]` files, `[2]` index, `[3]` history. `0` is the panel
+   a person works in most, which is what lazygit taught everyone, and it is the one
+   number every other layout of this screen will keep. The numbers **MUST NOT** follow
+   the layout: a number that moved between a folder session and a single-file one would
+   be a different key in each. A panel that is not on screen **MUST NOT** be reachable
+   by its number. `0` clearing a priority was given up for this — the letter a todo
+   already carries clears it, so the key was one of two spellings for one idea.
 9. A panel whose rows do not fit **MUST** show a thumb (`▐`) on its inner right edge,
    and a panel whose rows fit **MUST NOT** show one. The track is not drawn: an empty
    column of track glyphs is a second border. A thumb that is always full says nothing,
    and on a narrow panel its column is a row's worth of text. The thumb is dim, so it
    reads as furniture rather than content, and it never replaces the frame's border —
    it sits inside it, one cell in.
+10. The thumb **MUST NOT** take the band: it is drawn on the panel's own background,
+    so a highlighted row's highlight stops before it. A thumb in the selection's colour
+    is a highlight of a highlight, and the cursor is a fact about a row, not about the
+    panel's furniture.
+11. The thumb's **top MUST be at the track's top when the panel is scrolled to the
+    top**, and its **bottom MUST be at the track's bottom at the furthest scroll**. It
+    **MUST** grow with the ratio of visible rows to rows, so a long list gets a short
+    thumb and a list that nearly fits gets a long one. ratatui's `ScrollbarState` takes
+    the *number of scroll positions* — the furthest scroll plus one — not the row
+    count: given rows, it puts the thumb's start at `position × track ÷ (rows − 1 +
+    visible)` and the thumb stops at two thirds of the track however far the panel
+    scrolls. That is the bug this rule exists to keep out.
 
 ## Why not the alternative
 
@@ -83,6 +97,13 @@ job, done worse.
   what makes that acceptable: the same rules, tested in both.
 - The glossary is now load-bearing: code that names a panel differently from the
   glossary is a bug, not a style choice.
+- `the_thumb_is_not_banded` reads the buffer's backgrounds rather than its text: the
+  thumb's cell is `Reset` while the banded row beside it is the selection's green, which
+  is the only way to prove a colour rule from a screen made of strings.
+- The thumb's geometry is the one thing about it a person will notice at a glance, and
+  it is arithmetic no test would have caught by accident: `a_thumb_starts_at_the_top_and_stops_at_the_bottom`
+  asserts the first inner row at the top of a list and the last inner row at the end of
+  it, which is what a wrong `ScrollbarState` fails.
 - The thumb costs one cell of width in the panel it appears in, and it appears only
   when the panel is full — so a panel can lose its last column of text at the moment
   its content grows. That is the trade for knowing that there is more to scroll to;

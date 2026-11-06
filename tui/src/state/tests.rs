@@ -91,7 +91,7 @@ fn a_number_goes_to_the_panel_that_carries_it() {
     assert_eq!(app.pane, Pane::History);
     press(&mut app, KeyCode::Char('2'));
     assert_eq!(app.pane, Pane::Outline);
-    press(&mut app, KeyCode::Char('4'));
+    press(&mut app, KeyCode::Char('0'));
     assert_eq!(app.pane, Pane::View);
     press(&mut app, KeyCode::Char('1'));
     assert_eq!(app.pane, Pane::Files);
@@ -102,14 +102,8 @@ fn a_number_goes_to_the_panel_that_carries_it() {
     assert_eq!(alone.pane, Pane::Todos);
     press(&mut alone, KeyCode::Char('1'));
     assert_eq!(alone.pane, Pane::Todos);
-    press(&mut alone, KeyCode::Char('4'));
+    press(&mut alone, KeyCode::Char('0'));
     assert_eq!(alone.pane, Pane::Todos);
-
-    // `0` is still the priority that is no priority
-    let (_tmp, mut prio) = single("- [ ] (A) a\n");
-    assert_eq!(prio.tasks()[0].prio, Some(aricma_todo_lib::model::Prio::A));
-    let action = press(&mut prio, KeyCode::Char('0'));
-    assert!(save_text(action).contains("- [ ] a"), "0 still clears a prio");
 }
 
 #[test]
@@ -121,7 +115,7 @@ fn a_collection_takes_the_number_of_the_panel_it_replaces() {
     press(&mut app, KeyCode::Down);
     press(&mut app, KeyCode::Right);
     assert_eq!(app.pane, Pane::Collection);
-    press(&mut app, KeyCode::Char('4'));
+    press(&mut app, KeyCode::Char('0'));
     assert_eq!(app.pane, Pane::Collection);
     // and the index is gone while one is open, so `2` leaves the cursor alone
     press(&mut app, KeyCode::Char('2'));
@@ -302,7 +296,7 @@ fn the_letter_a_todo_already_carries_clears_the_priority() {
 }
 
 #[test]
-fn uppercase_a_to_d_set_priority_and_zero_clears_it() {
+fn uppercase_a_to_d_set_a_priority_and_the_letter_again_clears_it() {
     let (_tmp, mut app) = app(&[(
         "TODOs.md",
         "- [ ] a #t
@@ -314,12 +308,19 @@ fn uppercase_a_to_d_set_priority_and_zero_clears_it() {
         "- [ ] (B) a #t
 "
     );
+    // the letter the todo carries clears it, which is what `0` used to do before
+    // `0` became the todos panel's number
     assert_eq!(
-        save_text(press(&mut app, KeyCode::Char('0'))),
+        save_text(press(&mut app, KeyCode::Char('B'))),
         "- [ ] a #t
 "
     );
-    assert_eq!(press(&mut app, KeyCode::Char('0')), None);
+    // and a third press sets it again: the key toggles, it does not clear twice
+    assert_eq!(
+        save_text(press(&mut app, KeyCode::Char('B'))),
+        "- [ ] (B) a #t
+"
+    );
 }
 
 #[test]
@@ -1335,7 +1336,8 @@ fn crossed() -> (tempfile::TempDir, crate::state::App) {
     press(&mut app, KeyCode::Char('x'));
     press(&mut app, KeyCode::Char('B'));
     press(&mut app, KeyCode::Char('x'));
-    press(&mut app, KeyCode::Char('0'));
+    // B twice: set, then clear
+    press(&mut app, KeyCode::Char('B'));
     app.pane = Pane::History;
     (tmp, app)
 }

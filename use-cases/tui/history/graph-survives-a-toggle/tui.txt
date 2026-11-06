@@ -3,7 +3,7 @@ key: right
 key: x
 key: B
 key: x
-key: 0
+key: B
 key: left
 key: tab
 key: tab
