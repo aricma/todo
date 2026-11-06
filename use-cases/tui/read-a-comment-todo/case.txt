@@ -1,0 +1,2 @@
+A code file with a `TODO:` comment is listed, opens with its own line numbers, and
+offers only the keys a comment can take.

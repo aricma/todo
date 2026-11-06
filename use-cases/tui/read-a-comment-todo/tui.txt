@@ -1,0 +1,9 @@
+wait: retry.rs
+key: right
+wait: back off before retry
+screen: ● retry.rs
+screen: fn f8() {}
+screen: …
+screen: stop asking for the token twice
+screen: e edit
+screen: d delete

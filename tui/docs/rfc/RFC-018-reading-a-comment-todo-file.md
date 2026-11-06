@@ -39,6 +39,13 @@ predict without counting.
    the line numbers and the save are of the whole file, and an edit lands on the line the
    gutter says.
 
+## How it is proven
+
+`use-cases/tui/read-a-comment-todo` opens a 24-line Rust file holding two comments: the
+screen shows the two lines either side of each, one `…` for the eight lines between them,
+and the file panel's row, the dim lead and the keys `e` and `d` — the case fails if the
+windows, the fold or the bar change.
+
 ## Why not the alternative
 
 **Show only the todo lines, like a grep result.** It reads as a list of matches, not as a

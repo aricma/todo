@@ -1,0 +1,15 @@
+who: a developer who leaves notes in the code and wants to read them all in one place.
+
+given: a small Rust file with a `TODO: (A)` comment in the middle of it, and no markdown
+todo file at all.
+
+expect: the file is in the file panel with its count, opening it shows two lines of code
+either side of the note and one `…` for the rest, the note is a todo row, and the status
+bar offers edit, priority, delete and copy — not check, not add, not move.
+
+why: a `TODO:` comment is the oldest todo format there is, and it is where most todos in
+a repository actually live. Reading them in place is the whole point; moving them into
+markdown first is the work this saves.
+
+behaviour: everything in front of the note is the line's and is shown dim; the body after
+`TODO: ` is the todo. RFC-015, RFC-016, RFC-018.
