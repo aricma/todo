@@ -159,7 +159,9 @@ impl App {
             root: path,
             single,
             show_all: false,
-            last_sidebar: if single { Pane::Todos } else { Pane::Files },
+            // where `←` goes back to: the sidebar, which in a single-file session is
+            // the index and the history
+            last_sidebar: if single { Pane::Outline } else { Pane::Files },
             pane: if single { Pane::Todos } else { Pane::Files },
             baseline,
             history: Vec::new(),
@@ -298,11 +300,22 @@ impl App {
             // always otherwise: an empty outline is where a heading gets made
             sections.push(Pane::Outline);
         }
-        if self.single {
-            sections.push(Pane::Todos);
-        }
         sections.push(Pane::History);
         sections
+    }
+
+    /// Whether a panel is on screen at all.
+    ///
+    /// The sidebar's sections are `sections()`; the right-hand column is not a section
+    /// — it is the todos panel in a single-file session, a collection while one is open,
+    /// the file view otherwise — so a key that jumps by number asks this, not the list.
+    pub fn drawn(&self, pane: Pane) -> bool {
+        match pane {
+            Pane::View => !self.single && self.collection.is_none(),
+            Pane::Collection => self.viewing().is_some(),
+            Pane::Todos => self.single,
+            _ => self.sections().contains(&pane),
+        }
     }
 
     /// The todo a heading should hand over to: the first one *after* the
@@ -346,11 +359,18 @@ impl App {
         Ok(())
     }
 
-    /// Cross back out of the file view.
+    /// Whether the cursor is in the right-hand panel: the file view, a collection, or
+    /// the todos panel of a single-file session.
+    pub fn crossing(&self) -> bool {
+        matches!(self.pane, Pane::View | Pane::Collection)
+            || (self.single && self.pane == Pane::Todos)
+    }
+
+    /// Cross back out of the right-hand panel.
     pub fn leave_view(&mut self) {
         // the collection stays on screen: it is what the highlighted row is about,
         // and the row is still highlighted
-        if self.pane == Pane::View || self.pane == Pane::Collection {
+        if self.crossing() {
             self.pane = self.last_sidebar;
         }
     }

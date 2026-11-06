@@ -212,19 +212,25 @@ fn a_long_heading_wraps_under_its_own_text() {
     );
     // the index is only narrow when the whole screen is
     let lines = screen_at(&app, 40, 20);
+    // the index sits in the narrow left column now, so the heading wraps into several
+    // rows: `# a`, then the rest under the text
     let first = lines
         .iter()
-        .position(|line| line.contains("# a heading"))
-        .expect("the heading is on screen");
+        .position(|line| line.contains("# a "))
+        .unwrap_or_else(|| panic!("{}", lines.join("\n")));
     assert!(
-        lines[first + 1].contains("enough to need a"),
+        lines[first + 1].contains("heading"),
         "the text continues on the row below: {:?}",
         &lines[first..first + 3]
     );
     // and the continuation lines up under the text, not under the hashes
-    let text_at = lines[first].find("a heading").unwrap();
-    let next_at = lines[first + 1].find("enough").unwrap();
-    assert_eq!(text_at, next_at, "{:?}", &lines[first..first + 2]);
+    let column = |line: &str, needle: &str| line[..line.find(needle).unwrap()].chars().count();
+    assert_eq!(
+        column(&lines[first], "a "),
+        column(&lines[first + 1], "heading"),
+        "{:?}",
+        &lines[first..first + 2]
+    );
 }
 
 #[test]
@@ -286,7 +292,9 @@ fn todo_rows_show_marker_and_coloured_body() {
     let terminal = terminal(&app, WIDTH, HEIGHT);
     let buffer = terminal.backend().buffer();
     let cell = |needle: &str| {
-        let column = u16::try_from(text.find(needle).unwrap()).unwrap();
+        // columns, not bytes: the sidebar's border is three bytes and one cell
+        let at = text.find(needle).unwrap();
+        let column = u16::try_from(text[..at].chars().count()).unwrap();
         buffer[(column, u16::try_from(line).unwrap())].fg
     };
     assert_eq!(cell("#home"), super::prompt::TAG);

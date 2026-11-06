@@ -32,6 +32,10 @@ file view shows *a file*, and a todo in it is one line among prose.
 2. A panel **MUST NOT** be named for where it sits. No "left panel", no "middle", no
    "right side": the layout moves between a folder session and a single-file session,
    and the names do not move with it.
+   A single-file session **MUST** be the same window as a folder session minus the files
+   panel: the sections down the left column (the index above the history) and one panel
+   down the right. It **MUST NOT** stack its sections on the right instead — that was the
+   shape it had, and it made one file look like a different program from two.
 3. The **todos panel MUST** draw the todos of exactly one source, and **MUST** say
    which in its title: `todos` for a file, `<tag> todos` / `@<person> todos` for a
    collection. A source is a file or a collection, never both.

@@ -500,7 +500,7 @@ impl App {
             _ if self.viewing().is_some() => Pane::Collection,
             _ => Pane::View,
         };
-        if self.sections().contains(&pane) || matches!(pane, Pane::View | Pane::Collection) {
+        if self.drawn(pane) {
             self.pane = pane;
         }
     }

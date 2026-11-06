@@ -302,12 +302,10 @@ fn nav(app: &App, binding: &Binding) -> Option<String> {
     let named = match binding.keys {
         "tab" => format!("tab {}", app.focus_target(true)?.name()),
         "shift+tab" => format!("shift+tab {}", app.focus_target(false)?.name()),
-        "←" if app.pane == Pane::View || app.pane == Pane::Collection => {
-            format!("← {}", app.last_sidebar.name())
-        }
+        "←" if app.crossing() => format!("← {}", app.last_sidebar.name()),
         // what the arrow would put you in — a file, or the collection the cursor is
         // on — rather than the word "view"
-        "→" if app.pane != Pane::View && app.pane != Pane::Collection && !app.single => {
+        "→" if !app.crossing() && !app.single => {
             let what = match app.selected_row().and_then(Row::collection) {
                 Some(collection) => collection.to_string(),
                 None => shorten(&app.display(&app.current().path), SHORT_PATH),

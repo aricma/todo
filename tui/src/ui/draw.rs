@@ -35,17 +35,17 @@ pub fn draw(frame: &mut Frame, app: &App) {
     ])
     .spacing(COLUMN_GAP)
     .areas(panes);
+    // The same window either way: the sections down the left column, one panel on the
+    // right. A single-file session only loses the files panel — there is one file, so
+    // there is nothing to choose between — and the right-hand panel is the todos of that
+    // file instead of a file view of it.
+    stack(frame, app, sidebar, &app.sections());
     if app.single {
-        stack(frame, app, view, &app.sections());
+        todos::draw(frame, app, view, app.pane == Pane::Todos);
+    } else if app.viewing().is_some() {
+        collection::draw(frame, app, view, app.pane == Pane::Collection);
     } else {
-        stack(frame, app, sidebar, &app.sections());
-        // the right-hand side is the open file, or the collection that was opened
-        // from the file panel
-        if app.viewing().is_some() {
-            collection::draw(frame, app, view, app.pane == Pane::Collection);
-        } else {
-            body::draw(frame, app, view);
-        }
+        body::draw(frame, app, view);
     }
     status::draw(frame, app, status);
     popover::draw(frame, app);

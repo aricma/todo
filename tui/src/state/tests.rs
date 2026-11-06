@@ -104,12 +104,26 @@ fn a_session_on_a_file_says_what_it_cannot_read() {
 #[test]
 fn a_single_file_session_starts_on_its_todos_and_has_no_file_list() {
     let (_tmp, mut app) = single("- [ ] a\n");
-    assert_eq!(app.pane, Pane::Todos);
-    assert_eq!(app.sections(), [Pane::Outline, Pane::Todos, Pane::History]);
+    assert_eq!(app.pane, Pane::Todos, "a file is opened to work on its todos");
+    // the same window as a folder session with the file panel taken out: the sections
+    // down the left, the todos on the right
+    assert_eq!(app.sections(), [Pane::Outline, Pane::History]);
+    assert!(app.drawn(Pane::Todos));
+    assert!(!app.drawn(Pane::Files));
+
+    // `tab` walks the sidebar, and from the right-hand panel it does nothing — the same
+    // as `tab` in the file view, where `←` is the way back
+    press(&mut app, KeyCode::Char('2'));
+    assert_eq!(app.pane, Pane::Outline);
     press(&mut app, KeyCode::Tab);
     assert_eq!(app.pane, Pane::History);
-    press(&mut app, KeyCode::BackTab);
+    press(&mut app, KeyCode::Tab);
+    assert_eq!(app.pane, Pane::Outline, "tab loops the sidebar");
+    // and `0` is always the right-hand panel, which `←` leaves like any other
+    press(&mut app, KeyCode::Char('0'));
     assert_eq!(app.pane, Pane::Todos);
+    press(&mut app, KeyCode::Left);
+    assert_eq!(app.pane, Pane::Outline, "`←` back to the sidebar");
 }
 
 #[test]
