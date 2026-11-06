@@ -7,11 +7,13 @@ key: 0
 key: left
 key: tab
 key: tab
-wait: ╭──[x] clear prio
+wait: ╭──● clear prio
 key: down
 key: down
 key: down
 key: x
-wait: ╰─[ ] check
+wait: ╰─○ check
 key: x
-wait: [x] write the README
+key: up
+key: up
+wait: ○ uncheck todo

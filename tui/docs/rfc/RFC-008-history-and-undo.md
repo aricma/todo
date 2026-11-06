@@ -21,7 +21,10 @@ three writes ago, and everything that hung on it".
 2. One user action **MUST** be one entry, named for what it did (`check · pay rent`,
    `set prio B · ship it`, `delete · old idea`), never for the key that did it.
 3. The panel **MUST** list entries newest first, and each entry **MUST** show the state
-   it is in: `[x]` in effect, `[ ]` undone.
+   it is in: `●` in effect, `○` undone — never a checkbox. A checkbox is a todo's state,
+   and a write about a todo is not a todo: the two glyphs would read as the same idea in
+   two panels, which is exactly the confusion RFC-012 works to avoid. A filled dot is a
+   write that is in the file; a hollow one is a write that was taken back.
 4. `x` **MUST** act on the selected entry — undo an entry in effect, redo an undone one
    — one direction per press, and never past the file it was recorded against.
 5. An entry that added or deleted a line **MUST** replay literally: undoing a delete puts
@@ -40,6 +43,12 @@ three writes ago, and everything that hung on it".
     it did: every entry is anchored to text that just changed.
 
 ## Why not the alternative
+
+**The todo's own checkbox on a history row.** It was there first, and it was wrong in a way
+that only shows at a glance: an entry reading `[ ] check todo · pay rent` looks like a todo
+that is not done, so the panel looked like a second todos panel with the boxes out of sync.
+The dot says "state of a write" without borrowing the todo's vocabulary.
+
 
 **A single undo key** (`u` undoes the last write) was rejected: the panel is what answers
 "three writes ago", and a program that writes files has to be able to show its own trail.

@@ -13,7 +13,6 @@ use crate::helpers::as_u16;
 use crate::state::message::Message;
 use crate::state::App;
 use crate::text;
-use unicode_width::UnicodeWidthStr;
 
 /// One lane of the graph: a dependency is a line running down the sidebar from
 /// the write that undoes something to the write it undoes.
@@ -45,7 +44,9 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
         let Some(entry) = app.history.get(*global) else {
             continue;
         };
-        let checkbox = if entry.applied { "x" } else { " " };
+        // a filled dot is a write that is in the file, a hollow one is a write that was
+        // undone: a checkbox here would read as a todo's state, and a write is not a todo
+        let dot = if entry.applied { "●" } else { "○" };
         // the gutter is the same width on every row, so no label is pushed
         // sideways by a dependency it happens to be part of
         let style = if entry.applied {
@@ -61,15 +62,11 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
         // a long label wraps under itself, so a write is never cut in half: the
         // gutter and the checkbox stay on the first row and the rest lines up
         // under the text they continue
-        let lead = format!("{}[{checkbox}] ", graph.row(index));
+        let lead = format!("{}{dot} ", graph.row(index));
         // the rows a label wraps onto keep the lanes that run through this entry, so
-        // a dependency line is a line and not a line with holes in it; the checkbox
+        // a dependency line is a line and not a line with holes in it; the dot's
         // column stays blank, because a write has one state, on its first row
-        let pad = format!(
-            "{}{}",
-            graph.through(index),
-            " ".repeat(UnicodeWidthStr::width(format!("[{checkbox}] ").as_str()))
-        );
+        let pad = format!("{}{}", graph.through(index), " ".repeat(2));
         let room = width.saturating_sub(pad.len());
         for (line, chunk) in wrap::lines(&entry.label, room.max(MIN_WRAP))
             .into_iter()

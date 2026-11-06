@@ -681,13 +681,13 @@ fn a_long_history_entry_wraps_under_its_own_label() {
         "it wraps: {:?}",
         &lines[first..first + 3]
     );
-    // the continuation lines up under the label, past the gutter and the checkbox
-    let label_at = lines[first].find("check todo").unwrap();
-    let next_at = lines[first + 1].find("with").unwrap();
+    // the continuation lines up under the label, past the gutter and the dot. Columns,
+    // not bytes: the dot is three bytes wide and one cell
+    let column = |line: &str, needle: &str| line[..line.find(needle).unwrap()].chars().count();
     assert_eq!(
-        label_at,
-        next_at,
-        "{label_at} vs {next_at}: {:?}",
+        column(&lines[first], "check todo"),
+        column(&lines[first + 1], "with"),
+        "{:?}",
         &lines[first..first + 2]
     );
 }
@@ -1280,12 +1280,12 @@ fn the_prompt_colours_what_the_parser_sees() {
 }
 
 #[test]
-fn history_rows_are_checkboxes_that_dim_when_reverted() {
+fn history_rows_are_dots_that_hollow_when_reverted() {
     let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] a\n")]);
     app.pane = crate::state::action::Pane::Todos;
     app.press(ratatui::crossterm::event::KeyCode::Char('x'));
     assert!(
-        texts(&app).contains("[x] check todo · a"),
+        texts(&app).contains("● check todo · a"),
         "{}",
         texts(&app)
     );
@@ -1293,7 +1293,7 @@ fn history_rows_are_checkboxes_that_dim_when_reverted() {
     app.pane = crate::state::action::Pane::History;
     app.press(ratatui::crossterm::event::KeyCode::Char('x'));
     assert!(
-        texts(&app).contains("[ ] check todo · a"),
+        texts(&app).contains("○ check todo · a"),
         "{}",
         texts(&app)
     );
@@ -1312,9 +1312,9 @@ fn a_dependency_line_runs_past_the_writes_between_it() {
     let text = screen(&app).join("\n");
     // newest first: uncheck a, check b, check a. The line from the uncheck
     // runs down past an unrelated write to the check it undoes.
-    assert!(text.contains("╭─[x] uncheck todo · a"), "{text}");
-    assert!(text.contains("│ [x] check todo · b"), "{text}");
-    assert!(text.contains("╰─[x] check todo · a"), "{text}");
+    assert!(text.contains("╭─● uncheck todo · a"), "{text}");
+    assert!(text.contains("│ ● check todo · b"), "{text}");
+    assert!(text.contains("╰─● check todo · a"), "{text}");
 }
 
 #[test]
@@ -1329,10 +1329,10 @@ fn the_graph_runs_a_line_from_each_write_down_to_the_one_it_undoes() {
     // checkbox pair in lane 1. `╭` leaves a row downwards, `╰` arrives and runs
     // into the one it lands on, and `┼` is a lane running through a run.
     let expected = [
-        "│ ╭──[x] clear prio · write the README",
-        "│ │╭─[x] uncheck todo · write the README",
-        "│ ╰┼─[x] set prio B · write the README",
-        "│  ╰─[x] check todo · write the README",
+        "│ ╭──● clear prio · write the README",
+        "│ │╭─● uncheck todo · write the README",
+        "│ ╰┼─● set prio B · write the README",
+        "│  ╰─● check todo · write the README",
     ];
     for want in expected {
         assert!(
@@ -1347,7 +1347,7 @@ fn the_graph_runs_a_line_from_each_write_down_to_the_one_it_undoes() {
         .iter()
         .map(|want| {
             let row = lines.iter().find(|line| line.contains(want)).unwrap();
-            let at = row.find('[').unwrap();
+            let at = row.find('●').unwrap();
             unicode_width::UnicodeWidthStr::width(&row[..at])
         })
         .collect();
@@ -1377,7 +1377,7 @@ fn a_row_that_cannot_be_toggled_says_why_under_itself() {
         .position(|line| line.contains("! enable the write below"))
         .unwrap_or_else(|| panic!("{text}"));
     // it sits directly under the selected row, and the keys row is untouched
-    assert!(lines[row - 1].contains("[ ] uncheck todo · a"), "{text}");
+    assert!(lines[row - 1].contains("○ uncheck todo · a"), "{text}");
     let status = lines[lines.len() - 2..].join("\n");
     assert!(!status.contains("enable the write"), "{status}");
     assert!(
@@ -1394,9 +1394,9 @@ fn a_write_and_the_undo_of_it_are_drawn_as_a_pair() {
     app.press(ratatui::crossterm::event::KeyCode::Char('x'));
 
     let text = screen(&app).join("\n");
-    assert!(text.contains("╭─[x] uncheck todo · a"), "{text}");
+    assert!(text.contains("╭─● uncheck todo · a"), "{text}");
     assert!(
-        text.contains("╰─[x] check todo · a"),
+        text.contains("╰─● check todo · a"),
         "the line ends at the write it undoes: {text}"
     );
 
