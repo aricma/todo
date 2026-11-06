@@ -36,9 +36,9 @@ obey: `.gitignore`. So the walk should not guess — it should ask.
    byte, are skipped. Named on the command line, they are an error instead — the person
    asked for that file.
 6. A file is listed only when it holds something: a document with a todo, a finding, or
-   nothing but headings; a comment todo file with at least one `TODO:` comment. The rest of the
-   tree is read and dropped, because a file list is a list of places to go, not an
-   inventory.
+   nothing but headings; a comment todo file with at least one `TODO:` comment the finding
+   rule accepts (RFC-019). The rest of the tree is read and dropped, because a file list is
+   a list of places to go, not an inventory.
 7. The scan **SHOULD** remain fast enough to run on open without a spinner. Reading every
    text file in a repository of this size takes milliseconds; the limits are what keep a
    pathological tree from taking minutes.

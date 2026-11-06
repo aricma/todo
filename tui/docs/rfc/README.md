@@ -58,13 +58,14 @@ Everything a person reads on screen has a name, and the names are in
 | 016 | [A comment todo is one line of code](RFC-016-a-comment-todo.md) | one line, the literal `TODO:`, `(A)` after the colon, and no check, add or move |
 | 017 | [The tree is what git does not ignore](RFC-017-the-tree-is-what-git-sees.md) | the scan asks git, and reads every text file it is given, within limits |
 | 018 | [Reading a comment todo file](RFC-018-reading-a-comment-todo-file.md) | two lines around each todo, one `…` for the rest, and nothing folded in a document |
+| 019 | [Not every line with a `TODO` in it is a todo](RFC-019-not-every-todo-is-a-todo.md) | the rule is a guess, it guesses narrow, and the table of what it misses is normative |
 
 ### Next
 
 | # | the behaviour |
 | --- | --- |
-| 019 | Staying current: the 0.75 s poll, the reload that forgets history, and the conflict that only a person can settle |
-| 020 | The CLI: `check`, `format`, `export`, `import` — the same rules without a screen |
+| 020 | Staying current: the 0.75 s poll, the reload that forgets history, and the conflict that only a person can settle |
+| 021 | The CLI: `check`, `format`, `export`, `import` — the same rules without a screen |
 
 Written after this pass: the doc claimed `r`/`ctrl+r` forced a reload. There is no
 such key (`state/tests.rs` asserts `r` is not one), and `lazytodo.md` now says so.

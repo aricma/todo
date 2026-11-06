@@ -1,7 +1,7 @@
 # RFC-016: A comment todo is one line of code
 
 - **Date:** 2026-10-16
-- **Related:** [RFC-013](RFC-013-a-todo-is-a-checkbox.md), [RFC-014](RFC-014-a-copied-todo-is-a-document.md), [RFC-015](RFC-015-sources-and-kinds.md), [RFC-018](RFC-018-reading-a-comment-todo-file.md)
+- **Related:** [RFC-013](RFC-013-a-todo-is-a-checkbox.md), [RFC-014](RFC-014-a-copied-todo-is-a-document.md), [RFC-015](RFC-015-sources-and-kinds.md), [RFC-018](RFC-018-reading-a-comment-todo-file.md), [RFC-019](RFC-019-not-every-todo-is-a-todo.md)
 
 ## Context
 
@@ -12,13 +12,17 @@ file properly — comments, strings, nesting — is a compiler's job, and this i
 reader.
 
 So the rule has to be one line of text matching, and the honest thing is to say exactly
-what it matches and what it therefore gets wrong.
+what it matches and what it therefore gets wrong. **That is RFC-019's subject**: the three
+conditions a line must satisfy (`TODO:` in capitals, a comment marker in front of it, no
+quote between them), the false positives that taught them to us, and the misses they cost.
+This RFC is about the *grammar* of what a hit contains.
 
 ## Behaviour
 
 1. In a **comment todo file** — any file the walk reads that is not `.md` — a todo **MUST** be
-   a line containing the literal `TODO:` in any case, with at least one character after
-   it that is not a space. One todo per line, the first `TODO:` on it.
+   a line that RFC-019 accepts as one, and one todo per line at most: the first accepted
+   `TODO:` on it. Everything this RFC says about a hit's shape assumes that rule, and
+   nothing here widens it.
 2. A line with `TODO:` and nothing after it is **not** a todo: it promises something and
    says nothing. (A document's empty `- [ ]` *is* a todo, because the row is where a new
    todo waits; a comment has no such row.)
@@ -53,7 +57,8 @@ what it matches and what it therefore gets wrong.
 
 **A real comment parser per language.** It would have to know strings, escapes, raw
 strings, heredocs, nesting and templates — a table of languages, kept current forever —
-to avoid the two mistakes the simple rule makes (a `TODO:` in a string literal, and a
+to avoid the mistakes the simple rule still makes (a `TODO:` in a string the language
+does not quote with `"` — the marker rule already skips `let s = "TODO: x";` — and a
 folded multi-line comment). This tool would then be a linter for the languages it does not
 pretend to understand.
 
@@ -78,9 +83,10 @@ version; a later RFC may narrow it.
   kinds.
 - `findings` and `format` are about documents only, so a comment todo file reports nothing and
   `--format` never rewrites a comment.
-- The two paragraph-length mistakes are real and known: a todo mentioned inside a string
-  literal is listed as a todo, and a multi-line `/* … */` comment is one long body on its
-  first line. `--check` reports neither.
+- What is still known and wrong about a hit that RFC-019 does accept: a multi-line
+  `/* … */` comment is one long body on its first line, and the closing `*/` stays in the
+  body, because the tool does not know it is a terminator. `--check` reports neither; the
+  misses and false positives of the finding rule are RFC-019's.
 - A test proves the body rules are shared: `TODO: (A) fix #infra @dave` reads as
   priority A, one tag and one person, exactly like `- [ ] (A) fix #infra @dave`.
 

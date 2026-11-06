@@ -63,12 +63,17 @@ fn scan_comment(lines: &[String]) -> Vec<Task> {
 
 /// One line as a comment todo, or `None`.
 ///
-/// The rule is the literal `TODO:` in any case, with at least one character after
-/// it that is not a space: a bare `TODO:` promises nothing and is not a todo.
+/// The rule is the literal `TODO:` in capitals, with at least one character after
+/// it that is not a space: a bare `TODO:` promises nothing and is not a todo, and a
+/// lowercase `todo:` is a sentence talking about one — "a file that no longer holds a
+/// todo: the bar says only what works".
 fn comment_line(line: &str, index: usize) -> Option<Task> {
-    let lower = line.to_lowercase();
-    let at = lower.find("todo:")?;
-    let colon = at + "todo:".len();
+    // the first `TODO:` that a comment marker stands in front of, because the one in
+    // `let note = "TODO:"` is a string
+    let (at, _) = line
+        .match_indices("TODO:")
+        .find(|(at, _)| marked(&line[..*at]))?;
+    let colon = at + "TODO:".len();
     // the body starts after the colon and the one space that separates it, if there
     // is one: the rest is the line's, whitespace and all
     let start = if line[colon..].starts_with(' ') {
@@ -93,6 +98,27 @@ fn comment_line(line: &str, index: usize) -> Option<Task> {
         marker: String::new(),
         prefix: Some(line[..start].to_owned()),
     })
+}
+
+/// Whether a comment marker ends the text in front of a `TODO:` — or the line
+/// starts there, which is how a plain `.txt` list is written.
+///
+/// Without this, prose about the rule is a todo of its own: `/// todos are
+/// `TODO:` comments` in this very file listed `hints.rs` for a todo it does not
+/// have. The markers are the ones a language starts a comment with — `#`, `/`,
+/// `-`, `;`, `%`, `*` — which is all of `//`, `///`, `/*`, `#!`, `--`, `<!--`
+/// and a `*` continuing a block.
+///
+/// A quote or a backtick in front of the marker means the marker is quoted: it is
+/// inside a string literal, or in prose about code. `Doc::parse_comment("// TODO:
+/// x")` is a test fixture, not a todo, and `` — a `<!-- TODO: -->` `` in a
+/// sentence is a sentence (RFC-016).
+fn marked(lead: &str) -> bool {
+    let lead = lead.trim_end();
+    let quoted = lead.chars().any(|c| matches!(c, '"' | '\'' | '`'));
+    !quoted
+        && (lead.is_empty()
+            || matches!(lead.chars().next_back(), Some('#' | '/' | '-' | ';' | '%' | '*')))
 }
 
 /// Walk the lines, skipping fenced code blocks, and collect the tasks.
@@ -204,15 +230,13 @@ mod tests {
     #[test]
     fn a_comment_todo_file_finds_its_todo_comments_and_nothing_else() {
         let doc = Doc::parse_comment(
-            "fn main() {\n    // TODO: ship it\n    // FIXME: not this\n    // todo: nor case-blind?\n}\n",
+            "fn main() {\n    // TODO: ship it\n    // FIXME: not this\n    // todo: nor this\n}\n",
         );
         let tasks = doc.tasks();
-        assert_eq!(tasks.len(), 2, "{tasks:#?}");
+        assert_eq!(tasks.len(), 1, "{tasks:#?}");
         assert_eq!(tasks[0].line, 1);
         assert_eq!(tasks[0].title, "ship it");
         assert_eq!(tasks[0].lead(), "    // TODO: ");
-        assert_eq!(tasks[1].line, 3);
-        assert_eq!(tasks[1].title, "nor case-blind?");
     }
 
     #[test]
@@ -225,6 +249,109 @@ mod tests {
     fn a_checkbox_in_a_code_file_is_code_and_a_comment_in_markdown_is_prose() {
         assert!(Doc::parse_comment("- [ ] not a todo here\n").tasks().is_empty());
         assert!(Doc::parse("// TODO: not a todo here\n").tasks().is_empty());
+    }
+
+    #[test]
+    fn a_todo_needs_a_comment_marker_in_front_of_it() {
+        // prose about the rule is not a todo, which is the bug this fixed:
+        // hints.rs was listed because a doc comment said `TODO:` in a sentence
+        assert!(Doc::parse_comment("/// the todos are `TODO:` comments\n")
+            .tasks()
+            .is_empty());
+        assert!(Doc::parse_comment("let note = \"TODO: buy milk\";\n")
+            .tasks()
+            .is_empty());
+        // lowercase is a sentence about a todo, not a todo: this is the noise that
+        // made a test comment in hints.rs a todo of its own
+        assert!(Doc::parse_comment("// a file with no todo: the bar says less\n")
+            .tasks()
+            .is_empty());
+        // a marker in a string, or in a sentence about code, is quoted, not a comment
+        assert!(Doc::parse_comment("Doc::parse_comment(\"// TODO: x\")\n")
+            .tasks()
+            .is_empty());
+        assert!(Doc::parse_comment("/// a `<!-- TODO: -->` in a sentence\n")
+            .tasks()
+            .is_empty());
+        // the markers every language starts a comment with, and a `*` inside a block
+        for line in [
+            "# TODO: shell\n",
+            "/// TODO: rust\n",
+            "/* TODO: c */\n",
+            " * TODO: block\n",
+            "-- TODO: sql\n",
+            "; TODO: lisp\n",
+            "% TODO: tex\n",
+            "<!-- TODO: html -->\n",
+        ] {
+            assert_eq!(Doc::parse_comment(line).tasks().len(), 1, "{line:?}");
+        }
+        // a bare line is a list in a notes file, indented or not
+        assert_eq!(Doc::parse_comment("TODO: plain\n  TODO: indented\n").tasks().len(), 2);
+    }
+
+    /// The table in RFC-019, line for line. If a condition changes, this fails
+    /// before the RFC lies.
+    #[test]
+    fn the_rule_is_narrow_and_its_misses_are_known() {
+        let listed = [
+            "    // TODO: pay rent",
+            "# TODO: pay rent",
+            "-- TODO: pay rent",
+            " * TODO: pay rent",
+            "/* TODO: pay rent */",
+            "<!-- TODO: pay rent -->",
+            "TODO: pay rent",
+            "  TODO: pay rent",
+            "let a = 1; // TODO: pay rent",
+            "let x = 1; //TODO: pay rent",
+            // a quote after the colon is the todo's own text, not a quote in front
+            "// TODO: a \"quoted\" word",
+        ];
+        let missed = [
+            // the quote rule: the marker is quoted
+            "let a = \"x\"; // TODO: pay rent",
+            "\"// TODO: pay rent\"",
+            "/// a `TODO:` note",
+            // the capitals rule
+            "// todo: pay rent",
+            "// Todo: pay rent",
+            // the colon rule
+            "// TODO pay rent",
+            "// TODO(bob): pay rent",
+            "// FIXME: pay rent",
+            "// XXX: pay rent",
+            // the body rule
+            "// TODO:",
+            "// TODO:   ",
+        ];
+        for line in listed {
+            assert_eq!(
+                Doc::parse_comment(&format!("{line}\n")).tasks().len(),
+                1,
+                "should be listed: {line:?}"
+            );
+        }
+        for line in missed {
+            assert_eq!(
+                Doc::parse_comment(&format!("{line}\n")).tasks().len(),
+                0,
+                "should be missed: {line:?}"
+            );
+        }
+        // the false positive that stays: prose writing the marker unquoted, which no
+        // line rule can tell from an HTML comment
+        assert_eq!(
+            Doc::parse_comment("/// we use <!-- TODO: --> in prose\n").tasks().len(),
+            1
+        );
+    }
+
+    #[test]
+    fn a_string_before_a_trailing_comment_hides_it() {
+        // the cost of the quote rule: a note after code that quotes something is
+        // missed, because the tool cannot tell which side of the quote it is on
+        assert!(Doc::parse_comment("let a = \"x\"; // TODO: this\n").tasks().is_empty());
     }
 
     #[test]

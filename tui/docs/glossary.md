@@ -66,7 +66,7 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | **dependency** | a todo that names another todo. Drawn as a chain in the history panel's graph, not in the todos panel |
 | **todo document** | a `.md` file whose `- [ ]` lines are its todos. The original source, and the one the keys were written for |
 | **comment todo file** | any other text file the tree holds, whose `TODO:` comments are its todos. A code file with one note in it is a comment todo file (RFC-015) |
-| **comment todo** | one `TODO:` comment, one line: `    // TODO: (A) fix the retry #infra`. Everything in front of the text is the line's, and the tool never rewrites it (RFC-016) |
+| **comment todo** | one `TODO:` comment, one line: `    // TODO: (A) fix the retry #infra`. The word is in capitals, a comment marker stands in front of it with no quote between, or a word in a sentence would be a todo. Everything in front of the text is the line's, and the tool never rewrites it (RFC-016). Finding one is a guess that leans narrow — what it misses is RFC-019's table |
 | **source** | which of the three a todo came from: a **todo document**, a **comment todo file**, or a **collection**. The source decides the keys (RFC-015) |
 | **fold** | in a comment todo file, the `…` row that stands for the code between the two lines either side of a todo and the next window of them (RFC-018) |
 
