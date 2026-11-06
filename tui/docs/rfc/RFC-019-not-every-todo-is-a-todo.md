@@ -40,9 +40,10 @@ comment marker without quoting it — is still there and is admitted below.
    says "this line holds a `TODO:` that looks like a note", not "this is a comment".
 2. All of the following **MUST** hold, or the line is not a todo:
    - the word is one of `TODO`, `FIXME`, `HACK`, `XXX` — four, since RFC-020 — **in
-     capitals**, followed by `:` — or by `(@person):` or `(#tag):` (RFC-021). `todo:`,
-     `Todo:`, `TODO (bob):`, `TODO(bob):` and `TODO` with no colon are not todos, and a
-     word that is the tail of a longer one (`NOTTODO:`) is not either;
+     capitals**, followed by `:` — or by a parenthesis and then `:`, which is read as a
+     person or tag when it holds `@person`/`#tag` and carried as text when it does not
+     (RFC-021). `todo:`, `Todo:`, `TODO (bob):` and `TODO` with no colon are not todos, and
+     a word that is the tail of a longer one (`NOTTODO:`) is not either;
    - at least one character after the colon that is not a space (RFC-016);
    - the text ending where the word begins **MUST** hold a marker the file's language
      starts a comment with — `#`, `/`, `-`, `;`, `%` or `*` where the language is unknown,
@@ -82,6 +83,8 @@ which is what `Doc::parse_comment` means.
 | `// TODO(@bob): pay rent` | yes | since RFC-021: the parentheses name who it is for |
 | `// FIXME(#home): pay rent` | yes | the same one character away: a tag |
 | `// TODO: #102 pay rent` | yes | a number in a tag is a tag, with no kind of its own |
+| `// TODO(bob): pay rent` | yes | a parenthesis the tool does not read is text in the lead, and the note is still a note (RFC-021) |
+| `// TODO(A): pay rent` | yes | the same — and it is not a priority, which is written after the colon |
 | `// HACK: pay rent` | yes | the same |
 | `// XXX: pay rent` | yes | the same |
 | `let a = "x"; // TODO: pay rent` | **no** | a quote in front: the tool cannot tell which side of it the note is on |
@@ -90,10 +93,8 @@ which is what `Doc::parse_comment` means.
 | `// todo: pay rent` | **no** | lowercase is a sentence about a todo |
 | `// Todo: pay rent` | **no** | the same |
 | `// TODO pay rent` | **no** | no colon |
-| `// TODO(bob): pay rent` | **no** | a bare word says nothing about whether it is a person or a tag: the sigil or nothing (RFC-021) |
-| `// TODO(A): pay rent` | **no** | the same, and the one case that would collide with a priority |
-| `// TODO (bob): pay rent` | **no** | a space ends the word: the parenthesis has to touch it |
-| `// TODO(): pay rent` | **no** | a parenthesis that closes on nothing names nobody |
+| `// TODO (@bob): pay rent` | **no** | a space ends the word: the parenthesis has to touch it (RFC-021's stated limit) |
+| `// TODO(): pay rent` | **no** | a parenthesis that closes on nothing holds nothing to read or carry |
 | `// TODO(bob pay rent` | **no** | one that never closes is not a pair |
 | `// NOTTODO: pay rent` | **no** | the word is the tail of a longer word |
 | `// TODO:` / `// TODO:   ` | **no** | promises something, says nothing |

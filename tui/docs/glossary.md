@@ -41,13 +41,13 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | word | what it is |
 | --- | --- |
 | **todo line** | one line of markdown: a bullet, a checkbox, an optional priority, a body |
-| **lead** | everything in front of the body: indent, bullet, checkbox, space — or, for a **comment todo**, the indent, the comment marker and the severity word: `    // FIXME: `. Drawn dim, never editable here |
+| **lead** | everything in front of the body: indent, bullet, checkbox, space — or, for a **comment todo**, the indent, the comment marker, the severity word, and any parenthesis the tool does not read: `    // FIXME(@alice): `. Drawn dim, never editable here |
 | **severity** | the word that opens a **comment todo**: `TODO`, `FIXME`, `HACK` or `XXX`, in capitals, followed by `:`. All four are todos; the word says which kind, and it stays in the line (RFC-020) |
 | **body** | the text after the lead: the part a person writes |
 | **marker** | `- [ ]` or `- [x]` — the bullet and the state |
 | **priority** | `(A)`…`(D)`, straight after the checkbox — or, for a **comment todo**, straight after the severity word's colon. Yellow, and the only positional rule in the grammar |
 | **tag** | `#home` — cyan. A tag is a **collection**, and a tag is where todos live |
-| **assignee** | `@sam` — magenta. A person is a **collection** too. A comment todo **MAY** name the same person between its word and its colon, `TODO(@sam): `, and that is one of these, not a second field (RFC-021) |
+| **assignee** | `@sam` — magenta. A person is a **collection** too. A comment todo **MAY** name the same person between its word and its colon, `TODO(@sam): `, and that is one of these, not a second field. `TODO(bob): ` names nobody: the parenthesis is text (RFC-021) |
 | **prose** | every line of a file that is not a todo — a bare bullet included, and in a **comment todo file** every line of code. Drawn dim, one row, clipped |
 | **finding** | a line that meant to be a todo and is not one (`--check`). Reported, never silently rewritten (RFC-013) |
 | **heading** | a markdown `#` line, what the index panel is made of |

@@ -1,8 +1,9 @@
 wait: sigil.rs
-screen: sigil.rs  0/2  #2  @2
+screen: sigil.rs  0/3  #2  @2
 key: right
 wait: FIXME(@alice): (A) #102 the retry
 screen: TODO(@alice): (B) #PROJ-404 ship
+screen: a bare word is still
 screen: @alice  0/2
 screen: #102  0/1
-screen: 0/2  #2  @2
+screen: 0/3  #2  @2

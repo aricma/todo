@@ -140,7 +140,8 @@ struct Word {
     severity: Severity,
     /// The `(@alice)` or `(#home)` of `TODO(@alice): ` — one of the two things a body
     /// already has, and never a priority: a priority is written after the colon, where
-    /// the body is (RFC-021).
+    /// the body is. `None` for a parenthesis the tool does not recognise, which is part of
+    /// the lead and nothing else (RFC-021).
     filed: Option<Filed>,
     /// Byte offset just after the colon.
     after: usize,
@@ -156,21 +157,26 @@ enum Filed {
     Tag(Tag),
 }
 
-/// The `(@alice)` of `TODO(@alice): `, what it is, and how many bytes it takes.
+/// The `(@alice)` of `TODO(@alice): `, what it named, and how many bytes it takes.
 ///
-/// `None` when what follows the word is neither `:` nor `(…):` holding a `@person` or a
-/// `#tag`. A bare word is not accepted — `TODO(alice): ` and `TODO(bob): ` do not say
-/// whether they name a person or file the line, and the sigil is the one character that
-/// does. `TODO (x): ` (space), a parenthesis that never closes, and `TODO(): ` are not a
-/// word either.
-fn in_parens(text: &str) -> Option<(Filed, usize)> {
+/// The parenthesis is **text the line carries**, and it is read as a field only when what
+/// is inside it is a `@person` or a `#tag` — the two things a body already knows how to
+/// say. `TODO(bob): ` and `TODO(A): ` are todos whose parentheses say nothing this tool
+/// understands, so they are read as part of the lead and left alone (RFC-021).
+///
+/// `None` — not a word at all — when the parenthesis does not touch the word
+/// (`TODO (@alice): `), closes on nothing (`TODO(): `), or never closes.
+fn in_parens(text: &str) -> Option<(Option<Filed>, usize)> {
     let rest = text.strip_prefix('(')?;
     let (word, after) = rest.split_once(')')?;
+    if word.is_empty() {
+        return None;
+    }
     let after = after.strip_prefix(':')?;
     let filed = match (Assignee::parse(word), Tag::parse(word)) {
-        (Some(person), _) => Filed::Person(person),
-        (None, Some(tag)) => Filed::Tag(tag),
-        (None, None) => return None,
+        (Some(person), _) => Some(Filed::Person(person)),
+        (None, Some(tag)) => Some(Filed::Tag(tag)),
+        (None, None) => None,
     };
     Some((filed, text.len() - after.len()))
 }
@@ -192,7 +198,7 @@ fn words(text: &str) -> Vec<Word> {
                 found.push(Word {
                     at,
                     severity,
-                    filed: Some(filed),
+                    filed,
                     after: at + severity.word().len() + taken,
                 });
             }
@@ -424,21 +430,43 @@ mod tests {
     }
 
     #[test]
-    fn a_parenthesis_without_a_sigil_is_not_a_word() {
-        // a bare word says nothing about which of the two it is, so the line is not a
-        // todo at all — and neither is one with a priority where the sigil would be
+    fn a_parenthesis_that_is_not_a_person_or_a_tag_is_still_a_todo() {
+        // the parenthesis is text the line carries: it is a field only when it says
+        // something the body already knows how to say, and otherwise it is the lead's
         for line in [
-            "// TODO(alice): pay rent\n",
             "// TODO(bob): pay rent\n",
-            "// TODO(102): pay rent\n",
             "// TODO(A): pay rent\n",
+            "// TODO(see the design note): pay rent\n",
+        ] {
+            let doc = Doc::parse_comment(line);
+            let task = doc
+                .tasks()
+                .first()
+                .cloned()
+                .unwrap_or_else(|| panic!("{line:?}"));
+            assert!(task.assignees.is_empty(), "{line:?}");
+            assert!(task.tags.is_empty(), "{line:?}");
+            assert_eq!(task.body, "pay rent", "{line:?}");
+            assert!(task.lead().ends_with("): "), "{line:?}: {}", task.lead());
+            assert_eq!(task.prio, None, "{line:?}");
+        }
+        // and the priority is still read where the grammar puts it
+        let task = &Doc::parse_comment("// TODO(A): (B) pay rent\n").tasks()[0];
+        assert_eq!(task.prio, Some(Prio::B));
+    }
+
+    #[test]
+    fn a_parenthesis_that_does_not_touch_the_word_is_not_a_word() {
+        // the limit of the rule, named in RFC-021: the parenthesis has to touch the word,
+        // close, and hold something
+        for line in [
+            "// TODO (@alice): pay rent\n",
+            "// TODO(): pay rent\n",
+            "// TODO(bob pay rent\n",
+            "// TODO(@alice pay rent\n",
         ] {
             assert!(Doc::parse_comment(line).tasks().is_empty(), "{line:?}");
         }
-        // and the priority is still read where the grammar puts it
-        let task = &Doc::parse_comment("// TODO(@alice): (A) pay rent\n").tasks()[0];
-        assert_eq!(task.prio, Some(Prio::A));
-        assert_eq!(task.assignees[0].as_str(), "alice");
     }
 
     #[test]
@@ -569,6 +597,10 @@ mod tests {
             // a person or a tag between the word and its colon, since RFC-021
             "// TODO(@bob): pay rent",
             "// FIXME(#home): pay rent",
+            // a parenthesis the tool does not read is text in the lead, not a reason to
+            // drop the line
+            "// TODO(bob): pay rent",
+            "// TODO(A): pay rent",
         ];
         let missed = [
             // the quote rule: the marker is quoted
@@ -580,9 +612,7 @@ mod tests {
             "// Todo: pay rent",
             // the colon rule
             "// TODO pay rent",
-            // the parenthesis rule: no sigil says nothing, and a word has to be closed
-            "// TODO(bob): pay rent",
-            "// TODO(A): pay rent",
+            // the parenthesis rule: it has to touch the word, close, and hold something
             "// TODO(): pay rent",
             "// TODO(bob pay rent",
             "// TODO (@bob): pay rent",

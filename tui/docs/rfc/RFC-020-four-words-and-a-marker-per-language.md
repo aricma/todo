@@ -109,9 +109,10 @@ every file is a compromise every language loses.
     `@alice` (RFC-016 rule 4), and a second spelling of one field is how two parsers start
     disagreeing about the same line. **Partly reversed by
     [RFC-021](RFC-021-the-parentheses-name-a-person-or-a-tag.md)**: the parentheses are
-    read when what is in them is `@alice` or `#home` — the sigil is what makes it a
-    spelling of an existing field and not a third thing. A bare `TODO(alice): ` still is
-    not read.
+    read as a field when what is in them is `@alice` or `#home` — the sigil is what makes
+    it a spelling of an existing field and not a third thing. A bare `TODO(alice): ` is a
+    todo whose parenthesis is carried and not read: it names nobody, and it does not stop
+    the line being a note.
 18. A ticket is **not** a field of its own, and this stands. `#102` is a tag: a second kind
     of `#` token would have to be re-taught to collections, findings, copy and search to buy
     nothing but a label. RFC-021 tried it for one commit and deleted it.
@@ -150,9 +151,9 @@ shown because it is still in the line.
 - **`FIXME:`, `HACK:` and `XXX:` are todos now.** RFC-019's open question — *is `FIXME:` a
   todo?* — is answered yes, and the answer is a `Severity` on the task rather than a second
   list.
-- **`TODO(@bob):` and `TODO(#home):` are todos too, as of RFC-021.** The parentheses name a
-  person or a tag, with the sigil their body spelling already has; a bare `TODO(bob): `
-  stays a miss, and RFC-019's table records all of it.
+- **`TODO(@bob):` and `TODO(#home):` name a person or a tag, as of RFC-021.** The sigil makes
+  the parentheses a spelling of an existing field; without it the parenthesis is text in the
+  lead and the note is a note with nobody on it. RFC-019's table records both.
 - **A note in the middle of a comment is found.** `// note: FIXME: x` and
   `/* note — TODO: x */` were missed; the marker only had to be adjacent. That is the
   widening this RFC buys, and it is inside a comment, which is where precision is cheap.
