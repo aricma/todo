@@ -8,5 +8,4 @@ pub enum Segment {
     Title,
     Tag,
     Assignee,
-    Ticket,
 }

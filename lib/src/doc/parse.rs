@@ -6,7 +6,7 @@
 use super::comment::{self, Comment};
 use super::spans;
 use super::{Doc, Source, Syntax};
-use crate::model::{Assignee, Severity, Task};
+use crate::model::{Assignee, Severity, Tag, Task};
 
 impl Doc {
     /// Split a file into lines. CRLF loses its `\r`, a BOM is dropped, and the
@@ -107,13 +107,15 @@ fn todo_in(line: &str, comment: &Comment) -> Option<Task> {
         return None;
     }
     let parts = spans::parts(body);
-    // whoever the word named is in the same list as whoever the body named, once: a
-    // todo is one thing with one set of people on it, however the line spells them
+    // what the word filed is in the same list the body's own `#tag`/`@person` goes in,
+    // once: a todo is one thing with one set of people and one set of tags on it,
+    // however the line spells them (RFC-021)
+    let mut tags = parts.tags;
     let mut assignees = parts.assignees;
-    if let Some(assignee) = word.assignee {
-        if !assignees.contains(&assignee) {
-            assignees.insert(0, assignee);
-        }
+    match word.filed {
+        Some(Filed::Tag(tag)) if !tags.contains(&tag) => tags.insert(0, tag),
+        Some(Filed::Person(who)) if !assignees.contains(&who) => assignees.insert(0, who),
+        _ => {}
     }
     Some(Task {
         line: comment.line,
@@ -123,11 +125,10 @@ fn todo_in(line: &str, comment: &Comment) -> Option<Task> {
         prio: parts.prio,
         title: parts.title,
         body: body.to_owned(),
-        tags: parts.tags,
+        tags,
         assignees,
-        ticket: parts.ticket,
         marker: String::new(),
-        // everything the tool does not own, the assignee in parentheses included
+        // everything the tool does not own, the parentheses included
         prefix: Some(line[..start].to_owned()),
     })
 }
@@ -137,22 +138,41 @@ struct Word {
     /// Byte offset of the word in the text it was found in.
     at: usize,
     severity: Severity,
-    /// The `(alice)` of `TODO(alice): `, which is an assignee and never a priority: a
-    /// priority is written after the colon, where the body is (RFC-021).
-    assignee: Option<Assignee>,
+    /// The `(@alice)` or `(#home)` of `TODO(@alice): ` — one of the two things a body
+    /// already has, and never a priority: a priority is written after the colon, where
+    /// the body is (RFC-021).
+    filed: Option<Filed>,
     /// Byte offset just after the colon.
     after: usize,
 }
 
-/// The word of `TODO(alice): `, the assignee, and how many bytes it takes.
+/// A parenthesis in front of the colon can name a person or file the todo under a tag.
 ///
-/// `None` when what follows the word is neither `:` nor `(a word):` — `TODO (x): `, a
-/// parenthesis that never closes, and `TODO(): ` are not a todo's word.
-fn in_parens(text: &str) -> Option<(Assignee, usize)> {
+/// Two boxes, not a third kind of field: whatever is inside is already one of the body's
+/// own tokens, or it is nothing (RFC-021).
+#[derive(Clone, Debug, PartialEq, Eq)]
+enum Filed {
+    Person(Assignee),
+    Tag(Tag),
+}
+
+/// The `(@alice)` of `TODO(@alice): `, what it is, and how many bytes it takes.
+///
+/// `None` when what follows the word is neither `:` nor `(…):` holding a `@person` or a
+/// `#tag`. A bare word is not accepted — `TODO(alice): ` and `TODO(bob): ` do not say
+/// whether they name a person or file the line, and the sigil is the one character that
+/// does. `TODO (x): ` (space), a parenthesis that never closes, and `TODO(): ` are not a
+/// word either.
+fn in_parens(text: &str) -> Option<(Filed, usize)> {
     let rest = text.strip_prefix('(')?;
     let (word, after) = rest.split_once(')')?;
     let after = after.strip_prefix(':')?;
-    Some((Assignee::bare(word)?, text.len() - after.len()))
+    let filed = match (Assignee::parse(word), Tag::parse(word)) {
+        (Some(person), _) => Filed::Person(person),
+        (None, Some(tag)) => Filed::Tag(tag),
+        (None, None) => return None,
+    };
+    Some((filed, text.len() - after.len()))
 }
 
 /// Every severity word that opens a todo, earliest first.
@@ -165,14 +185,14 @@ fn words(text: &str) -> Vec<Word> {
                 found.push(Word {
                     at,
                     severity,
-                    assignee: None,
+                    filed: None,
                     after: at + severity.word().len() + 1,
                 });
-            } else if let Some((assignee, taken)) = in_parens(rest) {
+            } else if let Some((filed, taken)) = in_parens(rest) {
                 found.push(Word {
                     at,
                     severity,
-                    assignee: Some(assignee),
+                    filed: Some(filed),
                     after: at + severity.word().len() + taken,
                 });
             }
@@ -278,7 +298,6 @@ pub(crate) fn parse_line(line: &str, index: usize) -> Option<Task> {
         body: body.to_owned(),
         tags: parts.tags,
         assignees: parts.assignees,
-        ticket: parts.ticket,
         marker,
         prefix: None,
     })
@@ -306,7 +325,7 @@ pub(crate) fn bullet(rest: &str) -> Option<(String, &str)> {
 #[cfg(test)]
 mod tests {
     use super::Doc;
-    use crate::model::{Prio, Severity, Ticket};
+    use crate::model::{Prio, Severity};
 
     #[test]
     fn a_comment_todo_file_finds_its_todo_comments_and_nothing_else() {
@@ -345,7 +364,7 @@ mod tests {
 
     #[test]
     fn a_word_may_name_who_it_is_for() {
-        let doc = Doc::parse_comment("// FIXME(alice): the retry is wrong\n");
+        let doc = Doc::parse_comment("// FIXME(@alice): the retry is wrong\n");
         let task = &doc.tasks()[0];
         // the person is in the same list the body's `@alice` would go in, and the text
         // stays in the lead: the tool never rewrites a comment's own grammar
@@ -356,15 +375,34 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["alice"]
         );
-        assert_eq!(task.lead(), "// FIXME(alice): ");
+        assert_eq!(task.lead(), "// FIXME(@alice): ");
         assert_eq!(task.body, "the retry is wrong");
-        assert_eq!(task.render(), "// FIXME(alice): the retry is wrong");
+        assert_eq!(task.render(), "// FIXME(@alice): the retry is wrong");
         assert_eq!(task.title, "the retry is wrong");
     }
 
     #[test]
-    fn the_people_in_the_word_and_in_the_body_are_one_list() {
-        let doc = Doc::parse_comment("// TODO(alice): ship it @bob\n");
+    fn a_word_may_file_it_under_a_tag() {
+        let doc = Doc::parse_comment("// TODO(#home): pay rent\n");
+        let task = &doc.tasks()[0];
+        // the tag is a tag, in the body's own list, and `#102` is one too: a number in a
+        // tag is a tag (RFC-021)
+        assert_eq!(
+            task.tags
+                .iter()
+                .map(|tag| tag.as_str().to_owned())
+                .collect::<Vec<_>>(),
+            ["home"]
+        );
+        assert_eq!(task.lead(), "// TODO(#home): ");
+        assert_eq!(task.title, "pay rent");
+        let number = &Doc::parse_comment("// TODO: #102 pay rent\n").tasks()[0];
+        assert_eq!(number.tags[0].as_str(), "102");
+    }
+
+    #[test]
+    fn what_the_word_files_is_in_the_body_s_own_list() {
+        let doc = Doc::parse_comment("// TODO(@alice): ship it @bob #home\n");
         let task = &doc.tasks()[0];
         assert_eq!(
             task.assignees
@@ -373,53 +411,34 @@ mod tests {
                 .collect::<Vec<_>>(),
             ["alice", "bob"]
         );
-        // and naming one person twice is still one person
-        let twice = Doc::parse_comment("// TODO(alice): ship it @alice\n");
-        assert_eq!(twice.tasks()[0].assignees.len(), 1);
-    }
-
-    #[test]
-    fn the_parentheses_are_an_assignee_and_never_a_priority() {
-        // `(A)` between the word and the colon is a person called A, because a priority
-        // is written after the colon, where the body is (RFC-021)
-        let doc = Doc::parse_comment("// TODO(A): pay rent\n");
-        let task = &doc.tasks()[0];
-        assert_eq!(task.prio, None);
-        assert_eq!(task.assignees[0].as_str(), "A");
-
-        let priority = &Doc::parse_comment("// TODO(alice): (A) pay rent\n").tasks()[0];
-        assert_eq!(priority.prio, Some(Prio::A));
-        assert_eq!(priority.assignees[0].as_str(), "alice");
-    }
-
-    #[test]
-    fn a_ticket_number_is_not_a_tag() {
-        for (line, ticket) in [
-            ("// TODO: #102 fix the retry\n", "102"),
-            ("// FIXME(alice): #PROJ-404 the retry\n", "PROJ-404"),
-        ] {
-            let doc = Doc::parse_comment(line);
-            let task = &doc.tasks()[0];
-            assert_eq!(
-                task.ticket.as_ref().map(Ticket::as_str),
-                Some(ticket),
-                "{line:?}"
-            );
-            assert!(task.tags.is_empty(), "{line:?}: {task:#?}");
-            assert!(!task.title.contains(ticket), "{line:?}: {}", task.title);
-        }
-        // a tag with letters in it stays a tag, and a second ticket-shaped token is one
-        // too — a line names the ticket it is about first
-        let doc = Doc::parse_comment("// TODO: #home #102 #103 ship it\n");
-        let task = &doc.tasks()[0];
-        assert_eq!(task.ticket.as_ref().map(Ticket::as_str), Some("102"));
         assert_eq!(
             task.tags
                 .iter()
                 .map(|tag| tag.as_str().to_owned())
                 .collect::<Vec<_>>(),
-            ["home", "103"]
+            ["home"]
         );
+        // and naming one person twice is still one person
+        let twice = Doc::parse_comment("// TODO(@alice): ship it @alice\n");
+        assert_eq!(twice.tasks()[0].assignees.len(), 1);
+    }
+
+    #[test]
+    fn a_parenthesis_without_a_sigil_is_not_a_word() {
+        // a bare word says nothing about which of the two it is, so the line is not a
+        // todo at all — and neither is one with a priority where the sigil would be
+        for line in [
+            "// TODO(alice): pay rent\n",
+            "// TODO(bob): pay rent\n",
+            "// TODO(102): pay rent\n",
+            "// TODO(A): pay rent\n",
+        ] {
+            assert!(Doc::parse_comment(line).tasks().is_empty(), "{line:?}");
+        }
+        // and the priority is still read where the grammar puts it
+        let task = &Doc::parse_comment("// TODO(@alice): (A) pay rent\n").tasks()[0];
+        assert_eq!(task.prio, Some(Prio::A));
+        assert_eq!(task.assignees[0].as_str(), "alice");
     }
 
     #[test]
@@ -547,9 +566,9 @@ mod tests {
             "// FIXME: pay rent",
             "// HACK: pay rent",
             "// XXX: pay rent",
-            // an assignee between the word and its colon, since RFC-021
-            "// TODO(bob): pay rent",
-            "// FIXME(bob): pay rent",
+            // a person or a tag between the word and its colon, since RFC-021
+            "// TODO(@bob): pay rent",
+            "// FIXME(#home): pay rent",
         ];
         let missed = [
             // the quote rule: the marker is quoted
@@ -561,11 +580,12 @@ mod tests {
             "// Todo: pay rent",
             // the colon rule
             "// TODO pay rent",
-            // a space before the parentheses is not the word's assignee, and a
-            // parenthesis that does not close on a word is nobody
-            "// TODO (bob): pay rent",
+            // the parenthesis rule: no sigil says nothing, and a word has to be closed
+            "// TODO(bob): pay rent",
+            "// TODO(A): pay rent",
             "// TODO(): pay rent",
             "// TODO(bob pay rent",
+            "// TODO (@bob): pay rent",
             // the word rule: a severity that is the tail of a longer word
             "// NOTTODO: pay rent",
             // the body rule

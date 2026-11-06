@@ -162,19 +162,18 @@ pub fn waiting_rows(task: &Task, selected: bool, width: usize) -> Vec<Line<'stat
 
 /// The same for a line that was read rather than parsed: a collection's item keeps
 /// its `lead` as a string, because the file it came from is not the open document.
-pub fn line_rows(
-    lead: &str,
-    body: &str,
-    selected: bool,
-    width: usize,
-) -> Vec<Line<'static>> {
+pub fn line_rows(lead: &str, body: &str, selected: bool, width: usize) -> Vec<Line<'static>> {
     // the continuation rows line up under the body, not under the bullet
     let pad = " ".repeat(UnicodeWidthStr::width(lead));
     wrap::lines(body, line_width(lead, width))
         .into_iter()
         .enumerate()
         .map(|(index, chunk)| {
-            let prefix = if index == 0 { lead.to_owned() } else { pad.clone() };
+            let prefix = if index == 0 {
+                lead.to_owned()
+            } else {
+                pad.clone()
+            };
             // in a panel of the file's own todos the line *is* the todo, bullet and
             // all, so the band covers it from the left edge
             let mut spans = vec![Span::styled(
@@ -231,7 +230,6 @@ pub fn styled(pieces: Vec<(Span<'static>, Segment)>, selected: bool) -> Vec<Span
                 span.style = match role {
                     Segment::Tag => super::consts::selection_name(super::prompt::TAG),
                     Segment::Assignee => super::consts::selection_name(super::prompt::ASSIGNEE),
-                    Segment::Ticket => super::consts::selection_name(super::prompt::TICKET),
                     Segment::Title | Segment::Prio => super::consts::selection(),
                 };
             }

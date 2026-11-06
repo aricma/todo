@@ -105,16 +105,16 @@ every file is a compromise every language loses.
 
 ### What was not added here, and what RFC-021 added afterwards
 
-17. `TODO(alice):` was **not** read as an assignee in this RFC. A body already has
+17. `TODO(alice):` was **not** read as an assignee in this RFC: a body already has
     `@alice` (RFC-016 rule 4), and a second spelling of one field is how two parsers start
-    disagreeing about the same line. **Reversed by [RFC-021](RFC-021-who-it-is-for-and-which-ticket.md)**:
-    the parentheses are read, and they are normalised into the one list of people rather
-    than into a second field — the worry here was about storage, and it stands.
-18. A ticket was **not** a field of its own in this RFC: `#102` is a tag, and a second kind
+    disagreeing about the same line. **Partly reversed by
+    [RFC-021](RFC-021-the-parentheses-name-a-person-or-a-tag.md)**: the parentheses are
+    read when what is in them is `@alice` or `#home` — the sigil is what makes it a
+    spelling of an existing field and not a third thing. A bare `TODO(alice): ` still is
+    not read.
+18. A ticket is **not** a field of its own, and this stands. `#102` is a tag: a second kind
     of `#` token would have to be re-taught to collections, findings, copy and search to buy
-    nothing but a label. **Reversed by [RFC-021](RFC-021-who-it-is-for-and-which-ticket.md)**:
-    a ticket-shaped `#` token is a `Ticket`, it is what the label was for, and the rules
-    that had to be re-taught are named there.
+    nothing but a label. RFC-021 tried it for one commit and deleted it.
 
 ## Why not the alternative
 
@@ -150,8 +150,9 @@ shown because it is still in the line.
 - **`FIXME:`, `HACK:` and `XXX:` are todos now.** RFC-019's open question — *is `FIXME:` a
   todo?* — is answered yes, and the answer is a `Severity` on the task rather than a second
   list.
-- **`TODO(bob):` is a todo too, as of RFC-021.** The miss this RFC's table carried is gone:
-  the parentheses name a person, and RFC-019's table records the change.
+- **`TODO(@bob):` and `TODO(#home):` are todos too, as of RFC-021.** The parentheses name a
+  person or a tag, with the sigil their body spelling already has; a bare `TODO(bob): `
+  stays a miss, and RFC-019's table records all of it.
 - **A note in the middle of a comment is found.** `// note: FIXME: x` and
   `/* note — TODO: x */` were missed; the marker only had to be adjacent. That is the
   widening this RFC buys, and it is inside a comment, which is where precision is cheap.

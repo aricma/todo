@@ -47,8 +47,7 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | **marker** | `- [ ]` or `- [x]` — the bullet and the state |
 | **priority** | `(A)`…`(D)`, straight after the checkbox — or, for a **comment todo**, straight after the severity word's colon. Yellow, and the only positional rule in the grammar |
 | **tag** | `#home` — cyan. A tag is a **collection**, and a tag is where todos live |
-| **assignee** | `@sam` — magenta. A person is a **collection** too. A comment todo **MAY** name the same person between its word and its colon, `TODO(sam): `, and that is one of these, not a second field (RFC-021) |
-| **ticket** | `#102`, `#PROJ-404` — blue. A `#` token that looks like a number is a ticket and not a **tag**, so it is no collection and no count; the first one on a line is the ticket, a second is a tag (RFC-021) |
+| **assignee** | `@sam` — magenta. A person is a **collection** too. A comment todo **MAY** name the same person between its word and its colon, `TODO(@sam): `, and that is one of these, not a second field (RFC-021) |
 | **prose** | every line of a file that is not a todo — a bare bullet included, and in a **comment todo file** every line of code. Drawn dim, one row, clipped |
 | **finding** | a line that meant to be a todo and is not one (`--check`). Reported, never silently rewritten (RFC-013) |
 | **heading** | a markdown `#` line, what the index panel is made of |
@@ -69,7 +68,7 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 | **dependency** | a todo that names another todo. Drawn as a chain in the history panel's graph, not in the todos panel |
 | **todo document** | a `.md` file whose `- [ ]` lines are its todos. The original source, and the one the keys were written for |
 | **comment todo file** | any other text file the tree holds, whose todo comments are its todos. A code file with one note in it is a comment todo file (RFC-015). The markers that count are its own language's, from the extension — `#` is a comment in `.py` and an attribute in `.rs` (RFC-020) |
-| **comment todo** | one todo comment, one line: `    // TODO: (A) fix the retry #infra`, `# FIXME(alice): #102 the retry is wrong`. A severity word in capitals, a marker the file's language starts a comment with somewhere in front of it, and no quote between, or a word in a sentence would be a todo. Everything in front of the text is the line's, and the tool never rewrites it (RFC-016, RFC-021). Finding one is a guess that leans narrow — what it misses is RFC-019's table |
+| **comment todo** | one todo comment, one line: `    // TODO: (A) fix the retry #infra`, `# FIXME(@alice): #102 the retry is wrong`. A severity word in capitals, a marker the file's language starts a comment with somewhere in front of it, and no quote between, or a word in a sentence would be a todo. Everything in front of the text is the line's, and the tool never rewrites it (RFC-016, RFC-021). Finding one is a guess that leans narrow — what it misses is RFC-019's table |
 | **source** | which of the three a todo came from: a **todo document**, a **comment todo file**, or a **collection**. The source decides the keys (RFC-015) |
 | **fold** | in a comment todo file, the `…` row that stands for the code between the window around a todo — a line above it, three below — and the next window (RFC-018) |
 

@@ -12,7 +12,6 @@ pub mod severity;
 pub mod stats;
 pub mod tag;
 pub mod task;
-pub mod ticket;
 pub mod word;
 
 pub use assignee::Assignee;
@@ -29,4 +28,3 @@ pub use severity::Severity;
 pub use stats::Stats;
 pub use tag::Tag;
 pub use task::Task;
-pub use ticket::Ticket;

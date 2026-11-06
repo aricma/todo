@@ -99,15 +99,6 @@ fn metadata(task: &Task) -> Metadata {
             MetadataValue::String(prio.letter().to_string()),
         );
     }
-    // a ticket has no common key in the spec, so it goes under a namespaced one: a
-    // reader that does not know this tool passes it through, and one that does reads it
-    // as a ticket (OPS RFC-019, RFC-021)
-    if let Some(ticket) = &task.ticket {
-        metadata.insert(
-            "aricma_ticket".to_owned(),
-            MetadataValue::String(ticket.as_str().to_owned()),
-        );
-    }
     if !task.tags.is_empty() {
         metadata.insert(
             "tags".to_owned(),
@@ -181,14 +172,17 @@ mod tests {
     }
 
     #[test]
-    fn a_ticket_travels_under_a_namespaced_key() {
-        // the spec recommends no key for a ticket, so it is the tool's own (OPS RFC-019)
-        let doc = Doc::parse_comment("// TODO(alice): #102 fix the retry\n");
+    fn a_person_named_before_the_colon_is_one_of_the_assignees() {
+        // the parentheses name who it is for, in the same list the body's `@alice` goes
+        // in; the tool reads the task rather than the body, or this one would be lost
+        let doc = Doc::parse_comment("// TODO(@alice): #102 fix the retry @bob\n");
         let copied = super::one(&doc.tasks()[0]).unwrap();
         let json: Value = serde_json::from_str(&copied).unwrap();
-        assert_eq!(json["metadata"]["aricma_ticket"], "102");
-        assert_eq!(json["metadata"]["assignee"], "alice");
-        assert!(json["metadata"].get("tags").is_none(), "{json}");
+        assert_eq!(
+            json["metadata"]["assignees"],
+            serde_json::json!(["alice", "bob"])
+        );
+        assert_eq!(json["metadata"]["tags"], serde_json::json!(["102"]));
     }
 
     #[test]
