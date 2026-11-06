@@ -53,6 +53,12 @@ pub fn offset_for(heights: &[usize], selected: Option<usize>, height: usize) -> 
 ///
 /// Nothing is drawn when the content fits: a bar that is always full says nothing, and
 /// its column would be taken from a panel that is already narrow.
+///
+/// **Call this after the panel's rows are rendered.** The band of a selected row runs
+/// the full width of the panel, so a bar drawn first is painted over on exactly the row
+/// the cursor is on: the thumb came out with a hole in it. The `bg` is reset rather than
+/// inherited for the same reason — a thumb in the selection's green is a highlight of a
+/// highlight.
 pub fn bar(frame: &mut Frame, inner: Rect, total: usize, view: usize, scroll: usize) {
     if total <= view || view < 2 {
         return;

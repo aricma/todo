@@ -99,8 +99,11 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect) {
             number(&mut rows[first..], index, gutter);
         }
     }
-    super::rows::bar(frame, inner, heights.iter().sum(), height, offset.0);
     frame.render_widget(Paragraph::new(rows).block(block), area);
+    // last, after the rows: a band runs the full width of the panel, so a bar drawn
+    // before it would be painted over on exactly the row the cursor is on — the thumb
+    // came out with a hole in it wherever a banded row crossed it
+    super::rows::bar(frame, inner, heights.iter().sum(), height, offset.0);
     if let Some((x, y)) = cursor {
         frame.set_cursor_position((x, y));
     }

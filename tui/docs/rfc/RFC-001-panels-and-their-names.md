@@ -60,10 +60,13 @@ file view shows *a file*, and a todo in it is one line among prose.
    and on a narrow panel its column is a row's worth of text. The thumb is dim, so it
    reads as furniture rather than content, and it never replaces the frame's border —
    it sits inside it, one cell in.
-10. The thumb **MUST NOT** take the band: it is drawn on the panel's own background,
-    so a highlighted row's highlight stops before it. A thumb in the selection's colour
-    is a highlight of a highlight, and the cursor is a fact about a row, not about the
-    panel's furniture.
+10. The thumb **MUST NOT** take the band, and the band **MUST NOT** take the thumb: the
+    bar is drawn on the panel's own background (`.bg(Reset)`, so a highlighted row's
+    highlight stops before it) and it is drawn **after** the panel's rows, because a band
+    runs the full width of a panel and would otherwise be painted over the thumb — the
+    symptom is a thumb with a hole in it wherever a banded row crosses it, which is worse
+    than the colour, because a bar with a hole reads as two bars. The cursor is a fact
+    about a row; the bar is the panel's furniture, and one must not paint the other.
 11. The thumb's **top MUST be at the track's top when the panel is scrolled to the
     top**, and its **bottom MUST be at the track's bottom at the furthest scroll**. It
     **MUST** grow with the ratio of visible rows to rows, so a long list gets a short
@@ -100,6 +103,11 @@ job, done worse.
 - `the_thumb_is_not_banded` reads the buffer's backgrounds rather than its text: the
   thumb's cell is `Reset` while the banded row beside it is the selection's green, which
   is the only way to prove a colour rule from a screen made of strings.
+- `no_panel_lets_its_band_paint_over_the_thumb` renders two overflowing panels at once —
+  the files list and a code file's view, each with a banded row crossing its bar — and
+  asserts every thumb cell is on the panel's background **and that the cells of each
+  thumb are contiguous**, because the real symptom is a hole, not a colour: the drawing
+  order was wrong in the file view and the thumb vanished on the row the cursor was on.
 - The thumb's geometry is the one thing about it a person will notice at a glance, and
   it is arithmetic no test would have caught by accident: `a_thumb_starts_at_the_top_and_stops_at_the_bottom`
   asserts the first inner row at the top of a list and the last inner row at the end of

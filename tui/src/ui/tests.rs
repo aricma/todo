@@ -1929,6 +1929,68 @@ fn a_thumb_starts_at_the_top_and_stops_at_the_bottom() {
 }
 
 #[test]
+fn no_panel_lets_its_band_paint_over_the_thumb() {
+    // two panels that overflow at once, each with a banded row crossing its bar: the
+    // files list, and the file view of the code file the cursor opened
+    let mut names: Vec<String> = (1..=29).map(|n| format!("d{n}/TODOs.md")).collect();
+    names.push("retry.rs".to_owned());
+    let mut code = String::new();
+    for n in 1..=20 {
+        for line in 1..=3 {
+            let _ = writeln!(code, "fn f{n}_{line}() {{}}");
+        }
+        code.push_str("// TODO: something to do\n");
+    }
+    let files: Vec<(&str, &str)> = names
+        .iter()
+        .map(|name| {
+            let body = if name == "retry.rs" {
+                code.as_str()
+            } else {
+                "- [ ] a\n"
+            };
+            (name.as_str(), body)
+        })
+        .collect();
+    let (_tmp, mut app) = app(&files);
+    // onto the code file, which puts its first todo under the band in the view
+    for _ in 0..29 {
+        press(&mut app, ratatui::crossterm::event::KeyCode::Down);
+    }
+    press(&mut app, ratatui::crossterm::event::KeyCode::Right);
+    assert_eq!(app.pane, crate::state::action::Pane::View);
+
+    let terminal = terminal(&app, WIDTH, HEIGHT);
+    let buffer = terminal.backend().buffer();
+    let text = screen(&app).join("\n");
+    // every cell of a thumb, by column, so a thumb with a hole in it is visible
+    let mut columns: std::collections::BTreeMap<u16, Vec<u16>> = std::collections::BTreeMap::new();
+    for y in 0..HEIGHT {
+        for x in 0..WIDTH {
+            if buffer[(x, y)].symbol() != "▐" {
+                continue;
+            }
+            assert_eq!(
+                buffer[(x, y)].bg,
+                ratatui::style::Color::Reset,
+                "a band took the colour of the thumb at ({x}, {y}):\n{text}"
+            );
+            columns.entry(x).or_default().push(y);
+        }
+    }
+    // two panels, one bar each
+    assert_eq!(columns.len(), 2, "expected a bar in both panels:\n{text}");
+    for (x, rows) in &columns {
+        let (first, last) = (rows[0], rows[rows.len() - 1]);
+        assert_eq!(
+            rows.len(),
+            usize::from(last - first) + 1,
+            "the band cut a hole in the thumb in column {x}: {rows:?}\n{text}"
+        );
+    }
+}
+
+#[test]
 fn the_thumb_is_not_banded() {
     // a full panel whose cursor is on a row the bar runs over: the band stops before
     // the thumb, because a thumb on the selection's green is a highlight of a highlight
