@@ -21,7 +21,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        # The three the tool is expected to run on. Windows is here because the
+        # suites walk real temp paths and the screen draws real cells, so a
+        # separator or console difference has to fail here, not on a user's machine.
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
