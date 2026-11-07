@@ -1,19 +1,17 @@
 name: Release
 
-# Run by hand, one package at a time, and it always takes a tag: the pipeline
+# Run by hand for the `tui` package, and it always takes a tag: the pipeline
 # releases a version, it never chooses one.
 #
-#   lib  aricma-todo-lib   a crate; no binary, so no archive
-#   cli  aricma-todo-cli   the `aricma-todo` binary
-#   tui  lazytodo          the `lazytodo` binary
-#
-# Every package carries its own version in its own Cargo.toml, its own CHANGELOG.md
-# and its own tag `<package>-v<version>`, so one can move without the others.
+# Only `lazytodo` is released today. `cli` and `lib` have their own versions and
+# changelogs, but no release path yet, so a `cli-*` or `lib-*` tag fails the run
+# instead of half-releasing something. When they are wired up, `PACKAGE` below is
+# what changes.
 #
 #   the tag names a commit   → that commit is built and released
 #   the tag names no commit  → the tip of the default branch is built, and the tag
 #                              is created on it
-#   no tag, or the wrong one → the run stops before anything is built
+#   no tag, or another package's tag → the run stops before anything is built
 #
 # Nothing is written until a person approves the `release` environment: the tag, the
 # release and every asset appear only after the review, so a run that looks wrong is
@@ -22,16 +20,8 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
-      package:
-        description: Which package's release this is
-        type: choice
-        options:
-          - tui
-          - cli
-          - lib
-        required: true
       tag:
-        description: The package's tag, for example tui-v0.1.0. No discovery, no default.
+        description: The tui tag, for example tui-v0.1.0. No discovery, no default.
         type: string
         required: true
       dryrun:
@@ -41,6 +31,11 @@ on:
 
 permissions:
   contents: write
+
+# The one package this pipeline releases. Its directory is also its tag prefix and
+# its changelog's home; the binary inside is `lazytodo`.
+env:
+  PACKAGE: tui
 
 jobs:
   # Which commit is this version? A tag that exists answers it; one that does not
@@ -63,7 +58,6 @@ jobs:
         id: pick
         env:
           GIVEN: ${{ inputs.tag }}
-          PACKAGE: ${{ inputs.package }}
           BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           tag=$GIVEN
@@ -71,11 +65,15 @@ jobs:
             "") echo "no tag given: this pipeline releases a version, it does not choose one"
                 exit 1 ;;
           esac
-          # the tag names the package, so a run cannot release `tui-v0.1.0` as `cli`
           prefix="$PACKAGE-v"
           version=${tag#"$prefix"}
           if [ "$version" = "$tag" ]; then
-            echo "tag $tag does not belong to package $PACKAGE, which tags $prefix<version>"
+            case "$tag" in
+              cli-*|lib-*)
+                echo "only $PACKAGE is released for now: $tag belongs to another package"
+                exit 1 ;;
+            esac
+            echo "tag $tag is not a $PACKAGE tag: expected ${prefix}<version>"
             exit 1
           fi
           if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
@@ -112,7 +110,6 @@ jobs:
       # deciding.
       - name: Name the changes
         env:
-          PACKAGE: ${{ inputs.package }}
           SHA: ${{ steps.pick.outputs.sha }}
           VERSION: ${{ steps.pick.outputs.version }}
         run: |
@@ -177,13 +174,10 @@ jobs:
             gh release create "$TAG" --title "$TAG" --notes-file notes.md
           fi
 
-  # A crate has nothing to download: its release is the tag and the changelog.
   binaries:
     needs: [resolve, publish]
-    if: ${{ !failure() && !cancelled() && inputs.package != 'lib' }}
-    env:
-      CRATE: ${{ inputs.package == 'cli' && 'aricma-todo-cli' || 'lazytodo' }}
-      BIN: ${{ inputs.package == 'cli' && 'aricma-todo' || 'lazytodo' }}
+    # a dry run skips `publish`, and a skip is not a failure: still build everything
+    if: ${{ !failure() && !cancelled() }}
     strategy:
       fail-fast: false
       matrix:
@@ -214,7 +208,7 @@ jobs:
       # A no-op where the target is the host, a download for the other macOS one.
       - run: rustup target add ${{ matrix.target }}
 
-      - run: cargo build --release --package ${{ env.CRATE }} --target ${{ matrix.target }}
+      - run: cargo build --release --package lazytodo --target ${{ matrix.target }}
 
       # One format on every platform: `tar` is on all three runners, and Windows 10
       # opens a `.tar.gz` without extra software. The archive is named after the tag,
@@ -228,7 +222,7 @@ jobs:
           exe=""
           case "${{ matrix.target }}" in *windows*) exe=".exe" ;; esac
           mkdir -p "dist/$name"
-          cp "target/${{ matrix.target }}/release/${{ env.BIN }}$exe" "dist/$name/"
+          cp "target/${{ matrix.target }}/release/lazytodo$exe" "dist/$name/"
           cp README.md LICENSE "dist/$name/"
           tar -czf "dist/$name.tar.gz" -C dist "$name"
           rm -rf "dist/$name"
