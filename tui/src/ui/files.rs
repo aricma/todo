@@ -46,7 +46,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
     // selection walks down its top third before the list moves at all. The blank
     // row belongs to the row above it, and collections are rows too — `file_idx`
     // would keep looking at the open file while the cursor walked past it.
-    let heights = vec![if app.roomy { 2 } else { 1 }; app.rows.len()]; 
+    let heights = vec![if app.roomy { 2 } else { 1 }; app.rows.len()];
     let (first, _) = offset_for(&heights, Some(app.row_idx), list.height as usize);
     frame.render_widget(Paragraph::new(rows).scroll((as_u16(first), 0)), list);
     super::rows::bar(

@@ -19,7 +19,11 @@ fn texts(app: &crate::state::App) -> String {
 /// opened on, and how much of it is cut for the row is the machine's business — a
 /// short temp root has nothing to shorten. The view is what the tests below are about.
 fn body(app: &crate::state::App) -> String {
-    screen(app).into_iter().skip(1).collect::<Vec<_>>().join("\n")
+    screen(app)
+        .into_iter()
+        .skip(1)
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 #[test]
@@ -113,7 +117,10 @@ fn masked(app: &crate::state::App, screen: &str) -> String {
     let name = name.to_string_lossy();
     // the tick is two cells wide, so the header carries two spaces after it: anchor on
     // the word, not on `APP`
-    let app = crate::text::APP.rsplit(' ').next().unwrap_or(crate::text::APP);
+    let app = crate::text::APP
+        .rsplit(' ')
+        .next()
+        .unwrap_or(crate::text::APP);
     screen
         .lines()
         .map(|line| {
@@ -995,8 +1002,14 @@ fn the_file_panel_scrolls_to_the_collections_too() {
         "the row the cursor is on is on screen:\n{text}"
     );
     // and the scroll followed the cursor: the rows above it were left behind
-    assert!(lines.iter().any(|line| line.contains("f00/TODOs.md")), "{text}");
-    assert!(!lines.iter().any(|line| line.contains("f01/TODOs.md")), "{text}");
+    assert!(
+        lines.iter().any(|line| line.contains("f00/TODOs.md")),
+        "{text}"
+    );
+    assert!(
+        !lines.iter().any(|line| line.contains("f01/TODOs.md")),
+        "{text}"
+    );
 }
 
 #[test]
@@ -1111,7 +1124,10 @@ fn a_collection_groups_its_todos_under_the_file_they_come_from() {
     let lines = screen_at(&app, 100, 24);
     // the file is a heading over its todos, once — not a prefix on every one. The
     // left column lists the files too, so the count is only of the collection panel
-    let top = lines.iter().find(|line| line.contains("#home todos")).unwrap();
+    let top = lines
+        .iter()
+        .find(|line| line.contains("#home todos"))
+        .unwrap();
     let right_at = top
         .chars()
         .enumerate()
@@ -1139,20 +1155,33 @@ fn a_collection_groups_its_todos_under_the_file_they_come_from() {
     let first = right("a/TODOs.md");
     let second = right("b/TODOs.md");
     // its todos come under it, drawn as the file has them
-    assert!(row_text(first + 1).contains("3 - [ ] pay rent #home"), "{}", row_text(first + 1));
-    assert!(row_text(first + 2).contains("4 - [x] ship it #home"), "{}", row_text(first + 2));
+    assert!(
+        row_text(first + 1).contains("3 - [ ] pay rent #home"),
+        "{}",
+        row_text(first + 1)
+    );
+    assert!(
+        row_text(first + 2).contains("4 - [x] ship it #home"),
+        "{}",
+        row_text(first + 2)
+    );
     // and a blank row separates the next file's
     let above = row_text(second - 1);
-    assert_eq!(above.trim_matches(|c| c == '│' || c == ' '), "", "{above:?}");
-    assert!(row_text(second + 1).contains("3 - [ ] buy milk #home"), "{}", row_text(second + 1));
+    assert_eq!(
+        above.trim_matches(|c| c == '│' || c == ' '),
+        "",
+        "{above:?}"
+    );
+    assert!(
+        row_text(second + 1).contains("3 - [ ] buy milk #home"),
+        "{}",
+        row_text(second + 1)
+    );
 }
 
 #[test]
 fn a_collection_hides_the_index_because_a_collection_has_no_headings() {
-    let (_tmp, mut app) = app(&[(
-        "a/TODOs.md",
-        "# a\n\n## later\n\n- [ ] pay rent #home\n",
-    )]);
+    let (_tmp, mut app) = app(&[("a/TODOs.md", "# a\n\n## later\n\n- [ ] pay rent #home\n")]);
     app.pane = crate::state::action::Pane::Files;
     // the file panel, with the file's own headings beside it
     assert!(screen(&app).iter().any(|line| line.contains("╭ [2] index")));
@@ -1167,7 +1196,11 @@ fn a_collection_hides_the_index_because_a_collection_has_no_headings() {
         lines.join("\n")
     );
     // files and history are still there, and the collection takes the right side
-    assert!(lines.iter().any(|line| line.contains(" files ")), "{}", lines.join("\n"));
+    assert!(
+        lines.iter().any(|line| line.contains(" files ")),
+        "{}",
+        lines.join("\n")
+    );
     assert!(lines.iter().any(|line| line.contains(" history")));
     assert!(lines.iter().any(|line| line.contains("#home todos")));
 
@@ -1186,7 +1219,10 @@ fn a_collected_todo_shows_what_is_being_typed_into_it() {
     press(&mut app, ratatui::crossterm::event::KeyCode::Right);
     press(&mut app, ratatui::crossterm::event::KeyCode::Char('e'));
     for character in " now".chars() {
-        press(&mut app, ratatui::crossterm::event::KeyCode::Char(character));
+        press(
+            &mut app,
+            ratatui::crossterm::event::KeyCode::Char(character),
+        );
     }
     let text = screen_at(&app, 96, 20).join("\n");
     assert!(text.contains("pay rent #home now"), "{text}");
@@ -1324,20 +1360,12 @@ fn history_rows_are_dots_that_hollow_when_reverted() {
     let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] a\n")]);
     app.pane = crate::state::action::Pane::Todos;
     app.press(ratatui::crossterm::event::KeyCode::Char('x'));
-    assert!(
-        texts(&app).contains("● check todo · a"),
-        "{}",
-        texts(&app)
-    );
+    assert!(texts(&app).contains("● check todo · a"), "{}", texts(&app));
 
     app.pane = crate::state::action::Pane::History;
     // `space`, not `x`: a write is not a todo, so it has no checkbox to press
     app.press(ratatui::crossterm::event::KeyCode::Char(' '));
-    assert!(
-        texts(&app).contains("○ check todo · a"),
-        "{}",
-        texts(&app)
-    );
+    assert!(texts(&app).contains("○ check todo · a"), "{}", texts(&app));
 }
 
 #[test]
@@ -1729,7 +1757,10 @@ fn a_search_offers_enter_only_while_it_has_something_to_open() {
     assert!(text.contains("esc cancel · enter jump"), "{text}");
 
     for character in "zzz".chars() {
-        press(&mut app, ratatui::crossterm::event::KeyCode::Char(character));
+        press(
+            &mut app,
+            ratatui::crossterm::event::KeyCode::Char(character),
+        );
     }
     let text = screen(&app).join("\n");
     assert!(text.contains(crate::text::NO_MATCH), "{text}");
@@ -1766,7 +1797,10 @@ fn the_keys_page_breathes() {
             .iter()
             .find(|line| line.contains(does))
             .unwrap_or_else(|| panic!("{does} is not on the page"));
-        assert!(line.contains(keys), "{keys} and {does} on one line: {line:?}");
+        assert!(
+            line.contains(keys),
+            "{keys} and {does} on one line: {line:?}"
+        );
     }
 
     // the widest row stops short of the border rather than under it
@@ -1919,18 +1953,6 @@ fn the_cursor_follows_the_text_into_the_next_row_of_the_field() {
     assert!(usize::from(later) < bottom, "the cursor stays in the field");
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
 #[test]
 fn a_history_entry_is_one_line_with_an_ellipsis_until_h_wraps_it() {
     let (_tmp, mut app) = app(&[(
@@ -1992,7 +2014,10 @@ fn a_single_file_scrolls_its_todos_like_every_other_panel() {
 
     press(&mut app, ratatui::crossterm::event::KeyCode::Char('G'));
     let after = texts(&app);
-    assert!(after.contains("todo 30"), "the panel scrolled to it:\n{after}");
+    assert!(
+        after.contains("todo 30"),
+        "the panel scrolled to it:\n{after}"
+    );
     // and it has a thumb, because it has more rows than room
     assert!(screen(&app).join("\n").contains('▐'), "no thumb:\n{after}");
 }
@@ -2008,7 +2033,10 @@ fn a_panel_shows_a_thumb_only_when_it_has_more_rows_than_room() {
 
     let (_tmp, small) = app(&[("TODOs.md", "- [ ] a\n")]);
     let text = screen(&small).join("\n");
-    assert!(!text.contains('▐'), "a thumb with nothing to scroll:\n{text}");
+    assert!(
+        !text.contains('▐'),
+        "a thumb with nothing to scroll:\n{text}"
+    );
 }
 
 #[test]
@@ -2020,8 +2048,13 @@ fn a_thumb_starts_at_the_top_and_stops_at_the_bottom() {
     let first = lines
         .iter()
         .position(|line| line.contains("[1] files"))
-        .expect("the files panel") + 1;
-    assert!(lines[first].contains('▐'), "the top row:\n{}", lines.join("\n"));
+        .expect("the files panel")
+        + 1;
+    assert!(
+        lines[first].contains('▐'),
+        "the top row:\n{}",
+        lines.join("\n")
+    );
 
     // the last row inside the panel, just above its bottom border
     press(&mut app, ratatui::crossterm::event::KeyCode::Char('G'));
@@ -2261,7 +2294,11 @@ fn a_single_line_outside_a_window_is_shown_and_two_are_folded() {
     // the window is the todo and the three lines under it; `d` is the one left over
     assert!(text.contains("fn d"), "{text}");
     // nothing is folded, so no ellipsis in the view
-    assert_eq!(body(&one).matches('…').count(), 0, "a fold that saves nothing:\n{text}");
+    assert_eq!(
+        body(&one).matches('…').count(),
+        0,
+        "a fold that saves nothing:\n{text}"
+    );
 
     let longer = "// TODO: first\nfn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\n";
     let (_tmp, mut two) = app(&[("src/b.rs", longer)]);

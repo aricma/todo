@@ -89,7 +89,8 @@ impl Doc {
             Some(task) if !task.is_comment() => (task.line + 1, task.indent, task.marker.clone()),
             _ => (self.lines.len(), 0, "-".to_owned()),
         };
-        self.lines.insert(at, format!("{}{} [ ]", " ".repeat(indent), marker));
+        self.lines
+            .insert(at, format!("{}{} [ ]", " ".repeat(indent), marker));
         Some(at)
     }
 
@@ -487,7 +488,10 @@ mod tests {
 
         // and down again, to the top of the section below
         doc.move_task(2, false).unwrap();
-        assert_eq!(doc.render(), "## one\n- [ ] a\n\n## two\n- [ ] b\n- [ ] c\n");
+        assert_eq!(
+            doc.render(),
+            "## one\n- [ ] a\n\n## two\n- [ ] b\n- [ ] c\n"
+        );
     }
 
     #[test]

@@ -7,7 +7,7 @@
 
 pub mod cases;
 
-pub use cases::{Case, CaseResult, Cli, Tui, driver_lines, eventually, expect, expect_contains};
+pub use cases::{driver_lines, eventually, expect, expect_contains, Case, CaseResult, Cli, Tui};
 
 use std::fs;
 use std::path::Path;

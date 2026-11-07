@@ -89,7 +89,10 @@ fn a_session_on_a_file_says_what_it_cannot_read() {
 
     // the same file with one comment is a session
     std::fs::write(&code, "fn main() {} // TODO: check this\n").unwrap();
-    let (_tmp, app) = (scratch, crate::state::App::open(&code).expect("a comment todo"));
+    let (_tmp, app) = (
+        scratch,
+        crate::state::App::open(&code).expect("a comment todo"),
+    );
     assert!(app.single);
     assert_eq!(app.tasks().len(), 1);
 
@@ -104,7 +107,11 @@ fn a_session_on_a_file_says_what_it_cannot_read() {
 #[test]
 fn a_single_file_session_starts_on_its_todos_and_has_no_file_list() {
     let (_tmp, mut app) = single("- [ ] a\n");
-    assert_eq!(app.pane, Pane::Todos, "a file is opened to work on its todos");
+    assert_eq!(
+        app.pane,
+        Pane::Todos,
+        "a file is opened to work on its todos"
+    );
     // the same window as a folder session with the file panel taken out: the sections
     // down the left, the todos on the right
     assert_eq!(app.sections(), [Pane::Outline, Pane::History]);
@@ -133,7 +140,11 @@ fn a_single_file_session_starts_on_its_todos_and_has_no_file_list() {
     press(&mut app, KeyCode::Right);
     assert_eq!(app.pane, Pane::Todos);
     press(&mut app, KeyCode::Left);
-    assert_eq!(app.pane, Pane::History, "`←` returns to the section it left");
+    assert_eq!(
+        app.pane,
+        Pane::History,
+        "`←` returns to the section it left"
+    );
 }
 
 #[test]
@@ -473,7 +484,11 @@ fn n_refuses_an_empty_body_and_writes_nothing() {
     assert_eq!(app.doc.render(), "- [ ] a\n- [ ]\n");
     assert!(app.history.is_empty());
     assert_eq!(press(&mut app, KeyCode::Esc), None);
-    assert_eq!(app.doc.render(), "- [ ] a\n", "a cancelled row is not a line");
+    assert_eq!(
+        app.doc.render(),
+        "- [ ] a\n",
+        "a cancelled row is not a line"
+    );
 }
 
 #[test]
@@ -776,7 +791,11 @@ fn opt_down_crosses_a_heading_into_the_section_below() {
     assert!(press_with(&mut app, KeyCode::Down, KeyModifiers::ALT).is_some());
     // `a` is the first todo under `## two` now, and `b` has not been dragged up
     assert_eq!(app.doc.render(), "## one\n## two\n- [ ] a\n- [ ] b\n");
-    assert_eq!(app.current_task().unwrap().body, "a", "the cursor followed it");
+    assert_eq!(
+        app.current_task().unwrap().body,
+        "a",
+        "the cursor followed it"
+    );
     assert_eq!(app.history.len(), 1, "one move, one entry");
 }
 
@@ -1110,7 +1129,14 @@ fn the_keys_page_opens_on_question_mark_and_closes_on_escape() {
     assert!(text.contains("esc close"), "{text}");
     // three columns: the shared keys, the panels that choose where you are, and
     // the one that edits a todo
-    for title in ["general", "files", "index", "history", "todos", "collection"] {
+    for title in [
+        "general",
+        "files",
+        "index",
+        "history",
+        "todos",
+        "collection",
+    ] {
         assert!(text.contains(title), "{title} is missing: {text}");
     }
     // one row per spelling, so a key that a terminal may not deliver is still on the
@@ -1497,7 +1523,11 @@ fn a_pasted_ops_document_lands_as_todo_lines_under_the_cursor() {
     assert!(!app.doc.render().contains('{'), "no json in the file");
     // one entry per line, so undo peels them from the bottom up
     assert_eq!(app.history.len(), 2);
-    assert!(app.message_text().contains("pasted 2 todos"), "{:?}", app.message);
+    assert!(
+        app.message_text().contains("pasted 2 todos"),
+        "{:?}",
+        app.message
+    );
 }
 
 #[test]
@@ -1531,7 +1561,11 @@ fn a_paste_into_a_field_is_text_and_a_paste_into_a_file_list_says_where() {
     press(&mut app, KeyCode::Esc);
     app.pane = Pane::Files;
     app.on_paste(PASTED);
-    assert!(app.message_text().contains("goes into a file's todos"), "{:?}", app.message);
+    assert!(
+        app.message_text().contains("goes into a file's todos"),
+        "{:?}",
+        app.message
+    );
     assert_eq!(app.doc.render(), "- [ ] first\n");
 }
 
@@ -1567,7 +1601,10 @@ fn c_copies_the_file_path_the_ops_document_or_the_collection_name() {
     ] {
         assert!(text.contains(piece), "{piece} is missing: {text}");
     }
-    assert!(text.trim_start().starts_with('{'), "a task, not a page: {text}");
+    assert!(
+        text.trim_start().starts_with('{'),
+        "a task, not a page: {text}"
+    );
     // the header says what was copied in the words of the line, not of the document
     assert!(
         app.message_text().contains("copied - [ ] (A) pay rent"),
@@ -1708,7 +1745,10 @@ fn g_and_shift_down_reach_the_ends_of_the_panel_from_a_collection_row() {
     // and back: the first row of the panel, which is a file
     press(&mut app, KeyCode::Char('g'));
     assert_eq!(app.row_idx, 0);
-    assert_eq!(app.selected_file().unwrap().path, app.root.join("a/TODOs.md"));
+    assert_eq!(
+        app.selected_file().unwrap().path,
+        app.root.join("a/TODOs.md")
+    );
 }
 
 #[test]
@@ -1780,7 +1820,10 @@ fn enter_in_a_collection_opens_the_file_the_todo_lives_in() {
     assert!(app.sections().contains(&Pane::Outline));
     assert_eq!(app.headings()[app.outline_idx].text, "beta");
     // and the history is that file's
-    assert!(app.file_history().iter().all(|at| app.history[*at].path == app.root.join("b/TODOs.md")));
+    assert!(app
+        .file_history()
+        .iter()
+        .all(|at| app.history[*at].path == app.root.join("b/TODOs.md")));
 }
 
 #[test]
@@ -1987,20 +2030,38 @@ fn a_comment_todo_takes_only_the_keys_that_make_sense_for_it() {
     // the bar offers the three keys that work and none of the four that do not
     let bar = crate::ui::section_keys(&app);
     for offered in ["e edit", "A-D prio", "d delete", "c copy"] {
-        assert!(bar.iter().any(|hint| hint == offered), "{offered} in {bar:?}");
+        assert!(
+            bar.iter().any(|hint| hint == offered),
+            "{offered} in {bar:?}"
+        );
     }
     for refused in ["x check", "n add", "K / J move", "space check"] {
-        assert!(!bar.iter().any(|hint| hint.starts_with(refused)), "{refused} in {bar:?}");
+        assert!(
+            !bar.iter().any(|hint| hint.starts_with(refused)),
+            "{refused} in {bar:?}"
+        );
     }
 
     // and the keys themselves say why instead of doing nothing
     press(&mut app, KeyCode::Char('x'));
-    assert!(app.message_text().contains("closed by deleting it"), "{:?}", app.message_text());
+    assert!(
+        app.message_text().contains("closed by deleting it"),
+        "{:?}",
+        app.message_text()
+    );
     press(&mut app, KeyCode::Char('n'));
     assert!(!matches!(app.mode, Mode::Adding(_)));
-    assert!(app.message_text().contains("written by hand"), "{:?}", app.message_text());
+    assert!(
+        app.message_text().contains("written by hand"),
+        "{:?}",
+        app.message_text()
+    );
     press(&mut app, KeyCode::Char('K'));
-    assert!(app.message_text().contains("stays with the code"), "{:?}", app.message_text());
+    assert!(
+        app.message_text().contains("stays with the code"),
+        "{:?}",
+        app.message_text()
+    );
     // the line never moved
     assert_eq!(app.doc.render(), "// TODO: (B) fix it\nlet x = 1;\n");
 }

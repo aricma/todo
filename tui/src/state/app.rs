@@ -415,7 +415,6 @@ impl App {
         }
     }
 
-
     /// Where `tab` (forward) or `shift+tab` (backward) would land, so the hint
     /// can name the panel instead of saying "section".
     ///
@@ -858,7 +857,9 @@ impl App {
     pub fn panel_message(&self) -> Option<&Message> {
         // a success is drawn in the header, where the window says what is going
         // on; a panel's own messages are the ones that explain something about it
-        self.message.as_ref().filter(|message| !message.is_success())
+        self.message
+            .as_ref()
+            .filter(|message| !message.is_success())
     }
 
     /// What worked, for the header's right-hand end.

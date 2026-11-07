@@ -102,9 +102,7 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
     }
     // the cursor can land on a wrapped entry near the bottom, so the panel follows
     // it: one row per line, so the offset is counted in rows
-    let height = super::frame::panel(&title, focused)
-        .inner(area)
-        .height as usize;
+    let height = super::frame::panel(&title, focused).inner(area).height as usize;
     let (line, skip) = super::rows::offset_for(&heights, Some(app.history_idx), height);
     let scroll: usize = heights.iter().take(line).sum::<usize>() + skip;
     frame.render_widget(

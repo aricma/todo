@@ -44,5 +44,4 @@ mod tests {
         assert_eq!(shorten("TODOs.md", 20), "TODOs.md");
         assert_eq!(shorten("a/TODOs.md", 20), "a/TODOs.md");
     }
-
 }

@@ -786,7 +786,10 @@ impl App {
         for line in &written {
             let text = self.doc.lines().get(*line)?.clone();
             let task = self.task_at(*line)?;
-            self.record(label(text::NEW_TODO, &task), Inverse::Insert { line: *line, text });
+            self.record(
+                label(text::NEW_TODO, &task),
+                Inverse::Insert { line: *line, text },
+            );
         }
         self.task_idx = self
             .tasks()
@@ -805,7 +808,11 @@ impl App {
                 let Some(task) = self.current_task() else {
                     return;
                 };
-                if task.line == *a { *b } else { *a }
+                if task.line == *a {
+                    *b
+                } else {
+                    *a
+                }
             }
             Inverse::Move { to, .. } => *to,
             _ => return,

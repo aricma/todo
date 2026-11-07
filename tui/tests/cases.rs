@@ -66,8 +66,11 @@ fn play(terminal: &mut Terminal, tui: &Tui, case: &Case) -> CaseResult {
             // a paste arrives between the bracketed-paste markers, which is what
             // tells the app it is one string and not a hundred key presses
             "paste" => terminal.send(
-                format!("\u{1b}[200~{}\u{1b}[201~", value.strip_prefix(' ').unwrap_or(value))
-                    .as_bytes(),
+                format!(
+                    "\u{1b}[200~{}\u{1b}[201~",
+                    value.strip_prefix(' ').unwrap_or(value)
+                )
+                .as_bytes(),
             )?,
             other => return Err(format!("unknown step: {other}").into()),
         }

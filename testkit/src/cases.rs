@@ -66,7 +66,10 @@ impl Case {
     pub fn check_file(&self) -> CaseResult {
         let actual = fs::read(&self.input).ok();
         let (wanted, what) = match &self.expect {
-            Some(expected) => (Some(expected.as_bytes().to_vec()), "TODOs.md against expect.md"),
+            Some(expected) => (
+                Some(expected.as_bytes().to_vec()),
+                "TODOs.md against expect.md",
+            ),
             None => (self.before.clone(), "TODOs.md unchanged"),
         };
         expect(&actual, &wanted, what)

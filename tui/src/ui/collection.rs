@@ -14,8 +14,8 @@ use ratatui::Frame;
 use unicode_width::UnicodeWidthStr;
 
 use super::frame::{footer, panel};
-use super::rows::{cursor_at, offset_for};
 use super::rows;
+use super::rows::{cursor_at, offset_for};
 use crate::state::App;
 use crate::text;
 
@@ -75,14 +75,9 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
         // them, wrapped in what the number gutter leaves
         let editing = app.editing().filter(|_| here);
         let body = editing.map_or(item.body.as_str(), |prompt| prompt.text());
-        for (at, mut row) in rows::line_rows(
-            &item.lead,
-            body,
-            here,
-            width.saturating_sub(gutter),
-        )
-        .into_iter()
-        .enumerate()
+        for (at, mut row) in rows::line_rows(&item.lead, body, here, width.saturating_sub(gutter))
+            .into_iter()
+            .enumerate()
         {
             // the number is a gutter, not part of the todo: it stays unbanded
             let number = if at == 0 {

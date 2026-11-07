@@ -9,9 +9,9 @@ use std::process::Command;
 
 use super::{is_candidate, order, Entry};
 use crate::doc::{Doc, Source};
-use crate::model::Stats;
 use crate::error::Error;
 use crate::limits;
+use crate::model::Stats;
 
 /// Directories never descended into, whatever they hold.
 const SKIPPED: [&str; 4] = ["node_modules", "target", "tmp", ".git"];
@@ -175,7 +175,9 @@ fn walk_listed(
         }
         if scan.entries.len() >= limits::MAX_FILES {
             scan.warnings.push(format!(
-                "[warn] {} files is the limit; {}", limits::MAX_FILES, relative.display()
+                "[warn] {} files is the limit; {}",
+                limits::MAX_FILES,
+                relative.display()
             ));
             return;
         }
@@ -190,10 +192,9 @@ fn walk_listed(
         }
         seen += 1;
         // the folders a git repository always holds and never lists
-        if relative
-            .components()
-            .any(|part| SKIPPED.contains(&part.as_os_str().to_string_lossy().to_lowercase().as_str()))
-        {
+        if relative.components().any(|part| {
+            SKIPPED.contains(&part.as_os_str().to_string_lossy().to_lowercase().as_str())
+        }) {
             continue;
         }
         if let Ok((entry, worth_showing)) = entry(path, false) {
@@ -345,7 +346,11 @@ mod tests {
         let root = tmp.path();
         write(root, "TODOs.md", "- [ ] a\n");
         write(root, "sub/TASKS.md", "- [x] b\n");
-        write(root, "README.md", "# nothing to do\n\nJust a readme, no tasks in it.\n");
+        write(
+            root,
+            "README.md",
+            "# nothing to do\n\nJust a readme, no tasks in it.\n",
+        );
         write(root, "notes.md", "- [ ] not a candidate\n");
         write(root, "node_modules/x/TODOs.md", "- [ ] hidden\n");
         write(root, "target/TODOs.md", "- [ ] hidden\n");
@@ -476,7 +481,11 @@ mod tests {
     fn a_code_file_is_listed_when_it_holds_a_todo_comment() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        write(root, "src/main.rs", "fn main() {\n    // TODO: wire it up\n}\n");
+        write(
+            root,
+            "src/main.rs",
+            "fn main() {\n    // TODO: wire it up\n}\n",
+        );
         write(root, "src/quiet.rs", "fn main() {}\n");
         write(root, "README.md", "# plain\n\nsome words, no todos\n");
         let scan = scan(root).unwrap();
@@ -485,7 +494,12 @@ mod tests {
             .iter()
             .map(|entry| {
                 (
-                    entry.path.strip_prefix(root).unwrap().to_string_lossy().into_owned(),
+                    entry
+                        .path
+                        .strip_prefix(root)
+                        .unwrap()
+                        .to_string_lossy()
+                        .into_owned(),
                     entry.source,
                 )
             })
@@ -501,8 +515,11 @@ mod tests {
     fn a_binary_file_is_not_read_for_comments() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
-        fs::write(root.join("logo.png"), [0x89, b'P', b'N', b'G', 0, 0, b'T', b'O'])
-            .unwrap();
+        fs::write(
+            root.join("logo.png"),
+            [0x89, b'P', b'N', b'G', 0, 0, b'T', b'O'],
+        )
+        .unwrap();
         assert!(scan(root).unwrap().entries.is_empty());
     }
 

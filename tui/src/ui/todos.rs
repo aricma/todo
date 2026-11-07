@@ -10,8 +10,8 @@ use ratatui::Frame;
 use super::consts::message_style;
 use super::frame::{counts, panel};
 use super::rows::{body_width, cursor_at, offset_for, row_count, todo_rows, waiting_rows};
-use crate::state::App;
 use crate::helpers::as_u16;
+use crate::state::App;
 use crate::text;
 
 pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
@@ -38,10 +38,18 @@ pub fn draw(frame: &mut Frame, app: &App, area: Rect, focused: bool) {
         None => block,
     };
     frame.render_widget(
-        Paragraph::new(rows).scroll((as_u16(scroll), 0)).block(block),
+        Paragraph::new(rows)
+            .scroll((as_u16(scroll), 0))
+            .block(block),
         area,
     );
-    super::rows::bar(frame, inner, heights.iter().sum(), inner.height as usize, scroll);
+    super::rows::bar(
+        frame,
+        inner,
+        heights.iter().sum(),
+        inner.height as usize,
+        scroll,
+    );
     if let Some((x, y)) = cursor(app, area, width, scroll) {
         frame.set_cursor_position((x, y));
     }
@@ -82,10 +90,7 @@ fn rows(app: &App, width: usize) -> Vec<Line<'static>> {
         } else {
             todo_rows(task, editing, here, room)
         };
-        for (at, mut row) in cells
-            .into_iter()
-            .enumerate()
-        {
+        for (at, mut row) in cells.into_iter().enumerate() {
             let number = if at == 0 {
                 format!("{:>width$} ", task.line + 1, width = gutter - 1)
             } else {

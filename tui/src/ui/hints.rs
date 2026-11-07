@@ -137,7 +137,6 @@ impl Binding {
     }
 }
 
-
 /// Every key the screen answers to, in the order they are read.
 ///
 /// One row per *spelling*, not per panel: a key that works in three panels is one row
@@ -212,8 +211,13 @@ pub const BINDINGS: &[Binding] = &[
     Binding::new("n", "add", Where::TODO, Bar::Verb).but_not(Where::COMMENT),
     Binding::new("e", "edit", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
     Binding::new("A-D", "prio", Where::TODO.or(Where::COLLECTION), Bar::Verb).on_something(),
-    Binding::new("0", "clear prio", Where::TODO.or(Where::COLLECTION), Bar::No)
-        .on_something(),
+    Binding::new(
+        "0",
+        "clear prio",
+        Where::TODO.or(Where::COLLECTION),
+        Bar::No,
+    )
+    .on_something(),
     // ---- the history. A write is not a todo: its undo is `space`, never `x`, and
     // `h` comes after the entry's own verbs because it is about the panel, not the row
     Binding::new("↑/↓", "nav", Where::HISTORY, Bar::Verb),
@@ -396,10 +400,14 @@ mod tests {
         let (_tmp, mut app) = crate::testing::app(&[("TODOs.md", "- [ ] one\n")]);
         app.pane = Pane::Files;
         // nothing hidden yet, so pressing it hides nothing: it *unhides* the rest
-        assert!(super::section_keys(&app).join(" · ").contains("h unhide *.md"));
+        assert!(super::section_keys(&app)
+            .join(" · ")
+            .contains("h unhide *.md"));
 
         app.show_all = true;
-        assert!(super::section_keys(&app).join(" · ").contains("h hide *.md"));
+        assert!(super::section_keys(&app)
+            .join(" · ")
+            .contains("h hide *.md"));
 
         // the collection panel is for reading todos: the scan's switch belongs to
         // the panel that lists the files
@@ -538,6 +546,8 @@ mod tests {
 
         // a collection's `enter` is about the row the cursor is on, and there is none
         app.pane = Pane::Collection;
-        assert!(super::section_keys(&app).iter().all(|hint| !hint.contains("enter")));
+        assert!(super::section_keys(&app)
+            .iter()
+            .all(|hint| !hint.contains("enter")));
     }
 }

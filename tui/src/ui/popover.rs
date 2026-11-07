@@ -336,11 +336,7 @@ fn group(title: &str, bindings: &[&hints::Binding]) -> Vec<Line<'static>> {
         // the keys padded into a column of their own, then two cells before the words:
         // one reads as part of a key that starts with an arrow
         let pad = " ".repeat(width.saturating_sub(Span::raw(b.keys).width()) + 2);
-        Line::from(vec![
-            Span::raw(b.keys),
-            Span::raw(pad),
-            Span::raw(b.does),
-        ])
+        Line::from(vec![Span::raw(b.keys), Span::raw(pad), Span::raw(b.does)])
     }));
     rows.push(Line::from(""));
     rows
@@ -529,4 +525,3 @@ fn query_line(query: &Prompt) -> Line<'static> {
     spans.extend(prompt::line(query.text()).spans);
     Line::from(spans)
 }
-
