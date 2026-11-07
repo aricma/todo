@@ -324,19 +324,21 @@ mod tests {
         fs::write(path, text).unwrap();
     }
 
+    /// An entry's path relative to the walk's root, with `/` separators: which file
+    /// was found is the fact under test, not the separator of the machine running it.
+    fn shown(root: &Path, path: &Path) -> String {
+        path.strip_prefix(root)
+            .unwrap()
+            .to_string_lossy()
+            .replace('\\', "/")
+    }
+
     fn names(root: &Path) -> Vec<String> {
         scan(root)
             .unwrap()
             .entries
             .into_iter()
-            .map(|entry| {
-                entry
-                    .path
-                    .strip_prefix(root)
-                    .unwrap()
-                    .to_string_lossy()
-                    .into_owned()
-            })
+            .map(|entry| shown(root, &entry.path))
             .collect()
     }
 
@@ -492,17 +494,7 @@ mod tests {
         let names: Vec<_> = scan
             .entries
             .iter()
-            .map(|entry| {
-                (
-                    entry
-                        .path
-                        .strip_prefix(root)
-                        .unwrap()
-                        .to_string_lossy()
-                        .into_owned(),
-                    entry.source,
-                )
-            })
+            .map(|entry| (shown(root, &entry.path), entry.source))
             .collect();
         assert_eq!(
             names,
