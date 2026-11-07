@@ -13,7 +13,7 @@
 - [x] (A) add more stats for how many tags and assignees are in each file in the files panel make the stats color coded as we have them in the todos panel as well
 - [x] (D) add a conflict resolution to the todos panel
 - [x] (B) increase the depth we can handle to 10 levels
-- [x] (A) add the same stats for tags and assignees to the bottom right of the todos panel next to the todo numbers @aricma @kevin
+- [x] (A) add the same stats for tags and assignees to the bottom right of the todos panel next to the todo numbers @aricma
 - [x] (B) allow the history items to wrap
 - [x] (B) allow headings in outline to wrap
 - [x] (C) rename outline to index

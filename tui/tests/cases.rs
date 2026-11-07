@@ -155,7 +155,7 @@ impl Terminal {
             pixel_width: 0,
             pixel_height: 0,
         })?;
-        let mut command = CommandBuilder::new(env!("CARGO_BIN_EXE_aricma-lazytodo"));
+        let mut command = CommandBuilder::new(env!("CARGO_BIN_EXE_lazytodo"));
         command.arg(directory);
         command.env("TERM", "xterm-256color");
         let child = pair.slave.spawn_command(command)?;

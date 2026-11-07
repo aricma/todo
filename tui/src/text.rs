@@ -8,8 +8,8 @@
 
 /// The name the window carries, and the wave that it is a list you can finish.
 ///
-/// `aricma-todo` is the project; this is its screen, `aricma-lazytodo`.
-pub const APP: &str = "✅ aricma-lazytodo";
+/// `aricma-todo` is the project; this is its screen, `lazytodo`.
+pub const APP: &str = "✅ lazytodo";
 
 pub const FILES: &str = "files";
 pub const INDEX: &str = "index";

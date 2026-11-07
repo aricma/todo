@@ -83,22 +83,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "aricma-lazytodo"
-version = "0.1.0"
-dependencies = [
- "aricma-todo-lib",
- "clap",
- "datatest-stable",
- "insta",
- "portable-pty",
- "ratatui",
- "tempfile",
- "testkit",
- "unicode-width",
- "vt100",
-]
-
-[[package]]
 name = "aricma-todo-cli"
 version = "0.1.0"
 dependencies = [
@@ -799,6 +783,22 @@ name = "lazy_static"
 version = "1.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
+
+[[package]]
+name = "lazytodo"
+version = "0.1.0"
+dependencies = [
+ "aricma-todo-lib",
+ "clap",
+ "datatest-stable",
+ "insta",
+ "portable-pty",
+ "ratatui",
+ "tempfile",
+ "testkit",
+ "unicode-width",
+ "vt100",
+]
 
 [[package]]
 name = "libc"

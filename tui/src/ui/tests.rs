@@ -15,6 +15,13 @@ fn texts(app: &crate::state::App) -> String {
     screen(app).join("\n")
 }
 
+/// The screen without its header row: the header carries the path the session was
+/// opened on, and how much of it is cut for the row is the machine's business — a
+/// short temp root has nothing to shorten. The view is what the tests below are about.
+fn body(app: &crate::state::App) -> String {
+    screen(app).into_iter().skip(1).collect::<Vec<_>>().join("\n")
+}
+
 #[test]
 fn every_section_is_a_framed_section_with_its_title() {
     let (_tmp, app) = app(&[(
@@ -90,19 +97,38 @@ fn the_file_view_numbers_every_line_prose_included() {
 /// directory — different every run. The path is masked, not dropped: the header is
 /// part of the screen and has to be looked at too.
 fn masked(app: &crate::state::App, screen: &str) -> String {
-    // the header names the tree the session was opened on, and in a test that is a
-    // fresh temp directory: its random name is masked, so the snapshot means
-    // something. Only the name — a long path is cut from the front, and masking more
-    // than the random part would depend on where the cut landed.
+    // the header names the path the session was opened on, and in a test that is a
+    // fresh directory under this machine's temp root — `/private/var/folders/…` on
+    // macOS, `/tmp` on Linux — cut from the front to fit the row. So everything up to
+    // the tree's name goes, not just the name: one snapshot then means the same on
+    // both, whatever the row's width and wherever the cut landed.
     let tree = if app.single {
         app.root.parent()
     } else {
         Some(app.root.as_path())
     };
-    match tree.and_then(std::path::Path::file_name) {
-        Some(name) => screen.replace(&*name.to_string_lossy(), "<tree>"),
-        None => screen.to_owned(),
-    }
+    let Some(name) = tree.and_then(std::path::Path::file_name) else {
+        return screen.to_owned();
+    };
+    let name = name.to_string_lossy();
+    // the tick is two cells wide, so the header carries two spaces after it: anchor on
+    // the word, not on `APP`
+    let app = crate::text::APP.rsplit(' ').next().unwrap_or(crate::text::APP);
+    screen
+        .lines()
+        .map(|line| {
+            let Some(at) = line.find(app) else {
+                return line.trim_end().to_owned();
+            };
+            match line[at..].split_once(&*name) {
+                Some((_, rest)) => {
+                    format!("{}{app} · …/<tree>{}", &line[..at], rest.trim_end())
+                }
+                None => line.trim_end().to_owned(),
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// The style of a `0/1` on a border, for a test that asks how it is drawn.
@@ -165,7 +191,7 @@ fn the_border_is_rounded_and_the_header_says_where_we_are() {
         lines[0]
     );
     assert!(
-        lines[0].contains("aricma-lazytodo · "),
+        lines[0].contains("lazytodo · "),
         "the app's name, then where it is: {:?}",
         lines[0]
     );
@@ -381,7 +407,7 @@ fn a_copy_is_a_success_in_the_header_not_a_note_under_the_list() {
     let lines = screen_at(&app, 96, 14);
     // the top line: where it is on the left, what worked on the right
     assert!(lines[0].contains("copied a/TODOs.md"), "{}", lines[0]);
-    assert!(lines[0].contains("aricma-lazytodo"), "{}", lines[0]);
+    assert!(lines[0].contains("lazytodo"), "{}", lines[0]);
     // and nowhere else: the panel is unchanged by a message about nothing in it
     assert_eq!(
         lines.iter().filter(|line| line.contains("copied")).count(),
@@ -534,7 +560,7 @@ fn the_row_a_new_todo_waits_in_is_the_one_that_has_the_cursor() {
 fn a_modal_dims_everything_behind_it() {
     let (_tmp, mut app) = app(&[("TODOs.md", "- [ ] a\n")]);
     // the header's own text, bright while nothing is asked
-    let column = u16::try_from(screen(&app)[0].find("aricma").unwrap()).unwrap();
+    let column = u16::try_from(screen(&app)[0].find("lazytodo").unwrap()).unwrap();
     let cell = |app: &crate::state::App| {
         terminal(app, WIDTH, HEIGHT).backend().buffer()[(column, 0)].clone()
     };
@@ -2216,9 +2242,9 @@ fn a_code_file_shows_a_line_above_a_todo_and_three_below() {
     for near in ["fn above10", "fn below1", "fn below2", "fn below3"] {
         assert!(text.contains(near), "{near} is not in:\n{text}");
     }
-    // the code that is not around a todo is one row, not the rest of the file
-    // one `…` for the folded code, and one in the shortened path in the header
-    assert!(text.matches('…').count() >= 2, "no fold in:\n{text}");
+    // the code that is not around a todo is one row, not the rest of the file: one
+    // `…` for the folded code, none of it in the header
+    assert!(body(&app).matches('…').count() >= 1, "no fold in:\n{text}");
     assert!(!text.contains("fn above9("), "{text}");
     assert!(!text.contains("fn below4("), "{text}");
     assert!(!text.contains("fn below10("), "{text}");
@@ -2234,15 +2260,15 @@ fn a_single_line_outside_a_window_is_shown_and_two_are_folded() {
     let text = screen(&one).join("\n");
     // the window is the todo and the three lines under it; `d` is the one left over
     assert!(text.contains("fn d"), "{text}");
-    // the only ellipsis on screen is the shortened path in the header
-    assert_eq!(text.matches('…').count(), 1, "a fold that saves nothing:\n{text}");
+    // nothing is folded, so no ellipsis in the view
+    assert_eq!(body(&one).matches('…').count(), 0, "a fold that saves nothing:\n{text}");
 
     let longer = "// TODO: first\nfn a() {}\nfn b() {}\nfn c() {}\nfn d() {}\nfn e() {}\n";
     let (_tmp, mut two) = app(&[("src/b.rs", longer)]);
     two.pane = crate::state::action::Pane::View;
     let text = screen(&two).join("\n");
     assert!(!text.contains("fn e"), "two lines are a row saved:\n{text}");
-    assert!(text.matches('…').count() >= 2, "no fold in:\n{text}");
+    assert!(body(&two).matches('…').count() >= 1, "no fold in:\n{text}");
 }
 
 #[test]
@@ -2259,5 +2285,5 @@ fn a_file_does_not_open_on_the_code_before_its_first_todo() {
     assert!(text.contains("fn above10"), "{text}");
     assert!(!text.contains("fn above1("), "{text}");
     assert!(!text.contains("fn above9("), "{text}");
-    assert!(text.matches('…').count() >= 2, "no fold in:\n{text}");
+    assert!(body(&app).matches('…').count() >= 1, "no fold in:\n{text}");
 }

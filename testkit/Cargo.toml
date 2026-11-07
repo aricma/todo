@@ -1,0 +1,22 @@
+[package]
+name = "testkit"
+version = "0.1.0"
+edition = "2021"
+license.workspace = true
+description = "Test helpers shared by the integration suites: run a binary, read what it said, drive a use case"
+publish = false
+
+# The root workspace has no [workspace.lints] (its members each declare their
+# own), so this crate carries the same strictness the rest of the repo uses.
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "deny", priority = -1 }
+must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+
+[dependencies]
+tempfile = "3"

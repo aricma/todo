@@ -1,6 +1,6 @@
 # RFCs — the terminal client
 
-One file per behaviour of `aricma-lazytodo`. An RFC here answers three questions in
+One file per behaviour of `lazytodo`. An RFC here answers three questions in
 the order a reader asks them: **what does the program do**, **why that and not
 something else**, and **what does that cost**. It is written to be true — not to
 sell. The landing page and the marketing copy are read *off* these files later; they

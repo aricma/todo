@@ -10,7 +10,7 @@ list is right and the code is the bug.
 
 | word | what it is |
 | --- | --- |
-| **header** | the top line: `✅ aricma-lazytodo · /where/it/was/opened`, and the right-hand end of it, where a **success message** appears |
+| **header** | the top line: `✅ lazytodo · /where/it/was/opened`, and the right-hand end of it, where a **success message** appears |
 | **status bar** | the bottom line: the keys that work where the cursor is, and a **failure** or a rule explained |
 | **panel** | one framed box in the body of the screen. A panel draws one thing, has one title, and the title's number (`[3] history`) is the key that jumps to it (RFC-001) |
 | **thumb** | the dim `▐` on a panel's inner right edge, when its rows do not fit. No track, and none at all when they do (RFC-001) |

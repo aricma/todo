@@ -2,7 +2,7 @@
 source: tui/src/ui/tests.rs
 expression: "masked(&app, &screen_at(&app, 120, 40).join(\"\\n\"))"
 ---
- ✅  aricma-lazytodo · /private/var/folders/mt/b98d1vks095gz2d9f2l0zyj80000gn/T/<tree>                               
+ ✅  lazytodo · …/<tree>
 ╭ ● [1] files ───────────────────────────────╮  ╭ [0] TODOs.md ────────────────────────────────────────────────────────╮
 │ TODOs.md  1/4  #1  @1                      │  │ 1 # inbox                                                            │
 │ #worst-bug-of-the-century  0/1             │  │ 2                                                                    │
@@ -40,5 +40,5 @@ expression: "masked(&app, &screen_at(&app, 120, 40).join(\"\\n\"))"
 │                                            │  │                                                                      │
 │                                            │  │                                                                      │
 ╰────────────────────────────────────────────╯  ╰───────────────────────────────────────────────────────── 1/4  #1  @1 ╯
- tab index · shift+tab history · → TODOs.md · f search · ? keys · q quit                                                
+ tab index · shift+tab history · → TODOs.md · f search · ? keys · q quit
  ↑/↓ nav · n new file · d delete file · h unhide *.md · c copy

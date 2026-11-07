@@ -2,13 +2,13 @@
 source: tui/src/ui/tests.rs
 expression: "masked(&app, &screen(&app).join(\"\\n\"))"
 ---
- ✅  aricma-lazytodo · …ar/folders/mt/b98d1vks095gz2d9f2l0zyj80000gn/T/<tree>
-╭ [1] files ─────────────────╮  ╭ ● [0] TODOs.md ──────────────────────────────╮
-│ TODOs.md  1/2  #1  @1      │  │ 1 # inbox                                    │
-│ #home  0/1                 │  │ 2                                            │
-│ @sam  0/1                  │  │ 3 - [ ] (A) pay rent #home @sam              │
-│                            │  │ 4 - [x] ship it                              │
-│                            │  │ 5                                            │
+ ✅  lazytodo · …/<tree>
+╭ [1] files ─────────────────╮  ╭ [0] a/TODOs.md ──────────────────────────────╮
+│ a/TODOs.md  1/2  #1  @1  h │  │ 1 # inbox                                    │
+│ b/TASKS.md  0/1  #1        │  │ 2                                            │
+│ #home  0/1                 │  │ 3 - [ ] (A) pay rent #home @sam              │
+│ #one  0/1                  │  │ 4 - [x] ship it                              │
+│ @sam  0/1                  │  │ 5                                            │
 ╰────────────────────────────╯  │ 6 ## later                                   │
 ╭ [2] index ─────────────────╮  │                                              │
 │ # inbox                    │  │                                              │
@@ -17,12 +17,12 @@ expression: "masked(&app, &screen(&app).join(\"\\n\"))"
 │                            │  │                                              │
 │                            │  │                                              │
 ╰────────────────────────────╯  │                                              │
-╭ [3] history ───────────────╮  │                                              │
-│                            │  │                                              │
+╭ ● [3] history ─────────────╮  │                                              │
+│ ○ check todo · pay rent    │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
 ╰────────────────────────────╯  ╰───────────────────────────────── 1/2  #1  @1 ╯
- ← files · f search · ? keys · q quit                                           
- ↑/↓ nav · x check · K / J move · d delete · n add · e edit · A-D prio · c copy
+ tab files · shift+tab index · → a/TODOs.md · f search · ? keys · q quit
+ ↑/↓ nav · space undo / redo · d forget · h unhide

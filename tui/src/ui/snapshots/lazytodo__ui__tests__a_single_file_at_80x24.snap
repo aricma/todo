@@ -2,12 +2,12 @@
 source: tui/src/ui/tests.rs
 expression: "masked(&app, &screen(&app).join(\"\\n\"))"
 ---
- ✅  aricma-lazytodo · …s/mt/b98d1vks095gz2d9f2l0zyj80000gn/T/<tree>/TODOs.md
+ ✅  lazytodo · …/<tree>/TODOs.md
 ╭ [2] index ─────────────────╮  ╭ ● [0] todos ─────────────────────────────────╮
-│                            │  │ 1 - [ ] (A) @dave fix the worst bug of the   │
-│                            │  │         century before the release #bug      │
-│                            │  │         #infra                               │
-│                            │  │ 2 - [x] short one                            │
+│ # inbox                    │  │ 3 - [ ] (A) pay rent #home @sam              │
+│   ## later                 │  │ 4 - [x] ship it                              │
+│                            │  │                                              │
+│                            │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
@@ -23,6 +23,6 @@ expression: "masked(&app, &screen(&app).join(\"\\n\"))"
 │                            │  │                                              │
 │                            │  │                                              │
 │                            │  │                                              │
-╰────────────────────────────╯  ╰───────────────────────────────── 1/2  #2  @1 ╯
- ← index · f search · ? keys · q quit                                           
+╰────────────────────────────╯  ╰───────────────────────────────── 1/2  #1  @1 ╯
+ ← index · f search · ? keys · q quit
  ↑/↓ nav · x check · K / J move · d delete · n add · e edit · A-D prio · c copy

@@ -51,7 +51,7 @@ pub fn draw(frame: &mut Frame, app: &App) {
     popover::draw(frame, app);
 }
 
-/// `✅ aricma-lazytodo · /where/it/was/opened`: the one line that says what is on
+/// `✅ lazytodo · /where/it/was/opened`: the one line that says what is on
 /// screen and which tree it belongs to — two sessions on two checkouts look identical
 /// otherwise.
 fn header_line(frame: &mut Frame, app: &App, area: Rect) {

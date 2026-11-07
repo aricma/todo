@@ -5,7 +5,7 @@ use std::fs;
 
 use testkit::{run, stderr};
 
-const BIN: &str = env!("CARGO_BIN_EXE_aricma-lazytodo");
+const BIN: &str = env!("CARGO_BIN_EXE_lazytodo");
 
 #[test]
 fn the_tui_refuses_to_start_without_a_terminal() {
@@ -30,5 +30,5 @@ fn help_exits_zero() {
     let output = run(BIN, &["--help"]);
     assert_eq!(output.status.code(), Some(0));
     let text = String::from_utf8_lossy(&output.stdout).into_owned();
-    assert!(text.contains("aricma-lazytodo"), "{text}");
+    assert!(text.contains("lazytodo"), "{text}");
 }

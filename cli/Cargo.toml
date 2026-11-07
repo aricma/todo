@@ -17,7 +17,7 @@ clap = { version = "4", features = ["derive"] }
 aricma-todo-lib = { path = "../lib" }
 
 [dev-dependencies]
-testkit = { path = "../../testkit" }
+testkit = { path = "../testkit" }
 datatest-stable = "0.3"
 tempfile = "3"
 

@@ -1,4 +1,4 @@
-//! aricma-lazytodo — the screen.
+//! lazytodo — the screen.
 //!
 //! Everything it knows about the rules comes from the lib, which also reads and
 //! writes a todo file. The layers around it: `disk` holds the file operations the
