@@ -2,6 +2,7 @@
 name = "aricma-todo-cli"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 description = "Check, format, export and import todo lines in markdown files"
 
 [[bin]]
