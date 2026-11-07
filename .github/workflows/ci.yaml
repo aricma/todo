@@ -1,0 +1,56 @@
+name: CI
+
+# `pull_request` and never `pull_request_target`: the latter runs a fork's code
+# with this repository's secrets in the environment, which is how a token gets
+# stolen. This repository needs no secret at all — every dependency is public —
+# so nothing here reads one, and nothing here should start to.
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      # The workspace denies every pedantic clippy lint, so this is the lint gate.
+      - name: Lint
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      # The screen snapshots record the header's path, which masking normalizes back to
+      # `…/<tree>` on every machine, so both runners agree.
+      - name: Test
+        run: cargo test --workspace --all-targets
+
+  # `cargo install --path tui` is how people get the binary, so it has to work
+  # from a clean checkout with nothing on the machine but a toolchain.
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install --path tui --root "$RUNNER_TEMP/install"
+      - run: "$RUNNER_TEMP/install/bin/lazytodo --version"
