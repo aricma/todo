@@ -9,3 +9,7 @@
       unproven by the screen suite and has only been seen to start
 - [x] (B) add a release pipeline
 - [ ] (C) add release docs
+- [ ] (B) an install.sh per package: `cli` and `tui` release a binary each, and a
+      person still has to unpack a `.tar.gz` by hand
+- [ ] (C) the `v0.1.0` tag predates per-package tags; it is the only tag that does
+      not name a package, so it cannot be released by the pipeline as it stands

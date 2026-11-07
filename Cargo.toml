@@ -6,7 +6,8 @@ members = ["lib", "cli", "tui", "testkit"]
 resolver = "2"
 
 [workspace.package]
-version = "0.1.0"
+# No `version` here: each package carries its own, so there is no repository-wide
+# version to mistake for the one being released.
 edition = "2021"
 license = "MIT"
 
