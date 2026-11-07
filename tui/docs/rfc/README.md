@@ -71,4 +71,4 @@ Everything a person reads on screen has a name, and the names are in
 | 024 | The CLI: `check`, `format`, `export`, `import` — the same rules without a screen |
 
 Written after this pass: the doc claimed `r`/`ctrl+r` forced a reload. There is no
-such key (`state/tests.rs` asserts `r` is not one), and `lazytodo.md` now says so.
+such key (`state/tests.rs` asserts `r` is not one), and `README.md` now says so.

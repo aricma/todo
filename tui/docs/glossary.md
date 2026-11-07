@@ -88,7 +88,7 @@ left panel", "the right side", "the middle" — the layout moves, the names do n
 
 ## Where the words live
 
-- `lazytodo.md` — how the screen behaves, as prose.
+- `README.md` — how the screen behaves, as prose.
 - `docs/rfc/` — one RFC per behaviour, the current answer and why. Marketing reads
   this directory; nothing here is written for it.
 - `text.rs` — every word a person reads on screen. If it is not there, it is not a

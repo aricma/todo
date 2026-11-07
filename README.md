@@ -15,19 +15,12 @@ toolchain: `cargo test`. No credentials.
 
 ## The terminal client
 
-`lazytodo` is layered: `lib` owns the todo file (parse, check, write), `disk/`
-holds the file operations it has no opinion on (make an empty file without
-overwriting, remove one, measure one, list folders), `state/` is the machine the
-screen is a function of, `ui/` draws that state, `terminal/` is the loop that
-joins them, `text.rs` holds every word the user reads, and `helpers/` holds the
-small functions more than one layer needs.
-
-The rules it implements — the line grammar, the keys, the history, the command
-line — are in [lazytodo.md](./lazytodo.md).
+`lazytodo` has its own manual — the line grammar, the keys, the history, the
+command line, and how its code is layered — in [tui/README.md](./tui/README.md).
 
 ## Reading
 
-- [lazytodo.md](./lazytodo.md) — the terminal client: line grammar, keys, history, CLI.
+- [tui/README.md](./tui/README.md) — the terminal client: line grammar, keys, history, CLI.
 - [tui/docs/](./tui/docs/glossary.md) — the terminal client's words
   ([glossary](./tui/docs/glossary.md)) and its
   [RFCs](./tui/docs/rfc/README.md), one per behaviour, with an index.

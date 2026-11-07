@@ -103,8 +103,8 @@ clean and git-ignore.
 - Two paths can be undone at once only in the order they were written; the dependency
   rule is what keeps that from producing a file that never existed.
 - The dependency graph needs its own vocabulary on screen (`╭ │ ╰ ┼`), which is a drawing
-  problem this RFC does not own: see `lazytodo.md` for the chain.
-- `lazytodo.md`'s key table and the entry names are the two places a rename has to land.
+  problem this RFC does not own: see `README.md` for the chain.
+- `README.md`'s key table and the entry names are the two places a rename has to land.
 
 ## Open questions
 
