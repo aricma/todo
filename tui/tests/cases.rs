@@ -4,6 +4,13 @@
 //! file on disk afterwards. `vt100` turns the pty's bytes back into a screen so
 //! `wait:` can poll for text instead of sleeping, and `screen:` says what the
 //! finished screen must show. See `use-cases/README.md`.
+//!
+//! Windows is left out for now: under a ConPTY the child either dies at startup
+//! (`STATUS_DLL_INIT_FAILED`, 0xC0000142) or draws nothing the parser can read, so
+//! every case reports an empty screen. The binary itself starts on Windows —
+//! `tui/tests/tui.rs` runs it — so what is missing is the harness, not the program.
+//! `TODOs.md` carries the follow-up.
+#![cfg(unix)]
 
 use std::error::Error;
 use std::fs;
