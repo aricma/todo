@@ -28,7 +28,7 @@ use super::prompt::Mode;
 use super::row::{Row, Showing};
 use super::search::Search;
 use crate::disk;
-use crate::helpers::shift;
+use crate::helpers::{shift, shown_path};
 use crate::text;
 use ratatui::crossterm::event::KeyEvent;
 
@@ -512,14 +512,16 @@ impl App {
     pub fn display(&self, path: &Path) -> String {
         path.strip_prefix(&self.root).map_or_else(
             |_| {
-                path.file_name()
-                    .map_or_else(|| shown(path), |name| name.to_string_lossy().into_owned())
+                path.file_name().map_or_else(
+                    || shown_path(path),
+                    |name| name.to_string_lossy().into_owned(),
+                )
             },
             |relative| {
                 if relative.as_os_str().is_empty() {
                     self.display(path.parent().unwrap_or(path))
                 } else {
-                    shown(relative)
+                    shown_path(relative)
                 }
             },
         )
@@ -1003,10 +1005,4 @@ impl App {
         };
         self.task_idx = self.task_idx.min(count.saturating_sub(1));
     }
-}
-
-/// A path as a row shows it: `/` on every machine, so a screen recorded on one OS is
-/// the same screen on another.
-fn shown(path: &Path) -> String {
-    path.display().to_string().replace('\\', "/")
 }

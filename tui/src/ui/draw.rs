@@ -12,7 +12,7 @@ use super::consts::{
     VIEW_PERCENT,
 };
 use super::{body, collection, files, history, outline, popover, status, todos};
-use crate::helpers::{shorten, truncate};
+use crate::helpers::{shorten, shown_path, truncate};
 use crate::state::{App, Pane};
 use crate::text;
 use unicode_width::UnicodeWidthStr;
@@ -74,7 +74,7 @@ fn header_line(frame: &mut Frame, app: &App, area: Rect) {
     // `✅` is two cells wide, so the room is measured, not counted.
     let used = MARGIN + Span::raw(text::APP).width() + Span::raw(" · ").width();
     let room = width.saturating_sub(used + taken);
-    let where_it_is = shorten(&app.root.display().to_string(), room);
+    let where_it_is = shorten(&shown_path(&app.root), room);
     let line = Line::from(vec![
         Span::raw(" ".repeat(MARGIN)),
         Span::styled(text::APP, Style::default().add_modifier(Modifier::BOLD)),
