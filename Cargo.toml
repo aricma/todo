@@ -1,12 +1,8 @@
 [workspace]
-# One project, three native surfaces: the markdown rules in `lib/` and the two
-# clients over them — `aricma-todo` (cli) and `lazytodo` (tui).
-#
-# `web/` is deliberately NOT a member. It builds for wasm32 only and carries its
-# own [workspace] table, so a native `cargo build` here never tries to compile it
-# for the host (same arrangement as aricma-moth/ui).
+# One project, four parts: the markdown rules in `lib/`, the two clients over
+# them — `aricma-todo` (cli) and `lazytodo` (tui) — and the `testkit` their
+# suites share.
 members = ["lib", "cli", "tui", "testkit"]
-exclude = ["web"]
 resolver = "2"
 
 [workspace.package]
