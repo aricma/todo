@@ -4,6 +4,10 @@ name: CI
 # with this repository's secrets in the environment, which is how a token gets
 # stolen. This repository needs no secret at all — every dependency is public —
 # so nothing here reads one, and nothing here should start to.
+#
+# `workflow_call` is how the release pipeline runs these same jobs before it
+# publishes: one definition, so a tag can never be released on a commit that the
+# push pipeline would have refused.
 on:
   workflow_dispatch:
   push:
@@ -12,9 +16,20 @@ on:
   pull_request:
     branches:
       - main
+  workflow_call:
+    inputs:
+      ref:
+        description: The commit to check. Empty means the commit that triggered this.
+        type: string
+        required: false
 
 permissions:
   contents: read
+
+# The caller's commit, unless the caller named one — a release checks out the tag it
+# resolved, which is not the branch its button was pressed on.
+env:
+  REF: ${{ inputs.ref || github.sha }}
 
 jobs:
   rust:
@@ -28,6 +43,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.REF }}
 
       # `rustup show` installs the channel and components that rust-toolchain.toml
       # names. `dtolnay/rust-toolchain@stable` would instead install today's stable,
@@ -55,7 +72,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.REF }}
       - run: rustup show
       - uses: Swatinem/rust-cache@v2
       - run: cargo install --path tui --root "$RUNNER_TEMP/install"
-      - run: "$RUNNER_TEMP/install/bin/lazytodo --version"
+      - run: '"$RUNNER_TEMP/install/bin/lazytodo" --version'

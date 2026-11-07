@@ -1,84 +1,50 @@
 # Changelog
 
-What changed in the `lazytodo` screen. This crate has its own version and its own tag (`tui-v<version>`),
-independent of the other packages in this repository.
+What changed in `lazytodo`, the terminal client. This package has its own version
+and its own tag (`tui-v<version>`), independent of the other packages here.
 
 ## 0.1.0
 
-### Features
+The first release. Everything below is new, so nothing here is a fix.
 
-- feat(todo): a person in the word, a ticket in the body
-- feat(lazytodo): a history entry is one line, and h wraps it
-- feat(lazytodo): a single file scrolls, and a session needs something to read
-- feat(lazytodo): a band marks the text, and stops before the bar
-- feat(lazytodo): the history band is on the label, not the dot
-- feat(lazytodo): number the panels, and the number is the key
-- feat(lazytodo): a thumb when a panel has more rows than room
-- feat(lazytodo): a history row carries a dot, not a checkbox
-- feat(lazytodo): a line above a comment todo, three below
-- feat(lazytodo): an inline file takes only the keys it can
-- feat(todo): a copied todo is an OPS document, pasted as lines
-- feat(lazytodo): a new todo is the row it is typed into
-- feat(todo): a move past a heading joins that chapter's todos
-- feat(lazytodo): dim the screen behind a modal
-- feat(todo): a move crosses a heading instead of stopping at it
-- feat(lazytodo): number the lines of the file view too
-- feat(lazytodo): keep the split when a single file is open
-- feat(lazytodo): the TUI, rebuilt as state, ui, terminal and helpers
-- feat(lazytodo): add the markdown todo client
+### Reading
 
-### Fixes
+- A folder or a single file: a folder opens every todo file in the tree, a file
+  opens on its own.
+- Todo files by the convention that names them, and todo comments inside source
+  files, from a line comment to a block one.
+- OPS documents, read and written, so a todo can leave the markdown world entirely.
 
-- fix(tui): the header shows its path with a slash too
-- fix(tui): show a relative path with a slash on every machine
-- fix(todo): an unknown parenthesis is text, not a refusal
-- fix(todo): a number in a hash is a tag, and parens need a sigil
-- fix(lazytodo): space undoes a write, and h comes last and says hide
-- fix(lazytodo): the arrows cross in a single-file session too
-- fix(lazytodo): draw the thumb after the rows, so no band cuts it
-- fix(lazytodo): the thumb spans the track and never takes the band
-- fix(lazytodo): the window holds, and the fold at the top is drawn
-- fix(todo): a todo needs capitals, a marker and no quote
-- fix(lazytodo): the arrows are nav, not a todo
-- fix(lazytodo): keep the add field, with the empty row behind it
-- fix(lazytodo): keep the dependency lanes on a wrapped history row
-- fix(lazytodo): call the enter key submit, not commit
-- fix(lazytodo): put copied text on a clipboard that gets it
+### The screen
 
-### Refactors
+- Two layouts: a files panel beside a todos panel in a folder session, and the file
+  alone when one file is opened.
+- A file panel above a collection panel: every tag and every person gathered across
+  the tree, with the document each one came from.
+- Panels titled with their key, so the number on a border is the key that reaches
+  it.
+- Modals for adding, renaming, moving and searching, one at a time.
+- Search across the tree, with the match count on the title it lands in.
+- Notices in the header, and every answer in the status line rather than a popup.
+- The screen redraws when the file changes underneath, and says so rather than
+  overwriting.
 
-- refactor(lazytodo): the crate is lazytodo, testkit sits beside it, and a snapshot does not name the machine
-- refactor(todo): comments first, then four words in them
-- refactor(lazytodo): a single file is the same window, one panel fewer
-- refactor(lazytodo): a comment todo file, not an inline one
-- refactor(lazytodo): every panel says nav for the arrows
-- refactor(lazytodo): drop the rule under the new todo field
+### Editing
 
-### Documentation
+- The line grammar shared with `aricma-todo`: the checkbox, the priority letter,
+  tags, people, headings and prose.
+- Checking, unchecking, adding, deleting and moving a todo, with the cursor staying
+  where the eye is.
+- History: the last checks and unchecked boxes, drawn as a graph of what moved, and
+  undone one at a time.
+- Copy and paste of a todo, between files as well as inside one.
+- Making and deleting todo files from the panel, with the name typed where it would
+  appear.
 
-- docs(lazytodo): the manual is the tui's README, with a man page as the next step
-- docs(lazytodo): the three new todos, with where the code is
-- docs(lazytodo): a comment todo is four words, not one
-- docs(lazytodo): four rfcs for the todos in the code
-- docs(lazytodo): an rfc for the checkbox, and what a bullet is not
-- docs(lazytodo): seven more rfcs, from collections to the keys
-- docs(lazytodo): a glossary of the panels, and the first four RFCs
+### Keeping it honest
 
-### Tests
-
-- test(cases): keep a main where the pty harness is compiled out
-- test(cases): the pty screen suite is unix-only until conpty works
-- test(cases): say what the pty child was doing when the screen is blank
-- test(lazytodo): a use case for reading a todo in code
-
-### Style
-
-- style(todo): the crates are rustfmt-clean
-
-### Chores
-
-- chore(todos): windows is in, and the conpty gap is written down
-- chore(license): MIT for aricma-todo, closed for the monorepo
-- chore(lazytodo): tick the three todos this pass closed
-- chore(todos): assign todos to @aricma and @kevin for a tui test
-- chore(lazytodo): the branch's own todos, ticked
+- Bounded walking: the depth, the number of files and the size of a file all stop
+  at a limit that is said out loud, never a quiet truncation.
+- A file too long to read is listed and marked, not opened.
+- The same markdown rules the pipeline uses, so the two clients cannot disagree
+  about what a line means.

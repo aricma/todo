@@ -132,10 +132,19 @@ jobs:
           path: notes.md
           if-no-files-found: error
 
+  # The same jobs the push pipeline runs, on the commit about to be released. It
+  # comes before the approval, so what is being approved is already known to build,
+  # lint and pass on all three platforms.
+  ci:
+    needs: resolve
+    uses: ./.github/workflows/ci.yaml
+    with:
+      ref: ${{ needs.resolve.outputs.sha }}
+
   # The approval. Its steps are the first thing in the pipeline that writes, so the
   # pause happens before a tag exists, not after.
   publish:
-    needs: resolve
+    needs: [resolve, ci]
     if: ${{ !inputs.dryrun }}
     runs-on: ubuntu-latest
     environment: release
@@ -175,7 +184,7 @@ jobs:
           fi
 
   binaries:
-    needs: [resolve, publish]
+    needs: [resolve, ci, publish]
     # a dry run skips `publish`, and a skip is not a failure: still build everything
     if: ${{ !failure() && !cancelled() }}
     strategy:
