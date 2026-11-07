@@ -1,18 +1,13 @@
 # aricma-todo Actions
 
-One project, four parts: `web/` (the Leptos SPA, built by trunk), `lib/` (the
-markdown todo rules), `cli/` (the `aricma-todo` binary a pipeline installs) and
-`tui/` (the `aricma-lazytodo` screen). `web/` is its own cargo workspace because
-it is wasm-only; `lib/`, `cli/` and `tui/` share the workspace at this level.
-
-Every action here is the project's, and delegates to the part that owns it. The
-web app's own actions live in [web/maskfile.md](./web/maskfile.md) — run that one
-directly (`cd web && mask preview`) when working on the SPA alone. Standard:
-[../DOCS/maskfile-spec.md](../DOCS/maskfile-spec.md).
+One project, four parts: `lib/` (the markdown todo rules), `cli/` (the
+`aricma-todo` binary a pipeline installs), `tui/` (the `lazytodo` screen) and
+`testkit/` (what the suites share). Every action here is a plain `cargo` command;
+`mask` is only shorthand for it.
 
 ## format
 
-> Check rustfmt across the native crates, then the web app's own formatting.
+> Check rustfmt across the workspace.
 
 **OPTIONS**
 
@@ -23,54 +18,41 @@ directly (`cd web && mask preview`) when working on the SPA alone. Standard:
 ```sh
 if [ "${fix:-}" = "true" ]; then
     cargo fmt
-    (cd web && cargo fmt)
 else
     cargo fmt --check
-    (cd web && cargo fmt --check)
 fi
 ```
 
 ## lint
 
-> Clippy over the native crates (denying warnings), then the web app's lint.
+> Clippy over the workspace, denying warnings.
 
 ```sh
-cargo clippy --all-targets -- -D warnings
-(cd web && mask lint)
+cargo clippy --workspace --all-targets -- -D warnings
 ```
 
 ## test
 
-> The native crates' tests (lib, cli, tui, the use cases), then the web app's.
+> The crates' own tests and the use cases.
 
 ```sh
-cargo test
-(cd web && mask test)
+cargo test --workspace --all-targets
 ```
 
 ## build
 
-> Build `aricma-todo` and `aricma-lazytodo` into tmp/bin, then the wasm app.
+> Build `aricma-todo` and `lazytodo` into tmp/bin.
 
 ```sh
 cargo build --release
 mkdir -p "$MASKFILE_DIR/tmp/bin"
 cp "$MASKFILE_DIR/target/release/aricma-todo" "$MASKFILE_DIR/tmp/bin/"
-cp "$MASKFILE_DIR/target/release/aricma-lazytodo" "$MASKFILE_DIR/tmp/bin/"
-(cd web && mask build)
-```
-
-## preview
-
-> Serve the SPA. Its server, ports and backends are documented in web/maskfile.md.
-
-```sh
-cd web && mask preview
+cp "$MASKFILE_DIR/target/release/lazytodo" "$MASKFILE_DIR/tmp/bin/"
 ```
 
 ## ci
 
-> The local mirror of the CI gate: format, lint, test and build.
+> The local mirror of the CI gate: format, lint and test.
 
 **OPTIONS**
 
@@ -81,5 +63,5 @@ cd web && mask preview
 ```sh
 set --
 [ "${fix:-}" = "true" ] && set -- "$@" -f
-$MASK format "$@" && $MASK lint && $MASK test && $MASK build
+$MASK format "$@" && $MASK lint && $MASK test
 ```
