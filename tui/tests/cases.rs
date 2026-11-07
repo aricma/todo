@@ -47,6 +47,10 @@ fn run(driver: &Path) -> CaseResult {
     };
     let mut terminal = Terminal::spawn(&opened)?;
     let outcome = play(&mut terminal, &tui, &case);
+    // a screen with nothing on it is the child's answer too: say whether it is still
+    // running, so a pty that draws nothing is not reported as a wrong todo file
+    let outcome =
+        outcome.map_err(|error| format!("{error}\n  the child: {}", terminal.status()).into());
     terminal.stop();
     outcome
 }
@@ -226,6 +230,14 @@ impl Terminal {
             .lock()
             .map(|parser| parser.screen().contents())
             .unwrap_or_default()
+    }
+
+    fn status(&mut self) -> String {
+        match self.child.try_wait() {
+            Ok(None) => "still running".to_owned(),
+            Ok(Some(status)) => format!("exited: {status}"),
+            Err(error) => format!("unknown: {error}"),
+        }
     }
 
     fn stop(&mut self) {
