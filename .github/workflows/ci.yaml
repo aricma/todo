@@ -26,9 +26,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
+      # `rustup show` installs the channel and components that rust-toolchain.toml
+      # names. `dtolnay/rust-toolchain@stable` would instead install today's stable,
+      # leaving `cargo fmt` with no component for the pinned toolchain.
+      - name: Install the pinned toolchain
+        run: rustup show
 
       - uses: Swatinem/rust-cache@v2
 
@@ -50,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@stable
+      - run: rustup show
       - uses: Swatinem/rust-cache@v2
       - run: cargo install --path tui --root "$RUNNER_TEMP/install"
       - run: "$RUNNER_TEMP/install/bin/lazytodo --version"

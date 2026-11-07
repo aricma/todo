@@ -1,4 +1,8 @@
 # The toolchain these crates are built and linted with; clippy denies pedantic,
 # so an unpinned channel turns each new release into a red CI job.
+#
+# `components` lives here rather than in the workflow so the local and CI
+# toolchains are the same one: rustup installs whatever this file names.
 [toolchain]
 channel = "1.96.0"
+components = ["rustfmt", "clippy"]
