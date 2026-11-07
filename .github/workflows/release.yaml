@@ -80,6 +80,53 @@ jobs:
             echo "tagged=$tagged"
           } >> "$GITHUB_OUTPUT"
 
+      # The changelog is written here, before the approval, so it is on the run page
+      # to be read while deciding. GitHub's own generated notes list merged pull
+      # requests; this repository commits to the branch directly, so the log is the
+      # changelog and the conventional prefix says which section a line belongs to.
+      - name: Name the changes
+        env:
+          TAG: ${{ steps.pick.outputs.tag }}
+          SHA: ${{ steps.pick.outputs.sha }}
+        run: |
+          previous=$(git tag --list 'v*' --sort=-v:refname | grep -vx "$TAG" | head -1 || true)
+          if [ -n "$previous" ]; then
+            range="$previous..$SHA"
+            opening="Changes since $previous."
+          else
+            range="$SHA"
+            opening="First release."
+          fi
+          subjects=$(git log --no-merges --pretty='%s' "$range")
+          {
+            echo "$opening"
+            for pair in Features:feat Fixes:fix Performance:perf Refactors:refactor \
+                        Documentation:docs Tests:test Build:build Style:style \
+                        CI:ci Chores:chore; do
+              heading=${pair%%:*}
+              type=${pair#*:}
+              matched=$(printf '%s\n' "$subjects" | grep -E "^$type\(|^$type:" || true)
+              [ -n "$matched" ] || continue
+              printf '\n### %s\n\n' "$heading"
+              printf '%s\n' "$matched" | sed 's/^/- /'
+            done
+            # anything not written the conventional way is still a change
+            other=$(printf '%s\n' "$subjects" \
+              | grep -vE '^(feat|fix|perf|refactor|docs|test|build|style|ci|chore)(\(|:)' || true)
+            if [ -n "$other" ]; then
+              printf '\n### Other\n\n'
+              printf '%s\n' "$other" | sed 's/^/- /'
+            fi
+          } > notes.md
+          echo "$opening $(wc -l < notes.md) lines of notes"
+          cat notes.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: changelog
+          path: notes.md
+          if-no-files-found: error
+
   # The approval. Its steps are the first thing in the pipeline that writes, so the
   # pause happens before a tag exists, not after.
   publish:
@@ -92,6 +139,11 @@ jobs:
         with:
           ref: ${{ needs.resolve.outputs.sha }}
           fetch-depth: 0
+
+      # after the checkout, which cleans untracked files out of the workspace
+      - uses: actions/download-artifact@v8
+        with:
+          name: changelog
 
       - name: Tag the commit, when the tag was new
         if: ${{ needs.resolve.outputs.tagged == 'false' }}
@@ -110,8 +162,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.resolve.outputs.tag }}
         run: |
-          gh release view "$TAG" >/dev/null 2>&1 ||
-            gh release create "$TAG" --title "$TAG" --generate-notes
+          # a re-run refreshes the notes rather than leaving the first ones there
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file notes.md
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file notes.md
+          fi
 
   binaries:
     needs: [resolve, publish]
