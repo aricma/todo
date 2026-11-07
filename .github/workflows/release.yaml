@@ -1,12 +1,19 @@
 name: Release
 
-# Run by hand, and it always takes a tag: the pipeline releases a version, it never
-# chooses one.
+# Run by hand, one package at a time, and it always takes a tag: the pipeline
+# releases a version, it never chooses one.
+#
+#   lib  aricma-todo-lib   a crate; no binary, so no archive
+#   cli  aricma-todo-cli   the `aricma-todo` binary
+#   tui  lazytodo          the `lazytodo` binary
+#
+# Every package carries its own version in its own Cargo.toml, its own CHANGELOG.md
+# and its own tag `<package>-v<version>`, so one can move without the others.
 #
 #   the tag names a commit   → that commit is built and released
 #   the tag names no commit  → the tip of the default branch is built, and the tag
 #                              is created on it
-#   no tag given             → the run stops before anything is built
+#   no tag, or the wrong one → the run stops before anything is built
 #
 # Nothing is written until a person approves the `release` environment: the tag, the
 # release and every asset appear only after the review, so a run that looks wrong is
@@ -15,8 +22,16 @@ name: Release
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: Which package's release this is
+        type: choice
+        options:
+          - tui
+          - cli
+          - lib
+        required: true
       tag:
-        description: The tag to release, for example v0.1.0. No discovery, no default.
+        description: The package's tag, for example tui-v0.1.0. No discovery, no default.
         type: string
         required: true
       dryrun:
@@ -36,6 +51,7 @@ jobs:
     outputs:
       tag: ${{ steps.pick.outputs.tag }}
       sha: ${{ steps.pick.outputs.sha }}
+      version: ${{ steps.pick.outputs.version }}
       tagged: ${{ steps.pick.outputs.tagged }}
     steps:
       - uses: actions/checkout@v5
@@ -47,6 +63,7 @@ jobs:
         id: pick
         env:
           GIVEN: ${{ inputs.tag }}
+          PACKAGE: ${{ inputs.package }}
           BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           tag=$GIVEN
@@ -54,8 +71,15 @@ jobs:
             "") echo "no tag given: this pipeline releases a version, it does not choose one"
                 exit 1 ;;
           esac
-          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "not a v<semver> tag: $tag"
+          # the tag names the package, so a run cannot release `tui-v0.1.0` as `cli`
+          prefix="$PACKAGE-v"
+          version=${tag#"$prefix"}
+          if [ "$version" = "$tag" ]; then
+            echo "tag $tag does not belong to package $PACKAGE, which tags $prefix<version>"
+            exit 1
+          fi
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "not a <version> after $prefix: $tag"
             exit 1
           fi
           if git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
@@ -68,57 +92,41 @@ jobs:
             echo "$tag names no commit: releasing $sha, the tip of $BRANCH"
           fi
           # the archive carries the tag in its name, so a tag that disagrees with the
-          # crate version would publish a binary whose --version says otherwise
-          version=$(git show "$sha:Cargo.toml" | sed -n 's/^version = "\(.*\)"/\1/p' | head -1)
-          if [ "v$version" != "$tag" ]; then
-            echo "tag $tag is not the version v$version at $sha"
+          # package's own version would publish a binary whose --version says otherwise
+          declared=$(git show "$sha:$PACKAGE/Cargo.toml" \
+            | sed -n 's/^version = "\(.*\)"/\1/p' | head -1)
+          if [ "$declared" != "$version" ]; then
+            echo "tag $tag is not the version $declared in $PACKAGE/Cargo.toml at $sha"
             exit 1
           fi
           {
             echo "tag=$tag"
             echo "sha=$sha"
+            echo "version=$version"
             echo "tagged=$tagged"
           } >> "$GITHUB_OUTPUT"
 
-      # The changelog is written here, before the approval, so it is on the run page
-      # to be read while deciding. GitHub's own generated notes list merged pull
-      # requests; this repository commits to the branch directly, so the log is the
-      # changelog and the conventional prefix says which section a line belongs to.
+      # The notes come from the package's own changelog, and a version without a
+      # section fails the run: a release with no changelog is the thing this job
+      # exists to prevent. Written before the approval so it can be read while
+      # deciding.
       - name: Name the changes
         env:
-          TAG: ${{ steps.pick.outputs.tag }}
+          PACKAGE: ${{ inputs.package }}
           SHA: ${{ steps.pick.outputs.sha }}
+          VERSION: ${{ steps.pick.outputs.version }}
         run: |
-          previous=$(git tag --list 'v*' --sort=-v:refname | grep -vx "$TAG" | head -1 || true)
-          if [ -n "$previous" ]; then
-            range="$previous..$SHA"
-            opening="Changes since $previous."
-          else
-            range="$SHA"
-            opening="First release."
+          notes=$(git show "$SHA:$PACKAGE/CHANGELOG.md" | awk -v wanted="## $VERSION" '
+            $0 == wanted { inside = 1; next }
+            inside && /^## / { exit }
+            inside { print }
+          ')
+          if [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]; then
+            echo "no \`## $VERSION\` section in $PACKAGE/CHANGELOG.md at $SHA"
+            exit 1
           fi
-          subjects=$(git log --no-merges --pretty='%s' "$range")
-          {
-            echo "$opening"
-            for pair in Features:feat Fixes:fix Performance:perf Refactors:refactor \
-                        Documentation:docs Tests:test Build:build Style:style \
-                        CI:ci Chores:chore; do
-              heading=${pair%%:*}
-              type=${pair#*:}
-              matched=$(printf '%s\n' "$subjects" | grep -E "^$type\(|^$type:" || true)
-              [ -n "$matched" ] || continue
-              printf '\n### %s\n\n' "$heading"
-              printf '%s\n' "$matched" | sed 's/^/- /'
-            done
-            # anything not written the conventional way is still a change
-            other=$(printf '%s\n' "$subjects" \
-              | grep -vE '^(feat|fix|perf|refactor|docs|test|build|style|ci|chore)(\(|:)' || true)
-            if [ -n "$other" ]; then
-              printf '\n### Other\n\n'
-              printf '%s\n' "$other" | sed 's/^/- /'
-            fi
-          } > notes.md
-          echo "$opening $(wc -l < notes.md) lines of notes"
+          printf '%s\n' "$notes" > notes.md
+          echo "$PACKAGE $VERSION: $(grep -c '^- ' notes.md) entries"
           cat notes.md >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v7
@@ -169,10 +177,13 @@ jobs:
             gh release create "$TAG" --title "$TAG" --notes-file notes.md
           fi
 
+  # A crate has nothing to download: its release is the tag and the changelog.
   binaries:
     needs: [resolve, publish]
-    # a dry run skips `publish`, and a skip is not a failure: still build everything
-    if: ${{ !failure() && !cancelled() }}
+    if: ${{ !failure() && !cancelled() && inputs.package != 'lib' }}
+    env:
+      CRATE: ${{ inputs.package == 'cli' && 'aricma-todo-cli' || 'lazytodo' }}
+      BIN: ${{ inputs.package == 'cli' && 'aricma-todo' || 'lazytodo' }}
     strategy:
       fail-fast: false
       matrix:
@@ -203,21 +214,21 @@ jobs:
       # A no-op where the target is the host, a download for the other macOS one.
       - run: rustup target add ${{ matrix.target }}
 
-      - run: cargo build --release --package aricma-todo-cli --package lazytodo --target ${{ matrix.target }}
+      - run: cargo build --release --package ${{ env.CRATE }} --target ${{ matrix.target }}
 
       # One format on every platform: `tar` is on all three runners, and Windows 10
-      # opens a `.tar.gz` without extra software.
+      # opens a `.tar.gz` without extra software. The archive is named after the tag,
+      # so `install.sh` can find it without a table of product names.
       - name: Pack
         shell: bash
         env:
           TAG: ${{ needs.resolve.outputs.tag }}
         run: |
-          name="lazytodo-${TAG}-${{ matrix.target }}"
+          name="${TAG}-${{ matrix.target }}"
           exe=""
           case "${{ matrix.target }}" in *windows*) exe=".exe" ;; esac
           mkdir -p "dist/$name"
-          cp "target/${{ matrix.target }}/release/lazytodo$exe" "dist/$name/"
-          cp "target/${{ matrix.target }}/release/aricma-todo$exe" "dist/$name/"
+          cp "target/${{ matrix.target }}/release/${{ env.BIN }}$exe" "dist/$name/"
           cp README.md LICENSE "dist/$name/"
           tar -czf "dist/$name.tar.gz" -C dist "$name"
           rm -rf "dist/$name"

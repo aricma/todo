@@ -1,6 +1,6 @@
 [package]
 name = "aricma-todo-lib"
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
 license.workspace = true
 description = "Read and edit todo lines in markdown files"
