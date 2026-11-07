@@ -1,42 +1,85 @@
 name: Release
 
-# Built from a tag, so what a person downloads is a commit that went through CI on
-# `main`. Nothing here runs on a branch push.
+# Run by hand, never on a tag push: a person decides what goes out, and the run
+# starts by proving there is exactly one tag to release and that it is a version.
+#
+# `dryrun` defaults to true, so pressing the button builds and packs all four
+# targets and writes nothing to the release. Turn it off to publish.
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
+    inputs:
+      dryrun:
+        description: Build and validate everything, publish nothing
+        type: boolean
+        default: true
+      tag:
+        description: The tag to release. Leave empty while the repository has only one.
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: write
 
 jobs:
-  # One job opens the release before the others upload into it: four jobs calling
-  # `gh release create` at the same moment would race, and only one can win.
-  release:
+  # The gate: which tag, whether it is the only one, and whether it is a version.
+  # It also opens the release, so the four builds below never race to create it.
+  check:
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.pick.outputs.tag }}
     steps:
+      # every tag, because the default depth fetches none
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
-      # The archive carries the tag in its name, so a tag that disagrees with
-      # Cargo.toml would publish a binary whose `--version` says something else.
-      - name: The tag is the version
+      - name: Pick the one tag
+        id: pick
+        env:
+          GIVEN: ${{ inputs.tag }}
         run: |
-          version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "tag $GITHUB_REF_NAME is not the version v$version in Cargo.toml"
+          tags=$(git tag --list)
+          if [ -n "$GIVEN" ]; then
+            tag=$GIVEN
+            if ! git rev-parse --verify --quiet "refs/tags/$tag" >/dev/null; then
+              echo "no such tag: $tag"
+              exit 1
+            fi
+          else
+            count=$(printf '%s\n' "$tags" | grep -c . || true)
+            if [ "$count" -ne 1 ]; then
+              echo "expected exactly one tag, found $count: ${tags:-none}"
+              echo "name the tag in the input when there is more than one"
+              exit 1
+            fi
+            tag=$tags
+          fi
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "not a v<semver> tag: $tag"
             exit 1
           fi
+          # the archive carries the tag in its name, so a tag that disagrees with
+          # the crate version would publish a binary whose --version says otherwise
+          version=$(git show "$tag:Cargo.toml" | sed -n 's/^version = "\(.*\)"/\1/p' | head -1)
+          if [ "v$version" != "$tag" ]; then
+            echo "tag $tag is not the version v$version in Cargo.toml"
+            exit 1
+          fi
+          echo "releasing $tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Open the release
+        if: ${{ !inputs.dryrun }}
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.pick.outputs.tag }}
         run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
-            gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes
+          gh release view "$TAG" >/dev/null 2>&1 ||
+            gh release create "$TAG" --title "$TAG" --generate-notes
 
   binaries:
-    needs: release
+    needs: check
     strategy:
       fail-fast: false
       matrix:
@@ -53,7 +96,10 @@ jobs:
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     steps:
+      # the tag, not the branch the button was pressed on
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.check.outputs.tag }}
 
       - run: rustup show
 
@@ -70,8 +116,10 @@ jobs:
       # opens a `.tar.gz` without extra software.
       - name: Pack
         shell: bash
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
         run: |
-          name="lazytodo-$GITHUB_REF_NAME-${{ matrix.target }}"
+          name="lazytodo-${TAG}-${{ matrix.target }}"
           exe=""
           case "${{ matrix.target }}" in *windows*) exe=".exe" ;; esac
           mkdir -p "dist/$name"
@@ -88,7 +136,9 @@ jobs:
           fi
 
       - name: Upload
+        if: ${{ !inputs.dryrun }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$GITHUB_REF_NAME" dist/*.tar.gz dist/*.sha256 --clobber
+          TAG: ${{ needs.check.outputs.tag }}
+        run: gh release upload "$TAG" dist/*.tar.gz dist/*.sha256 --clobber
