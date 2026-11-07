@@ -5,12 +5,15 @@
 //! `wait:` can poll for text instead of sleeping, and `screen:` says what the
 //! finished screen must show. See `use-cases/README.md`.
 //!
-//! Windows is left out for now: under a ConPTY the child either dies at startup
+//! Windows is left out for now: under a `ConPTY` the child either dies at startup
 //! (`STATUS_DLL_INIT_FAILED`, 0xC0000142) or draws nothing the parser can read, so
 //! every case reports an empty screen. The binary itself starts on Windows —
 //! `tui/tests/tui.rs` runs it — so what is missing is the harness, not the program.
 //! `TODOs.md` carries the follow-up.
-#![cfg(unix)]
+
+// The cases below are unix-only for now. A `harness = false` target still needs a
+// `main` where the harness is compiled out, and the helpers it used read as dead code.
+#![cfg_attr(not(unix), allow(dead_code))]
 
 use std::error::Error;
 use std::fs;
@@ -27,9 +30,13 @@ use vt100::Parser;
 // one root, because a case may live in `core/` or in `tui/`: the pattern is what
 // decides which interface it runs on, so a folder with no `tui.txt` is simply not
 // collected
+#[cfg(unix)]
 datatest_stable::harness! {
     { test = run, root = concat!(env!("CARGO_MANIFEST_DIR"), "/../use-cases"), pattern = r"tui\.txt$" },
 }
+
+#[cfg(not(unix))]
+fn main() {}
 
 const ROWS: u16 = 24;
 const COLS: u16 = 80;
