@@ -7,5 +7,5 @@
 - [ ] (A) the pty screen cases are unix-only: under ConPTY the child dies at startup
       (STATUS_DLL_INIT_FAILED, 0xC0000142) or draws nothing, so the TUI on Windows is
       unproven by the screen suite and has only been seen to start
-- [ ] (B) add a release pipeline
+- [x] (B) add a release pipeline
 - [ ] (C) add release docs
