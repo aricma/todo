@@ -20,7 +20,9 @@ permissions:
   contents: write
 
 env:
+  # The package is the folder and the tag namespace; the binary is what the archives hold.
   PACKAGE: tui
+  BINARY: lazytodo
 
 jobs:
   prepare:
@@ -91,6 +93,18 @@ jobs:
             exit 1
           fi
           echo "$PACKAGE/Cargo.toml at $SHA declares $declared, which is the version being released"
+
+      - name: Check the binary name
+        shell: bash
+        env:
+          SHA: ${{ steps.commit.outputs.sha }}
+        run: |
+          built=$(git show "$SHA:$PACKAGE/Cargo.toml" | sed -n 's/^name = "\(.*\)"/\1/p' | head -1)
+          if [ "$built" != "$BINARY" ]; then
+            echo "$PACKAGE/Cargo.toml at $SHA builds $built, but the pipeline names its archives $BINARY"
+            exit 1
+          fi
+          echo "$PACKAGE builds $built, which is the name every archive carries"
 
       - name: Check the version in the changelog
         shell: bash
@@ -205,10 +219,10 @@ jobs:
       - name: Pack
         shell: bash
         env:
-          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
           TARGET: ${{ matrix.target }}
         run: |
-          name="${TAG}-${TARGET}"
+          name="${BINARY}-v${VERSION}-${TARGET}"
           exe=""
           if [[ "$TARGET" == *windows* ]]; then
             exe=".exe"
@@ -243,7 +257,7 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           cd dist
-          file="lazytodo_${VERSION}_checksums.txt"
+          file="${BINARY}_${VERSION}_checksums.txt"
           {
             echo "# sha256 of every archive in the $VERSION release, one line each."
             echo "# Check the ones you downloaded, in the folder that holds them:"
