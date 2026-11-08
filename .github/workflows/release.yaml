@@ -160,7 +160,8 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
 
-      - run: rustup show
+      - name: Install the pinned toolchain
+        run: rustup show
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -191,13 +192,15 @@ jobs:
           mkdir -p /tmp/nothing
           cp "target/$TARGET/release/lazytodo" /tmp/nothing/
           printf 'FROM scratch\nCOPY lazytodo /lazytodo\n' > /tmp/nothing/Dockerfile
-          echo "An image from scratch holds nothing but this file, so this is its whole Dockerfile:"
+          echo "---------- the entire image is this Dockerfile ----------"
           cat /tmp/nothing/Dockerfile
+          echo "-------------------------------------------------------"
           docker build -q -t lazytodo-nothing /tmp/nothing
-          echo "Running the binary inside it: with no libc, no shell and no files, a missing"
-          echo "dependency has nowhere to hide and this run fails:"
+          echo "------------ and this is it running in it --------------"
           docker run --rm lazytodo-nothing /lazytodo --version
-          echo "It answered with its version, so the $TARGET binary needs nothing from the system it lands on."
+          echo "-------------------------------------------------------"
+          echo "Nothing was there to find: the $TARGET binary needs no libc,"
+          echo "no shell and no files from the system it lands on."
 
       - name: Pack
         shell: bash
@@ -223,23 +226,11 @@ jobs:
           path: dist/*.tar.gz
           if-no-files-found: error
 
-  # The only job that writes, so one approval covers the tag, the release and the assets.
-  publish:
-    needs: [prepare, quality, binaries]
-    if: ${{ !inputs.dryrun }}
+  # Everything publish needs is an artifact by the time it runs.
+  checksums:
+    needs: [prepare, binaries]
     runs-on: ubuntu-latest
-    environment: release
     steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
-
-      # After the checkout, which cleans untracked files out of the workspace.
-      - uses: actions/download-artifact@v8
-        with:
-          name: changelog
-
       - uses: actions/download-artifact@v8
         with:
           pattern: binaries-*
@@ -262,6 +253,43 @@ jobs:
           sha256sum ./*.tar.gz | sed 's|  \./|  |' >> "$file"
           echo "wrote $file, and this is all of it:"
           cat "$file"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: checksums
+          path: dist/*_checksums.txt
+          if-no-files-found: error
+
+  # The only job that writes, so one approval covers the tag, the release and the assets.
+  publish:
+    needs: [prepare, quality, binaries, checksums]
+    if: ${{ !inputs.dryrun }}
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+
+      # After the checkout, which cleans untracked files out of the workspace.
+      - name: The release notes
+        uses: actions/download-artifact@v8
+        with:
+          name: changelog
+
+      - name: The archive from each target
+        uses: actions/download-artifact@v8
+        with:
+          pattern: binaries-*
+          merge-multiple: true
+          path: dist
+
+      - name: The checksums
+        uses: actions/download-artifact@v8
+        with:
+          name: checksums
+          path: dist
 
       - name: Tag the commit, when the tag was new
         if: ${{ needs.prepare.outputs.tagged == 'false' }}
