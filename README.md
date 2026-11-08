@@ -35,8 +35,8 @@ want. We do not touch your `PATH`.
 
 ```sh
 curl -fsSL https://aricma.app/install.sh | sh -s -- --bin lazytodo
-curl -fsSL https://aricma.app/install.sh | sh -s -- --bin lazytodo --version 0.1.0
-curl -fsSL https://aricma.app/install.sh | sh -s -- --bin lazytodo --version 0.1.0 --install-dir $HOME/stuff-I-added-to-the-PATH
+curl -fsSL https://aricma.app/install.sh | sh -s -- --bin lazytodo --version 0.1.1
+curl -fsSL https://aricma.app/install.sh | sh -s -- --bin lazytodo --version 0.1.1 --install-dir $HOME/stuff-I-added-to-the-PATH
 ```
 
 The middle line pins a release instead of taking the latest, and the last one says where

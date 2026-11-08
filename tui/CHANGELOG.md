@@ -7,11 +7,13 @@ The newest section is the version a release is cut from, so a release adds one a
 top. There is no Unreleased section: the pipeline refuses to release a version that is
 not the newest section here or in `tui/Cargo.toml`.
 
-## 0.1.0
+## 0.1.1
 
-The first release of `lazytodo`: a todo client as a terminal UI, inspired by `lazygit`,
-reading the todos in your markdown files and in the comments inside your source. We are
-still pre-1.0 but we will add features and fix bugs as they come in.
+The first release of `lazytodo` anyone can get: a todo client as a terminal UI, inspired
+by `lazygit`, reading the todos in your markdown files and in the comments inside your
+source. The number is 0.1.1 because 0.1.0 was published and pulled back again; the
+program itself is unchanged. We are still pre-1.0 but we will add features and fix bugs
+as they come in.
 
 Start with the [README](https://github.com/aricma/todo/blob/main/README.md) for what it
 does and how to install it, then the
