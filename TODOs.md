@@ -2,6 +2,8 @@
 
 
 - [ ] (B) we need to refine the README
+- [ ] (B) add a achore/grant pipeline so that we do not use anything that our license does not allow for, we want to stay open source and do not violate any other closed licesnes
+- [ ] (C) add a gitleaks pipeline that uses a git leaks template that we can run one the last commit or oif no commit is given runs on the entire history and flags all secrets we might expose, we run the step for the current commit in ci and we prepare the pipeline as a manual trigger that can be run manually if needed
 - [x] (A) need to fix the CI
 - [x] (B) need to add windows to the CI envs
 - [ ] (A) the pty screen cases are unix-only: under ConPTY the child dies at startup
