@@ -301,16 +301,18 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.prepare.outputs.tag }}
           SHA: ${{ needs.prepare.outputs.sha }}
+          VERSION: ${{ needs.prepare.outputs.version }}
           DISPATCHED_BY: ${{ github.actor }}
         run: |
           set -- dist/*
+          title="$BINARY v$VERSION"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --notes-file notes.md
+            gh release edit "$TAG" --title "$title" --notes-file notes.md
             gh release upload "$TAG" dist/* --clobber
-            echo "updated the existing release $TAG with $# files, dispatched by $DISPATCHED_BY"
+            echo "updated the existing release $TAG, titled $title, with $# files, dispatched by $DISPATCHED_BY"
           else
             # The tag is made by this call, not by a push: GITHUB_TOKEN cannot push a
             # commit that touches .github/workflows, and a release often does.
-            gh release create "$TAG" --title "$TAG" --target "$SHA" --notes-file notes.md dist/*
-            echo "opened $TAG on $SHA with its notes and $# files, dispatched by $DISPATCHED_BY"
+            gh release create "$TAG" --title "$title" --target "$SHA" --notes-file notes.md dist/*
+            echo "opened $TAG, titled $title, on $SHA with its notes and $# files, dispatched by $DISPATCHED_BY"
           fi
