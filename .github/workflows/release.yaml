@@ -170,7 +170,13 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
-        run: file "target/$TARGET/release/lazytodo" | grep -q "statically linked"
+        run: |
+          bin="target/$TARGET/release/lazytodo"
+          file "$bin"
+          if readelf -l "$bin" | grep -q INTERP; then
+            echo "the $TARGET binary wants a dynamic loader"
+            exit 1
+          fi
 
       - name: Pack
         shell: bash
