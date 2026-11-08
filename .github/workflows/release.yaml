@@ -150,7 +150,8 @@ jobs:
     with:
       ref: ${{ needs.prepare.outputs.sha }}
 
-  binaries:
+  # One archive per target, each named after the machine that can run it.
+  archives:
     needs: [prepare, quality]
     strategy:
       fail-fast: false
@@ -236,18 +237,19 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: binaries-${{ matrix.target }}
+          name: ${{ matrix.os }}-${{ matrix.target }}
           path: dist/*.tar.gz
           if-no-files-found: error
 
   # Everything publish needs is an artifact by the time it runs.
   checksums:
-    needs: [prepare, binaries]
+    needs: [prepare, archives]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v8
         with:
-          pattern: binaries-*
+          # Every archive is named <os>-<target>, and nothing else here has a dash.
+          pattern: "*-*"
           merge-multiple: true
           path: dist
 
@@ -276,7 +278,7 @@ jobs:
 
   # The only job that writes, so one approval covers the tag, the release and the assets.
   publish:
-    needs: [prepare, quality, binaries, checksums]
+    needs: [prepare, quality, archives, checksums]
     if: ${{ !inputs.dryrun }}
     runs-on: ubuntu-latest
     environment: release
@@ -295,7 +297,7 @@ jobs:
       - name: The archive from each target
         uses: actions/download-artifact@v8
         with:
-          pattern: binaries-*
+          pattern: "*-*"
           merge-multiple: true
           path: dist
 
@@ -317,7 +319,7 @@ jobs:
           git push origin "refs/tags/$TAG"
           echo "created tag $TAG on $SHA and pushed it"
 
-      - name: Release the notes and the binaries
+      - name: Release the notes and the archives
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.prepare.outputs.tag }}
