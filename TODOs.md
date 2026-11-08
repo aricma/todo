@@ -23,9 +23,13 @@
 - [ ] add a PR comment for every PR we check if changelog needs to be written during CI
 - [ ] add CI step to check basic release pipeline interface like files paths references etc.
 - [ ] add install.sh for tui
-- [ ] release 0.1.0 for tui on cargo + binaries on github — the binaries half is built;
-      cargo is blocked before any pipeline can help: `cargo package` refuses both crates,
-      `lazytodo` because `aricma-todo-lib` is a path dependency with no `version`, and
-      `aricma-todo-lib` because `ops-lib` is a git dependency with no `version`. Needs
-      `ops-lib` on crates.io (or vendored), a `version` on both dependencies, a registry
-      token, and the publish order `ops-lib` → `lib` → `tui`
+- [ ] release 0.1.0 for tui on cargo + binaries on github — the binaries half is done and
+      shipped by hand once; cargo is blocked before any pipeline can help. A
+      `cargo publish --dry-run` step was tried in the release pipeline and removed again,
+      because it fails at the same place CI and a laptop both do: `lazytodo` because
+      `aricma-todo-lib` is a path dependency with no `version`, and `aricma-todo-lib`
+      because `ops-lib` is a git dependency with no `version`. Needs a decision on
+      whether `ops-lib` is a public crate at all, then `ops-lib` on crates.io, a `version`
+      beside both dependencies, publishing in order `ops-lib` → `lib` → `tui`, and a
+      credential: either a `CARGO_REGISTRY_TOKEN` secret or crates.io trusted publishing
+      through OIDC, which needs no secret
