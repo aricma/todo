@@ -1,14 +1,11 @@
 # lazytodo
 
-A todo client as a terminal UI, inspired by `lazygit` for its numbered panels and
-unmodified single-letter actions, and by
-[OPS](https://github.com/aricma/open-productivity-standard) for the document it copies a
-todo into. It reads the todos a repository keeps, in its markdown files and in the
-`TODO:` comments inside its source, and works through them one key at a time.
+A todo client as a terminal UI, inspired by `lazygit` and [OPS](https://github.com/aricma/open-productivity-standard).
+It reads the todos a repository keeps, in its markdown files and in source code comments.
 
 ```sh
-lazytodo .           # the TUI for the current directory
-lazytodo path/to    # ... or this one
+lazytodo .                   # the TUI for the current directory
+lazytodo path/to/TODOs.md    # ... or this one
 ```
 
 ## Where to read
@@ -21,6 +18,3 @@ lazytodo path/to    # ... or this one
 - [docs/glossary.md](./docs/glossary.md) — the words the screen uses, and what each
   one means. An RFC uses those names or it is wrong.
 - [CHANGELOG.md](./CHANGELOG.md) — what each release changed.
-
-How to install it, and what the repository around it is for, is in the repository's
-README, one level up.
