@@ -191,7 +191,7 @@ jobs:
           fi
           mkdir -p "dist/$name"
           cp "target/${TARGET}/release/lazytodo$exe" "dist/$name/"
-          cp README.md LICENSE "dist/$name/"
+          cp "$PACKAGE/README.md" LICENSE "dist/$name/"
           tar -czf "dist/$name.tar.gz" -C dist "$name"
           rm -rf "dist/$name"
           cd dist
