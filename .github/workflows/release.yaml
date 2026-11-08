@@ -224,7 +224,8 @@ jobs:
           fi
           mkdir -p "dist/$name"
           cp "target/${TARGET}/release/lazytodo$exe" "dist/$name/"
-          cp "$PACKAGE/README.md" LICENSE "dist/$name/"
+          cp "$PACKAGE/README.md" "$PACKAGE/CHANGELOG.md" LICENSE "dist/$name/"
+          cp -R "$PACKAGE/docs" "dist/$name/docs"
           tar -czf "dist/$name.tar.gz" -C dist "$name"
           rm -rf "dist/$name"
           echo "packed dist/$name.tar.gz, $(wc -c < "dist/$name.tar.gz" | tr -d ' ') bytes"
