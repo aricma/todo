@@ -69,3 +69,5 @@ the record of how each one was decided.)
 
 - [ ] (D) a block comment that spans lines: `/* … */` and `<!-- … -->` are read on the line that opens them and nowhere else, so `/*\n   FIXME: the retry is wrong\n*/` is not a todo at all, and a two-line `TODO:` gets its first line only. The work is not the lexer — `doc::comment` already returns a `Comment { line, at }` and would grow an `end` — it is the write model: a todo is addressed by one line, so `edit`, `inverse`/undo, `delete` and copy-to-JSON would all have to splice a range. Decide first whether a multi-line todo must be *editable* or only *visible*: visible is a `Task` with an `end_line` and a read-only body, editable is a range through the whole write layer. RFC-020 rule 5 names it; RFC-022 is the reserved number
 - [ ] (D) we need to add hints for todos to be formatted correctly and the files to be formatted correctly and auto fix functions so the user can just accept them
+- [ ] in empty dirs we fail even though we could just open a default TODOs.md
+- [ ] in dirs without TODOs.md files we fail even though we could look for todo comments
