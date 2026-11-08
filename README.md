@@ -1,20 +1,12 @@
 # aricma-todo
 
-A todo list that lives in markdown — plus the two programs that read it: one for
-pipelines, one for people.
+The monorepo for `aricma-todo`: a todo list that lives in markdown, and the programs
+that read it. One of them is finished, and this page is about that one — `lazytodo`,
+the terminal client. Two more are in the tree and are not done: `lib/`, the rules the
+programs share, and `cli/`, the pipeline client. Neither is released, and nothing here
+documents them yet.
 
-| part | what it is | how you run it |
-| --- | --- | --- |
-| `lib/` | the markdown todo rules: parse, edit, check, format, OPS export | a dependency |
-| `cli/` | `aricma-todo` — check, format, export, import; no screen, no `ratatui` | `cargo install --path cli` |
-| `tui/` | `lazytodo` — the todo client, a terminal UI for reading and editing by hand | `cargo install --path tui` |
-| `testkit/` | what the suites share: run a binary, read what it said, drive a use case | a dev-dependency |
-
-Everything it depends on is public — the crates, plus `ops-lib` from a public git
-repository — so a clone builds with `cargo test` and no credentials. The toolchain is
-pinned in `rust-toolchain.toml`, which `rustup` reads for you.
-
-## The todo client
+## lazytodo
 
 ![lazytodo open on a repository: panels down the left, the file on the right, keys
 across the bottom](./screenshot.png)
@@ -28,6 +20,31 @@ What it is for is maintenance: a monorepo or a large repository collects todo li
 nobody reads, because reading them costs a `grep` and rewriting one costs an editor and
 a jump. Here the work is one key away from the cursor.
 
+### Install
+
+```sh
+curl -fsSL https://aricma.app/install.sh | sh -s -- --bin lazytodo
+```
+
+The script works out your platform, verifies the checksum of what it downloaded, and
+puts `lazytodo` in `~/.local/bin`. `--version 0.1.0` pins a release instead of taking
+the latest, and `--install-dir` puts it somewhere else:
+
+```sh
+curl -fsSL https://aricma.app/install.sh | sh -s -- --bin lazytodo --version 0.1.0
+```
+
+The release page carries the same archives, one per platform, each with a single
+checksums file, if you would rather do it by hand. `cargo install --path tui` builds it
+from a clone.
+
+### Use
+
+```sh
+lazytodo .                   # the TUI for the current directory
+lazytodo path/to/TODOs.md    # ... or this one
+```
+
 - Numbered panels: `0`–`3` reach the one you want, and a file's row says how much of
   it is done (`5/15`) and how many tags and people it mentions.
 - Priorities `A`–`D`, which are also an instruction you can hand an agent: the `A`s
@@ -36,33 +53,37 @@ a jump. Here the work is one key away from the cursor.
 - Search across every todo, and `c` to copy whatever the cursor is on — a todo, a
   path, a heading — with a todo leaving as an OPS document.
 
-A release carries one archive per target, each holding the binary, `README.md`,
-`CHANGELOG.md`, `LICENSE` and the docs, with a single checksums file beside them:
+### Read
 
-```
-lazytodo-v0.1.0-aarch64-apple-darwin.tar.gz
-lazytodo-v0.1.0-x86_64-unknown-linux-musl.tar.gz
-```
+- [tui/README.md](./tui/README.md) — the index: the manual, the RFCs, the glossary,
+  the changelog.
+- [tui/docs/manual.md](./tui/docs/manual.md) — the manual: the line grammar, the frame,
+  the keys, search, limits, messages, history, OPS.
+- [tui/docs/rfc/](./tui/docs/rfc/README.md) — one behaviour per RFC, with an index: what
+  it does, why that and not the alternative, and what it costs.
 
-The Linux archives are statically linked, so they start on any distribution, and the
-checksums file lists every archive of its release. `cargo install --path tui` builds it
-from source instead.
+If something is wrong or missing, open an issue
+[here](https://github.com/aricma/todo/issues).
 
-## Reading
+## What else is in the tree
 
-- [tui/README.md](./tui/README.md) — the todo client's index: the manual, the RFCs,
-  the glossary, its changelog.
-- [tui/docs/manual.md](./tui/docs/manual.md) — the todo client's manual: the line
-  grammar, the keys, the frame, the limits, the history.
-- [tui/docs/rfc/](./tui/docs/rfc/README.md) — its RFCs, one per behaviour, with an
-  index, and the [glossary](./tui/docs/glossary.md) of the words they use.
-- [use-cases/](./use-cases/README.md) — the use cases as data: `core/` is the
-  document's behaviour on any interface, `cli/` and `tui/` are what only that
-  interface can be asked. Each interface declares a driver, and the driver is what
-  makes it a test.
+| part | what it is | state |
+| --- | --- | --- |
+| `lib/` | the markdown todo rules: parse, edit, check, format, OPS export | the core `lazytodo` is drawn over, not released |
+| `cli/` | `aricma-todo` — check, format, export, import; no screen | written, not released |
+| `testkit/` | what the suites share: run a binary, read what it said, drive a use case | a dev-dependency |
+| `use-cases/` | the use cases as data, one folder per case | how the suites are driven |
 
-`mask` actions are in [maskfile.md](./maskfile.md); every one of them is a plain
-`cargo` command you can run without `mask`.
+A clone builds and tests with `cargo test`; the toolchain is pinned in
+`rust-toolchain.toml`, and `mask` actions are in [maskfile.md](./maskfile.md).
+
+## Support
+
+If this saves you some time, there are two ways to say so:
+
+<a href="https://www.buymeacoffee.com/aricma"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="217" height="60"></a>
+
+[![Support me on Ko-fi](https://storage.ko-fi.com/cdn/kofi2.png?v=3)](https://ko-fi.com/N2N426RWKU)
 
 ## License
 
