@@ -37,6 +37,7 @@ jobs:
 
       - name: Resolve the tag and its commit
         id: pick
+        shell: bash
         env:
           GIVEN: ${{ inputs.tag }}
           BRANCH: ${{ github.event.repository.default_branch }}
@@ -48,12 +49,11 @@ jobs:
           fi
           prefix="$PACKAGE-v"
           version=${tag#"$prefix"}
+          if [[ "$tag" == cli-* || "$tag" == lib-* ]]; then
+            echo "only $PACKAGE is released for now: $tag belongs to another package"
+            exit 1
+          fi
           if [ "$version" = "$tag" ]; then
-            case "$tag" in
-              cli-*|lib-*)
-                echo "only $PACKAGE is released for now: $tag belongs to another package"
-                exit 1 ;;
-            esac
             echo "tag $tag is not a $PACKAGE tag: expected ${prefix}<version>"
             exit 1
           fi
@@ -187,12 +187,15 @@ jobs:
         shell: bash
         env:
           TAG: ${{ needs.resolve.outputs.tag }}
+          TARGET: ${{ matrix.target }}
         run: |
-          name="${TAG}-${{ matrix.target }}"
+          name="${TAG}-${TARGET}"
           exe=""
-          case "${{ matrix.target }}" in *windows*) exe=".exe" ;; esac
+          if [[ "$TARGET" == *windows* ]]; then
+            exe=".exe"
+          fi
           mkdir -p "dist/$name"
-          cp "target/${{ matrix.target }}/release/lazytodo$exe" "dist/$name/"
+          cp "target/${TARGET}/release/lazytodo$exe" "dist/$name/"
           cp README.md LICENSE "dist/$name/"
           tar -czf "dist/$name.tar.gz" -C dist "$name"
           rm -rf "dist/$name"

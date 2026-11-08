@@ -47,6 +47,8 @@ jobs:
         shell: bash
         run: |
           bin="target/release/lazytodo"
-          case "$RUNNER_OS" in Windows) bin="$bin.exe" ;; esac
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            bin="$bin.exe"
+          fi
           "$bin" --version
           "$bin" --help >/dev/null
