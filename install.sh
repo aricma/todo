@@ -184,9 +184,21 @@ esac
 target="${arch_part}-${os_part}"
 
 if [ "$version" = "latest" ]; then
-  latest=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest") ||
-    fail "cannot ask $repo what its latest release is"
-  tag=$(printf '%s\n' "$latest" |
+  answered=$(curl -sSL -w '\n%{http_code}' \
+    "https://api.github.com/repos/$repo/releases/latest") ||
+    fail "cannot reach api.github.com to ask $repo for its latest release"
+  code=$(printf '%s\n' "$answered" | tail -1)
+  case "$code" in
+    200) ;;
+    404)
+      fail "$repo has no published release yet, or is not public: pass --version <version>"
+      ;;
+    403)
+      fail "api.github.com refused this address (rate limit?): pass --version <version>"
+      ;;
+    *) fail "api.github.com answered $code for $repo" ;;
+  esac
+  tag=$(printf '%s\n' "$answered" |
     sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1)
   [ -n "$tag" ] || fail "no published release at $repo"
   case "$tag" in
