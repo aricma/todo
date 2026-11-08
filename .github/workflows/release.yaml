@@ -165,18 +165,17 @@ jobs:
 
       - run: cargo build --release --locked --package lazytodo --target ${{ matrix.target }}
 
-      - name: Check it needs nothing from the system
+      - name: Run it with nothing else around it
         if: ${{ contains(matrix.target, 'musl') }}
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
         run: |
-          bin="target/$TARGET/release/lazytodo"
-          file "$bin"
-          if readelf -l "$bin" | grep -q INTERP; then
-            echo "the $TARGET binary wants a dynamic loader"
-            exit 1
-          fi
+          mkdir -p /tmp/nothing
+          cp "target/$TARGET/release/lazytodo" /tmp/nothing/
+          printf 'FROM scratch\nCOPY lazytodo /lazytodo\n' > /tmp/nothing/Dockerfile
+          docker build -q -t lazytodo-nothing /tmp/nothing
+          docker run --rm lazytodo-nothing --version
 
       - name: Pack
         shell: bash
