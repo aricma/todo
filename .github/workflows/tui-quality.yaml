@@ -28,20 +28,33 @@ jobs:
         run: |
           channel=$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)
           rustup toolchain install "$channel" --component rustfmt,clippy
+          echo "toolchain $channel with rustfmt and clippy is ready"
 
       - uses: Swatinem/rust-cache@v2
 
       - name: Format
-        run: cargo fmt --check
+        shell: bash
+        run: |
+          cargo fmt --check
+          echo "format: every file is already formatted"
 
       - name: Lint
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        shell: bash
+        run: |
+          cargo clippy --workspace --all-targets -- -D warnings
+          echo "lint: no warnings, with pedantic denied"
 
       - name: Test
-        run: cargo test --workspace --all-targets
+        shell: bash
+        run: |
+          cargo test --workspace --all-targets
+          echo "test: every suite passed"
 
       - name: Build
-        run: cargo build --release --locked --package lazytodo
+        shell: bash
+        run: |
+          cargo build --release --locked --package lazytodo
+          echo "build: target/release/lazytodo, from the committed lockfile"
 
       - name: Use
         shell: bash
@@ -52,3 +65,4 @@ jobs:
           fi
           "$bin" --version
           "$bin" --help >/dev/null
+          echo "use: it starts and answers --help"

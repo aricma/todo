@@ -54,6 +54,7 @@ jobs:
             echo "version=$VERSION"
             echo "tag=$PACKAGE-v$VERSION"
           } >> "$GITHUB_OUTPUT"
+          echo "asked for $PACKAGE $VERSION: the tag to release, or to create, is $PACKAGE-v$VERSION"
 
       - name: Find the commit
         id: commit
@@ -65,11 +66,12 @@ jobs:
           if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
             sha=$(git rev-parse "refs/tags/$TAG^{commit}")
             tagged=true
-            echo "$TAG is $sha"
+            echo "tag $TAG already exists and points at $sha: releasing that commit, not the branch"
           else
             sha=$(git rev-parse HEAD)
             tagged=false
-            echo "$TAG does not exist yet: $sha, the tip of $BRANCH"
+            echo "no tag $TAG exists yet. This release will create it on $sha, the tip of $BRANCH,"
+            echo "and $sha is the commit that gets built and released."
           fi
           {
             echo "sha=$sha"
@@ -88,6 +90,7 @@ jobs:
             echo "$SHA is $declared in $PACKAGE/Cargo.toml, not $VERSION"
             exit 1
           fi
+          echo "$PACKAGE/Cargo.toml at $SHA declares $declared, which is the version being released"
 
       - name: Check the version in the changelog
         shell: bash
@@ -100,6 +103,7 @@ jobs:
             echo "the newest section in $PACKAGE/CHANGELOG.md at $SHA is ${latest:-none}, not $VERSION"
             exit 1
           fi
+          echo "$VERSION is the newest section in $PACKAGE/CHANGELOG.md at $SHA, so the notes describe it"
 
       - name: Name the changes
         shell: bash
@@ -118,6 +122,7 @@ jobs:
           fi
           printf '%s\n' "$notes" > notes.md
           cat notes.md >> "$GITHUB_STEP_SUMMARY"
+          echo "notes: $(wc -l < notes.md | tr -d ' ') lines taken from $PACKAGE/CHANGELOG.md"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -155,15 +160,31 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
 
-      - run: rustup show
+      - name: Install the pinned toolchain
+        shell: bash
+        run: |
+          rustup show
+          echo "the toolchain rust-toolchain.toml pins is installed"
 
       - uses: Swatinem/rust-cache@v2
         with:
           key: ${{ matrix.target }}
 
-      - run: rustup target add ${{ matrix.target }}
+      - name: Add the target
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          rustup target add "$TARGET"
+          echo "$TARGET is part of the pinned toolchain"
 
-      - run: cargo build --release --locked --package lazytodo --target ${{ matrix.target }}
+      - name: Build
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+        run: |
+          cargo build --release --locked --package lazytodo --target "$TARGET"
+          echo "built target/$TARGET/release for $TARGET, from the committed lockfile"
 
       - name: Run it with nothing else around it
         if: ${{ contains(matrix.target, 'musl') }}
@@ -175,7 +196,8 @@ jobs:
           cp "target/$TARGET/release/lazytodo" /tmp/nothing/
           printf 'FROM scratch\nCOPY lazytodo /lazytodo\n' > /tmp/nothing/Dockerfile
           docker build -q -t lazytodo-nothing /tmp/nothing
-          docker run --rm lazytodo-nothing --version
+          docker run --rm lazytodo-nothing /lazytodo --version
+          echo "the $TARGET binary starts and answers --version in an image that holds nothing but itself"
 
       - name: Pack
         shell: bash
@@ -199,6 +221,7 @@ jobs:
           else
             shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
           fi
+          echo "packed $name.tar.gz, $(wc -c < "$name.tar.gz" | tr -d ' ') bytes, with its .sha256"
 
       - uses: actions/upload-artifact@v7
         with:
@@ -241,15 +264,19 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "$TAG" "$SHA"
           git push origin "refs/tags/$TAG"
+          echo "created tag $TAG on $SHA and pushed it"
 
       - name: Release the notes and the binaries
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.prepare.outputs.tag }}
         run: |
+          set -- dist/*
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --notes-file notes.md
             gh release upload "$TAG" dist/* --clobber
+            echo "updated the existing release $TAG with $# files"
           else
             gh release create "$TAG" --title "$TAG" --notes-file notes.md dist/*
+            echo "opened $TAG with its notes and $# files"
           fi
