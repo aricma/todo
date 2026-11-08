@@ -42,10 +42,10 @@ jobs:
           BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           tag=$GIVEN
-          case "$tag" in
-            "") echo "no tag given: cannot tell whether to release an existing tag or to create a new one"
-                exit 1 ;;
-          esac
+          if [ -z "$tag" ]; then
+            echo "no tag given: cannot tell whether to release an existing tag or to create a new one"
+            exit 1
+          fi
           prefix="$PACKAGE-v"
           version=${tag#"$prefix"}
           if [ "$version" = "$tag" ]; then
