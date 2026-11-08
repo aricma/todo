@@ -312,14 +312,16 @@ jobs:
         env:
           TAG: ${{ needs.prepare.outputs.tag }}
           SHA: ${{ needs.prepare.outputs.sha }}
-          ACTOR: ${{ github.actor }}
-          ACTOR_ID: ${{ github.actor_id }}
+          DISPATCHED_BY: ${{ github.actor }}
         run: |
-          git config user.name "$ACTOR"
-          git config user.email "$ACTOR_ID+$ACTOR@users.noreply.github.com"
+          # GITHUB_TOKEN authenticates this push, so the tag names the bot it acts for,
+          # not the person who dispatched the run: that is named separately below.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "$TAG" "$SHA"
           git push origin "refs/tags/$TAG"
-          echo "created tag $TAG on $SHA, and pushed it as $ACTOR <$ACTOR_ID+$ACTOR@users.noreply.github.com>"
+          echo "created tag $TAG on $SHA and pushed it as github-actions[bot], which is who GITHUB_TOKEN authenticates as"
+          echo "dispatched by $DISPATCHED_BY"
 
       - name: Release the notes and the archives
         env:
