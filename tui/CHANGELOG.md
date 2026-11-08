@@ -5,7 +5,7 @@ and its own tag (`tui-v<version>`), independent of the other packages here.
 
 ## 0.1.0
 
-The first release. Everything below is new, so nothing here is a fix.
+The first release.
 
 ### Reading
 

@@ -1,13 +1,12 @@
 name: CI
 
+# When the checks run, and nothing else: the checks themselves are the template in
+# `.github/workflows/tui-ci.yaml`, which the release pipeline calls as well.
+#
 # `pull_request` and never `pull_request_target`: the latter runs a fork's code
 # with this repository's secrets in the environment, which is how a token gets
 # stolen. This repository needs no secret at all — every dependency is public —
 # so nothing here reads one, and nothing here should start to.
-#
-# `workflow_call` is how the release pipeline runs these same jobs before it
-# publishes: one definition, so a tag can never be released on a commit that the
-# push pipeline would have refused.
 on:
   workflow_dispatch:
   push:
@@ -16,65 +15,10 @@ on:
   pull_request:
     branches:
       - main
-  workflow_call:
-    inputs:
-      ref:
-        description: The commit to check. Empty means the commit that triggered this.
-        type: string
-        required: false
 
 permissions:
   contents: read
 
-# The caller's commit, unless the caller named one — a release checks out the tag it
-# resolved, which is not the branch its button was pressed on.
-env:
-  REF: ${{ inputs.ref || github.sha }}
-
 jobs:
-  rust:
-    strategy:
-      fail-fast: false
-      matrix:
-        # The three the tool is expected to run on. Windows is here because the
-        # suites walk real temp paths and the screen draws real cells, so a
-        # separator or console difference has to fail here, not on a user's machine.
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ env.REF }}
-
-      # `rustup show` installs the channel and components that rust-toolchain.toml
-      # names. `dtolnay/rust-toolchain@stable` would instead install today's stable,
-      # leaving `cargo fmt` with no component for the pinned toolchain.
-      - name: Install the pinned toolchain
-        run: rustup show
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Check formatting
-        run: cargo fmt --check
-
-      # The workspace denies every pedantic clippy lint, so this is the lint gate.
-      - name: Lint
-        run: cargo clippy --workspace --all-targets -- -D warnings
-
-      # The screen snapshots record the header's path, which masking normalizes back to
-      # `…/<tree>` on every machine, so both runners agree.
-      - name: Test
-        run: cargo test --workspace --all-targets
-
-  # `cargo install --path tui` is how people get the binary, so it has to work
-  # from a clean checkout with nothing on the machine but a toolchain.
-  install:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ env.REF }}
-      - run: rustup show
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo install --path tui --root "$RUNNER_TEMP/install"
-      - run: '"$RUNNER_TEMP/install/bin/lazytodo" --version'
+  tui:
+    uses: ./.github/workflows/tui-ci.yaml

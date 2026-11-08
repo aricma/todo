@@ -132,12 +132,12 @@ jobs:
           path: notes.md
           if-no-files-found: error
 
-  # The same jobs the push pipeline runs, on the commit about to be released. It
-  # comes before the approval, so what is being approved is already known to build,
-  # lint and pass on all three platforms.
+  # The checks from `.github/workflows/tui-ci.yaml`, on the commit about to be
+  # released. They come before the approval, so what is being approved is already
+  # known to format, lint, test, build and run on all three platforms.
   ci:
     needs: resolve
-    uses: ./.github/workflows/ci.yaml
+    uses: ./.github/workflows/tui-ci.yaml
     with:
       ref: ${{ needs.resolve.outputs.sha }}
 
