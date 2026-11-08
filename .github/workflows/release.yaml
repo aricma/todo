@@ -160,11 +160,7 @@ jobs:
         with:
           ref: ${{ needs.prepare.outputs.sha }}
 
-      - name: Install the pinned toolchain
-        shell: bash
-        run: |
-          rustup show
-          echo "the toolchain rust-toolchain.toml pins is installed"
+      - run: rustup show
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -186,7 +182,7 @@ jobs:
           cargo build --release --locked --package lazytodo --target "$TARGET"
           echo "built target/$TARGET/release for $TARGET, from the committed lockfile"
 
-      - name: Run it with nothing else around it
+      - name: Smoke test in a scratch image
         if: ${{ contains(matrix.target, 'musl') }}
         shell: bash
         env:
@@ -195,9 +191,13 @@ jobs:
           mkdir -p /tmp/nothing
           cp "target/$TARGET/release/lazytodo" /tmp/nothing/
           printf 'FROM scratch\nCOPY lazytodo /lazytodo\n' > /tmp/nothing/Dockerfile
+          echo "An image from scratch holds nothing but this file, so this is its whole Dockerfile:"
+          cat /tmp/nothing/Dockerfile
           docker build -q -t lazytodo-nothing /tmp/nothing
+          echo "Running the binary inside it: with no libc, no shell and no files, a missing"
+          echo "dependency has nowhere to hide and this run fails:"
           docker run --rm lazytodo-nothing /lazytodo --version
-          echo "the $TARGET binary starts and answers --version in an image that holds nothing but itself"
+          echo "It answered with its version, so the $TARGET binary needs nothing from the system it lands on."
 
       - name: Pack
         shell: bash
@@ -215,20 +215,12 @@ jobs:
           cp "$PACKAGE/README.md" LICENSE "dist/$name/"
           tar -czf "dist/$name.tar.gz" -C dist "$name"
           rm -rf "dist/$name"
-          cd dist
-          if command -v sha256sum >/dev/null; then
-            sha256sum "$name.tar.gz" > "$name.tar.gz.sha256"
-          else
-            shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
-          fi
-          echo "packed $name.tar.gz, $(wc -c < "$name.tar.gz" | tr -d ' ') bytes, with its .sha256"
+          echo "packed dist/$name.tar.gz, $(wc -c < "dist/$name.tar.gz" | tr -d ' ') bytes"
 
       - uses: actions/upload-artifact@v7
         with:
           name: binaries-${{ matrix.target }}
-          path: |
-            dist/*.tar.gz
-            dist/*.sha256
+          path: dist/*.tar.gz
           if-no-files-found: error
 
   # The only job that writes, so one approval covers the tag, the release and the assets.
@@ -253,6 +245,23 @@ jobs:
           pattern: binaries-*
           merge-multiple: true
           path: dist
+
+      - name: One checksums file for every archive
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          cd dist
+          file="lazytodo_${VERSION}_checksums.txt"
+          {
+            echo "# sha256 of every archive in the $VERSION release, one line each."
+            echo "# Check the ones you downloaded, in the folder that holds them:"
+            echo "#   sha256sum -c $file --ignore-missing"
+            echo "# On macOS the command is shasum -a 256 -c, with the same arguments."
+          } > "$file"
+          sha256sum ./*.tar.gz | sed 's|  \./|  |' >> "$file"
+          echo "wrote $file, and this is all of it:"
+          cat "$file"
 
       - name: Tag the commit, when the tag was new
         if: ${{ needs.prepare.outputs.tagged == 'false' }}
