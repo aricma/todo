@@ -26,7 +26,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
@@ -157,7 +157,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-24.04
             target: x86_64-unknown-linux-musl
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
@@ -244,7 +244,7 @@ jobs:
   # Everything publish needs is an artifact by the time it runs.
   checksums:
     needs: [prepare, archives]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/download-artifact@v8
         with:
@@ -280,7 +280,7 @@ jobs:
   publish:
     needs: [prepare, quality, archives, checksums]
     if: ${{ !inputs.dryrun }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: release
     steps:
       - uses: actions/checkout@v7
