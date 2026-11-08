@@ -15,8 +15,16 @@
 - [ ] (C) add release docs
 - [ ] (B) an install.sh per package: `cli` and `tui` release a binary each, and a
       person still has to unpack a `.tar.gz` by hand
-- [ ] (C) the `v0.1.0` tag predates per-package tags; it is the only tag that does
-      not name a package, so it cannot be released by the pipeline as it stands
+- [x] (C) the `v0.1.0` tag predates per-package tags; it is the only tag that does
+      not name a package, so it cannot be released by the pipeline as it stands — gone,
+      the remote carries no tags at all now
 - [ ] add git-cliff to fromat --check the changelog in CI
 - [ ] add a PR comment for every PR we check if changelog needs to be written during CI
 - [ ] add CI step to check basic release pipeline interface like files paths references etc.
+- [ ] add install.sh for tui
+- [ ] release 0.1.0 for tui on cargo + binaries on github — the binaries half is built;
+      cargo is blocked before any pipeline can help: `cargo package` refuses both crates,
+      `lazytodo` because `aricma-todo-lib` is a path dependency with no `version`, and
+      `aricma-todo-lib` because `ops-lib` is a git dependency with no `version`. Needs
+      `ops-lib` on crates.io (or vendored), a `version` on both dependencies, a registry
+      token, and the publish order `ops-lib` → `lib` → `tui`

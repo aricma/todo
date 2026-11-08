@@ -125,67 +125,30 @@ jobs:
           path: notes.md
           if-no-files-found: error
 
-  ci:
+  quality:
     needs: prepare
-    uses: ./.github/workflows/tui-ci.yaml
+    uses: ./.github/workflows/tui-quality.yaml
     with:
       ref: ${{ needs.prepare.outputs.sha }}
 
-  # Its own job so the approval holds everything that writes, and only that.
-  publish:
-    needs: [prepare, ci]
-    if: ${{ !inputs.dryrun }}
-    runs-on: ubuntu-latest
-    environment: release
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
-
-      # After the checkout, which cleans untracked files out of the workspace.
-      - uses: actions/download-artifact@v8
-        with:
-          name: changelog
-
-      - name: Tag the commit, when the tag was new
-        if: ${{ needs.prepare.outputs.tagged == 'false' }}
-        env:
-          TAG: ${{ needs.prepare.outputs.tag }}
-          SHA: ${{ needs.prepare.outputs.sha }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" -m "$TAG" "$SHA"
-          git push origin "refs/tags/$TAG"
-
-      - name: Open the release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.prepare.outputs.tag }}
-        run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --notes-file notes.md
-          else
-            gh release create "$TAG" --title "$TAG" --notes-file notes.md
-          fi
-
   binaries:
-    needs: [prepare, ci, publish]
-    # A dry run skips `publish`, and a skip is not a failure.
-    if: ${{ !failure() && !cancelled() }}
+    needs: [prepare, quality]
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          - os: macos-latest
-            target: aarch64-apple-darwin
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
           - os: macos-latest
             target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -225,10 +188,56 @@ jobs:
             shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256"
           fi
 
-      - name: Upload
-        if: ${{ !inputs.dryrun }}
-        shell: bash
+      - uses: actions/upload-artifact@v7
+        with:
+          name: binaries-${{ matrix.target }}
+          path: |
+            dist/*.tar.gz
+            dist/*.sha256
+          if-no-files-found: error
+
+  # The only job that writes, so one approval covers the tag, the release and the assets.
+  publish:
+    needs: [prepare, quality, binaries]
+    if: ${{ !inputs.dryrun }}
+    runs-on: ubuntu-latest
+    environment: release
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+
+      # After the checkout, which cleans untracked files out of the workspace.
+      - uses: actions/download-artifact@v8
+        with:
+          name: changelog
+
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: binaries-*
+          merge-multiple: true
+          path: dist
+
+      - name: Tag the commit, when the tag was new
+        if: ${{ needs.prepare.outputs.tagged == 'false' }}
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          SHA: ${{ needs.prepare.outputs.sha }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG" "$SHA"
+          git push origin "refs/tags/$TAG"
+
+      - name: Release the notes and the binaries
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.prepare.outputs.tag }}
-        run: gh release upload "$TAG" dist/*.tar.gz dist/*.sha256 --clobber
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file notes.md
+            gh release upload "$TAG" dist/* --clobber
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file notes.md dist/*
+          fi

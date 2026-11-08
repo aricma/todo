@@ -14,5 +14,5 @@ permissions:
   contents: read
 
 jobs:
-  tui:
-    uses: ./.github/workflows/tui-ci.yaml
+  quality:
+    uses: ./.github/workflows/tui-quality.yaml

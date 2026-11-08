@@ -1,4 +1,4 @@
-name: TUI CI
+name: TUI quality
 
 on:
   workflow_call:
