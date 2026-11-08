@@ -1,10 +1,19 @@
 # aricma-todo
 
-The monorepo for `aricma-todo`: a todo list that lives in markdown, and the programs
-that read it. One of them is finished, and this page is about that one — `lazytodo`,
-the terminal client. Two more are in the tree and are not done: `lib/`, the rules the
-programs share, and `cli/`, the pipeline client. Neither is released, and nothing here
-documents them yet.
+`aricma-todo` is a set of user interfaces over one todo format: a TUI, a command line,
+standalone apps, a web app — as many shells as it takes to work with your todos
+anywhere, rather than inside an ecosystem that owns them and hands back only the export
+it feels like. The format is
+[OPS](https://github.com/aricma/open-productivity-standard), and it is the point: every
+interface reads and writes the same documents, so a todo can move from one app to
+another, and the data stays yours. An app here is a view over it and a way to transform
+it, nothing more.
+
+This repository starts with the terminal client, `lazytodo`, because it is the one we
+wanted first and the one we use. A web app was begun before it and is still in the
+pipeline, and `lib/` and `cli/` are in the tree, unfinished. What comes next is open.
+
+The rest of this page is about `lazytodo`.
 
 ## lazytodo
 
