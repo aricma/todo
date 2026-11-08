@@ -40,28 +40,26 @@ jobs:
         id: version
         shell: bash
         env:
-          GIVEN: ${{ inputs.version }}
+          VERSION: ${{ inputs.version }}
         run: |
-          version=$GIVEN
-          if [ -z "$version" ]; then
+          if [ -z "$VERSION" ]; then
             echo "no version given: nothing to release"
             exit 1
           fi
-          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "not a version: $version, expected 0.1.0"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "not a version: $VERSION, expected 0.1.0"
             exit 1
           fi
           {
-            echo "version=$version"
-            echo "tag=$PACKAGE-v$version"
+            echo "version=$VERSION"
+            echo "tag=$PACKAGE-v$VERSION"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Find the commit, and check it is this version
+      - name: Find the commit
         id: commit
         shell: bash
         env:
           TAG: ${{ steps.version.outputs.tag }}
-          VERSION: ${{ steps.version.outputs.version }}
           BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
@@ -73,16 +71,35 @@ jobs:
             tagged=false
             echo "$TAG does not exist yet: $sha, the tip of $BRANCH"
           fi
-          declared=$(git show "$sha:$PACKAGE/Cargo.toml" \
-            | sed -n 's/^version = "\(.*\)"/\1/p' | head -1)
-          if [ "$declared" != "$VERSION" ]; then
-            echo "$sha is $declared in $PACKAGE/Cargo.toml, not $VERSION"
-            exit 1
-          fi
           {
             echo "sha=$sha"
             echo "tagged=$tagged"
           } >> "$GITHUB_OUTPUT"
+
+      - name: Check the version in the manifest
+        shell: bash
+        env:
+          SHA: ${{ steps.commit.outputs.sha }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          declared=$(git show "$SHA:$PACKAGE/Cargo.toml" \
+            | sed -n 's/^version = "\(.*\)"/\1/p' | head -1)
+          if [ "$declared" != "$VERSION" ]; then
+            echo "$SHA is $declared in $PACKAGE/Cargo.toml, not $VERSION"
+            exit 1
+          fi
+
+      - name: Check the version in the changelog
+        shell: bash
+        env:
+          SHA: ${{ steps.commit.outputs.sha }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          latest=$(git show "$SHA:$PACKAGE/CHANGELOG.md" | sed -n 's/^## //p' | head -1)
+          if [ "$latest" != "$VERSION" ]; then
+            echo "the newest section in $PACKAGE/CHANGELOG.md at $SHA is ${latest:-none}, not $VERSION"
+            exit 1
+          fi
 
       - name: Name the changes
         shell: bash
@@ -96,7 +113,7 @@ jobs:
             inside { print }
           ')
           if [ -z "$(printf '%s' "$notes" | tr -d '[:space:]')" ]; then
-            echo "no \`## $VERSION\` section in $PACKAGE/CHANGELOG.md at $SHA"
+            echo "no text under \`## $VERSION\` in $PACKAGE/CHANGELOG.md at $SHA"
             exit 1
           fi
           printf '%s\n' "$notes" > notes.md
