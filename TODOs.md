@@ -10,8 +10,9 @@
       (STATUS_DLL_INIT_FAILED, 0xC0000142) or draws nothing, so the TUI on Windows is
       unproven by the screen suite and has only been seen to start
 - [x] (B) add a release pipeline
-- [ ] (B) the pipeline releases `tui` only; `cli` and `lib` have their own versions
-      and changelogs now, but a `cli-*` or `lib-*` tag is refused until they are wired up
+- [ ] (B) the pipeline releases `tui` only, and the input is a bare version, so
+      another package needs its own workflow: `cli` and `lib` have versions and
+      changelogs already, but nothing builds or tags them
 - [ ] (C) add release docs
 - [ ] (B) an install.sh per package: `cli` and `tui` release a binary each, and a
       person still has to unpack a `.tar.gz` by hand

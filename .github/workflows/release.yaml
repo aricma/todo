@@ -1,7 +1,7 @@
 name: Release
 
-# By hand, one `tui` version at a time. A version whose tag already exists is released
-# from that commit; one whose tag does not is tagged on the default branch's tip.
+# By hand, one `lazytodo` version at a time. A version whose tag already exists is
+# released from that commit; one whose tag does not is tagged on the default branch's tip.
 # Everything is written only after the `release` environment is approved, and `dryrun`
 # writes nothing at all.
 on:
@@ -53,9 +53,9 @@ jobs:
           fi
           {
             echo "version=$VERSION"
-            echo "tag=$PACKAGE-v$VERSION"
+            echo "tag=$BINARY-v$VERSION"
           } >> "$GITHUB_OUTPUT"
-          echo "asked for $PACKAGE $VERSION: the tag to release, or to create, is $PACKAGE-v$VERSION"
+          echo "asked for $BINARY $VERSION: the tag to release, or to create, is $BINARY-v$VERSION"
 
       - name: Find the commit
         id: commit
@@ -98,7 +98,7 @@ jobs:
             echo "$PACKAGE/Cargo.toml at $SHA builds $built, but the pipeline names its archives $BINARY"
             exit 1
           fi
-          echo "$PACKAGE builds $built, which is the name every archive carries"
+          echo "$PACKAGE builds $built, which is the name in the tag and on every archive"
 
       - name: Check the version in the changelog
         shell: bash
