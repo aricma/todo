@@ -11,44 +11,62 @@ that is not the newest section here or in `tui/Cargo.toml`.
 
 The first release.
 
-### Reading
+`lazytodo` reads the todos a repository already has — the ones in its markdown files
+and the `TODO:` comments inside its source — and puts them on one screen to be worked
+through. What it is for is maintenance: a monorepo or a large repository collects
+hundreds of todo lines that nobody reads, because reading them costs a `grep` and
+rewriting one costs an editor and a jump. Here the work is one key away from the
+cursor, the way `lazygit` made staging one key away. This client is an homage to it:
+the same numbered panels, the same unmodified single-letter actions, pointed at todo
+lines instead of diffs.
 
-- A folder or a single file: a folder opens every todo file in the tree, a file
-  opens on its own.
-- Todo files by the convention that names them, and todo comments inside source
-  files, from a line comment to a block one.
-- OPS documents, read and written, so a todo can leave the markdown world entirely.
+### Finding the work
+
+- Todo files by the names a repository gives them — `TODOs.md`, `TASKS.md` — and `h`
+  when you want every other `*.md` in the tree as well.
+- `TODO` comments inside source files, so the ones an agent left behind are in the
+  same list as the rest: `TODO`, `FIXME`, `HACK` and `XXX`, per language (RFC-020),
+  with `TODO(@alice):` and `TODO(#home):` naming a person or a tag (RFC-021).
+- The tree is what git does not ignore (RFC-017), and where a limit stops the walk the
+  file is listed and marked rather than quietly left out (RFC-006).
 
 ### The screen
 
-- Two layouts: a files panel beside a todos panel in a folder session, and the file
-  alone when one file is opened.
-- A file panel above a collection panel: every tag and every person gathered across
-  the tree, with the document each one came from.
-- Panels titled with their key, so the number on a border is the key that reaches
-  it.
-- Modals for adding, renaming, moving and searching, one at a time.
-- Search across the tree, with the match count on the title it lands in.
-- Notices in the header, and every answer in the status line rather than a popup.
-- The screen redraws when the file changes underneath, and says so rather than
-  overwriting.
+- Five panels, four numbers: `0`–`3` jump to the panel whose title carries that
+  number. Fixed numbers, not reading order, so a key means the same thing when the
+  layout changes. Panel `0` is the one you work in — the todos, a collection, or the
+  open file (RFC-001).
+- Two lines of keys at the bottom: the ones every panel shares, then the ones of the
+  panel you are in, and only those that would do something (RFC-009).
+- A file row summarises the file rather than listing it: `5/15` done, then how many
+  distinct tags and people it mentions, so a file you have not opened still says what
+  is in it.
 
-### Editing
+### Working through them
 
-- The line grammar shared with `aricma-todo`: the checkbox, the priority letter,
-  tags, people, headings and prose.
-- Checking, unchecking, adding, deleting and moving a todo, with the cursor staying
-  where the eye is.
-- History: the last checks and unchecked boxes, drawn as a graph of what moved, and
-  undone one at a time.
-- Copy and paste of a todo, between files as well as inside one.
-- Making and deleting todo files from the panel, with the name typed where it would
-  appear.
+- Check, uncheck, add, delete, rewrite in place, and move a todo across headings. The
+  row itself is the editor, and the file is written once the edit is finished
+  (RFC-003, RFC-010).
+- Priorities `A`–`D` from the Eisenhower map — which is also an instruction an agent
+  can be given: do the `A`s and `B`s, or only what is assigned to `@kevin`.
+- Collections: every tag and every person as a place to stand, biggest first, so work
+  that piled up implicitly can be walked as if it were a file (RFC-005).
+- Search over every todo, with the cursor landing on the answer it found (RFC-007).
+- `c` copies whatever the cursor is on — a todo's line, a file's path, a heading's
+  text — with no selection mode: move, press, paste into a prompt or a commit message.
+  A todo leaves as an OPS document
+  (<https://github.com/aricma/open-productivity-standard>) and comes back as lines
+  (RFC-014).
 
-### Keeping it honest
+### Considerations
 
-- Bounded walking: the depth, the number of files and the size of a file all stop
-  at a limit that is said out loud, never a quiet truncation.
-- A file too long to read is listed and marked, not opened.
-- The same markdown rules the pipeline uses, so the two clients cannot disagree
-  about what a line means.
+- The app keeps no state: every action is a write. History is the session's own trail
+  (RFC-008), for undoing what you just did — close the app and it is gone, on purpose.
+  There is nothing to save, and nothing to lose.
+- A write touches the todos and nothing else: headings, prose, code fences and the
+  file's own line endings are left as they were.
+- A change made by another program is picked up within a second: the file is re-read,
+  not overwritten.
+- No config file, no network, no account. The repository is the state, and the same
+  rules run in the pipeline client, so the two cannot disagree about what a line
+  means.

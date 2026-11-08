@@ -4,6 +4,12 @@ A small tool over the todo checkboxes in markdown files: it reads them, edits
 them, and does nothing else. Point it at a folder and it finds the files; point
 it at a file and it shows that one.
 
+![lazytodo open on a repository: panels down the left, the file on the right, keys
+across the bottom](../screenshot.png)
+
+The paths and the collections down the left, the open file on the right with its own
+line numbers, and the keys of whatever panel you are in along the bottom.
+
 Two binaries, one set of rules:
 
 | binary | who installs it | what it does |
