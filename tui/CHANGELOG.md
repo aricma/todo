@@ -67,6 +67,5 @@ lines instead of diffs.
   file's own line endings are left as they were.
 - A change made by another program is picked up within a second: the file is re-read,
   not overwritten.
-- No config file, no network, no account. The repository is the state, and the same
-  rules run in the pipeline client, so the two cannot disagree about what a line
-  means.
+- No config file, no network, no account. The repository is the state, and the rules
+  that read a file are the rules that write it back.

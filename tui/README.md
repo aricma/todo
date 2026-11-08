@@ -10,30 +10,17 @@ across the bottom](../screenshot.png)
 The paths and the collections down the left, the open file on the right with its own
 line numbers, and the keys of whatever panel you are in along the bottom.
 
-Two binaries, one set of rules:
-
-| binary | who installs it | what it does |
-| --- | --- | --- |
-| `aricma-todo` | a pipeline, in CI | `check`, `format`, `export`, `import` — no screen, no `ratatui` |
-| `lazytodo` | a person, locally | the TUI, for reading and editing by hand |
-
 ```sh
-cargo install --path cli   # aricma-todo
-cargo install --path tui   # lazytodo — the terminal client of aricma-todo
+cargo install --path tui
 ```
-
-The split is real, not packaging: `cli/` does not depend on `ratatui` or
-`unicode-width`, so installing it for a pipeline pulls nothing it cannot use.
-Both read the same `lib/`, which is where every rule lives.
 
 ```sh
 lazytodo            # the TUI for the current directory
 lazytodo path/to    # ... or this one
-aricma-todo --check .      # report broken todos, exit 1
-aricma-todo --format .     # the two mechanical fixes
 ```
 
-Commands live in [maskfile.md](../maskfile.md); the behaviour of the screen, one
+Every rule about what a todo line is lives in `lib/`, the core this screen is drawn
+over. Commands live in [maskfile.md](../maskfile.md); the behaviour of the screen, one
 decision at a time, is in [docs/rfc/](./docs/rfc/README.md).
 
 ## How the code is layered
@@ -340,7 +327,7 @@ status bar is easy to miss:
 ```
 ╭ delete file ─────────────────────────╮
 │ a/TODOs.md                           │
-╰────────────── esc cancel · Y delete ╯
+╰─────────────── esc cancel · Y delete ╯
 ```
 
 Only a **capital `Y`** deletes, and **any other key cancels** — `esc`, `enter`,
@@ -361,7 +348,7 @@ nothing left to be about.
 ╭ new todos file ──────────────────────────╮
 │ ./web/src/TODOs.md                       │
 │   web/src/inner                          │  ← offers, marked with ↑/↓
-╰──────────── esc cancel · enter create ───╯
+╰────────────── esc cancel · enter create ─╯
 ```
 
 The field shows the whole path it will write, not a fragment of it: `./`, then what
@@ -420,7 +407,7 @@ editor.
 │                                                  │
 │ notes/TODOs.md                                   │
 │  2 - [ ] call the plumber #home                  │
-╰──────────────────────────────────────────── 2/3 ╯
+╰────────────────────────────────────────── 2/3 # 1╯
 ```
 
 - **Order is file order.** Files as the panel lists them, and inside a file the order
@@ -724,7 +711,7 @@ The message says *what* was copied either way.
 ## Limits
 
 A repository is unbounded, so a scan is not. `lib/src/limits.rs` holds the three
-numbers, and both the CLI and the TUI read them from there:
+numbers, and the screen reads them from there:
 
 | limit | value | what happens |
 | --- | --- | --- |
@@ -732,18 +719,16 @@ numbers, and both the CLI and the TUI read them from there:
 | `MAX_FILES` | 1 000 candidate files | the walk stops and says which folder it stopped at |
 | `MAX_LINES` | 10 000 lines in one file | the file is listed, dimmed and marked `too long`, and never opened |
 
-Warnings are not silent. `--check` and `--format` print them to stderr and skip
-the file, `export` leaves it out, and the TUI prints them in orange at the bottom
-of the file list — the walk is what the list shows, so that is where its limits
-belong. Each one is a log line and says its level:
+Warnings are not silent. The file list prints them in orange at its bottom — the
+walk is what the list shows, so that is where its limits belong — each one a line
+that says its level:
 
 ```
-aricma-todo: [warn] 1 folder is deeper than 10 levels, not searched (first: …/web/vendor/css)
+[warn] 1 folder is deeper than 10 levels, not searched (first: …/web/vendor/css)
 ```
 
-The level tag comes from the scan itself, so the line reads the same in a pipeline
-and in the sidebar. In the TUI a blocked file is dimmed and marked `too long`, and
-`↓` steps over it rather than stopping on it. A folder whose every todo file is
+A blocked file is dimmed and marked `too long`, and `↓` steps over it rather than
+stopping on it. A folder whose every todo file is
 blocked refuses to open at all.
 
 ## Where messages go
@@ -801,7 +786,7 @@ never be written, so the refusal becomes a question:
 ╭ changed on disk ─────────────────────────────────╮
 │ web/TODOs.md changed on disk                     │
 │ ──────────────────────────────────────────────── │
-╰ Y keep mine · t take theirs · q quit ╯
+╰──────────── Y keep mine · t take theirs · q quit ╯
 ```
 
 - **`Y` keeps yours**: your document is written over the file, atomically, and that
@@ -897,33 +882,12 @@ was left, the undo refuses with `that line changed since then` instead of writin
 the wrong line. Quitting forgets everything, which is why there is no undo file
 and no journal.
 
-## The CLI
-
-`aricma-todo`, no terminal required.
-
-```sh
-aricma-todo check  [PATH]      # exit 1 on a broken todo
-aricma-todo format [PATH]      # checkbox + priority letter case
-aricma-todo export [PATH] [--as json|yaml|jsonl|csv] [--out FILE]
-aricma-todo import FILE [--into TODOs.md] [--as FORMAT]
-```
-
-`PATH` is a file or a folder and defaults to the current directory. Every verb is
-a subcommand, so `aricma-todo` with no verb prints the usage and exits 2
-rather than opening a screen: it is the binary a pipeline installs.
-
-Exit codes: `0` done, `1` findings, `2` the command line or the filesystem said
-no.
-
-`check` reports exactly three things: a line that looks like a todo but is not
-one, a todo with no title left, and a priority letter outside A–D. Spacing,
-trailing whitespace, `[X]` and unrecognised `#tokens` are not its business.
-
 ## OPS
 
-Export writes one OPS document through the reference `ops-lib`. The title is the
-line minus its priority token, the tags and assignees stay inside it because
-that is how the line reads, and the parsed extras ride along as `metadata`:
+`c` on a todo puts an OPS document on the clipboard rather than the bare line
+(RFC-014), built through the reference `ops-lib`. The title is the line minus its
+priority token, the tags and assignees stay inside it because that is how the line
+reads, and the parsed extras ride along as `metadata`:
 
 ```json
 { "id": "md-1",
@@ -934,7 +898,6 @@ that is how the line reads, and the parsed extras ride along as `metadata`:
                 "assignee": "dave" } }
 ```
 
-A title longer than the standard's 1 KiB limit, or an empty one, is skipped with
-a line saying so rather than truncated. Import writes the title back verbatim as
-the body and only prepends a priority that `metadata.priority` carries as a
-single A–D letter.
+Which is why the document survives the trip: what is on the clipboard is a
+rendering of the line, and a paste reads that rendering back into lines. A todo can
+leave for an agent and come back without being retyped.
