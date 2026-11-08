@@ -10,8 +10,23 @@ pipelines, one for people.
 | `tui/` | `lazytodo` — the terminal client, for reading and editing by hand | `cargo install --path tui` |
 | `testkit/` | what the suites share: run a binary, read what it said, drive a use case | a dev-dependency |
 
-Everything it depends on is public, so a clone builds with nothing but a Rust
-toolchain: `cargo test`. No credentials.
+Everything it depends on is public — the crates, plus `ops-lib` from a public git
+repository — so a clone builds with `cargo test` and no credentials. The toolchain is
+pinned in `rust-toolchain.toml`, which `rustup` reads for you.
+
+## Installing `lazytodo`
+
+A release carries one archive per target, each holding the binary, `LICENSE` and the
+client's own `README.md`, with a single checksums file beside them:
+
+```
+lazytodo-v0.1.0-aarch64-apple-darwin.tar.gz
+lazytodo-v0.1.0-x86_64-unknown-linux-musl.tar.gz
+```
+
+The Linux archives are statically linked, so they start on any distribution, and the
+checksums file lists every archive of its release. `cargo install --path tui` builds
+it from source instead.
 
 ## The terminal client
 

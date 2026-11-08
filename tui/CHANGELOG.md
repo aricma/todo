@@ -1,7 +1,11 @@
 # Changelog
 
 What changed in `lazytodo`, the terminal client. This package has its own version
-and its own tag (`tui-v<version>`), independent of the other packages here.
+and its own tag (`lazytodo-v<version>`), independent of the other packages here.
+
+The newest section is the version a release is cut from, so a release adds one at
+the top. There is no Unreleased section: the pipeline refuses to release a version
+that is not the newest section here or in `tui/Cargo.toml`.
 
 ## 0.1.0
 
