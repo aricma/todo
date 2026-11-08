@@ -90,7 +90,7 @@ here:
 
 <a href="https://www.buymeacoffee.com/aricma"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="217" height="60"></a>
 
-[![Support me on Ko-fi](https://storage.ko-fi.com/cdn/kofi2.png?v=3)](https://ko-fi.com/N2N426RWKU)
+<a href="https://ko-fi.com/N2N426RWKU"><img src="https://storage.ko-fi.com/cdn/brandasset/kofi_button_blue.png" alt="Support me on Ko-fi" width="382" height="60"></a>
 
 Tell us what you want next: the web app or the cli. For now we keep going with the TUI,
 `lazytodo`. Cheers.
