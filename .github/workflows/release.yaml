@@ -31,7 +31,6 @@ jobs:
       tag: ${{ steps.version.outputs.tag }}
       version: ${{ steps.version.outputs.version }}
       sha: ${{ steps.commit.outputs.sha }}
-      tagged: ${{ steps.commit.outputs.tagged }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -67,18 +66,13 @@ jobs:
         run: |
           if git rev-parse --verify --quiet "refs/tags/$TAG" >/dev/null; then
             sha=$(git rev-parse "refs/tags/$TAG^{commit}")
-            tagged=true
             echo "tag $TAG already exists and points at $sha: releasing that commit, not the branch"
           else
             sha=$(git rev-parse HEAD)
-            tagged=false
             echo "no tag $TAG exists yet. This release will create it on $sha, the tip of $BRANCH,"
             echo "and $sha is the commit that gets built and released."
           fi
-          {
-            echo "sha=$sha"
-            echo "tagged=$tagged"
-          } >> "$GITHUB_OUTPUT"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
       - name: Check the version in the manifest
         shell: bash
@@ -283,12 +277,6 @@ jobs:
     runs-on: ubuntu-24.04
     environment: release
     steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.prepare.outputs.sha }}
-          fetch-depth: 0
-
-      # After the checkout, which cleans untracked files out of the workspace.
       - name: The release notes
         uses: actions/download-artifact@v8
         with:
@@ -307,33 +295,22 @@ jobs:
           name: checksums
           path: dist
 
-      - name: Tag the commit, when the tag was new
-        if: ${{ needs.prepare.outputs.tagged == 'false' }}
-        env:
-          TAG: ${{ needs.prepare.outputs.tag }}
-          SHA: ${{ needs.prepare.outputs.sha }}
-          DISPATCHED_BY: ${{ github.actor }}
-        run: |
-          # GITHUB_TOKEN authenticates this push, so the tag names the bot it acts for,
-          # not the person who dispatched the run: that is named separately below.
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "$TAG" -m "$TAG" "$SHA"
-          git push origin "refs/tags/$TAG"
-          echo "created tag $TAG on $SHA and pushed it as github-actions[bot], which is who GITHUB_TOKEN authenticates as"
-          echo "dispatched by $DISPATCHED_BY"
-
       - name: Release the notes and the archives
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.prepare.outputs.tag }}
+          SHA: ${{ needs.prepare.outputs.sha }}
+          DISPATCHED_BY: ${{ github.actor }}
         run: |
           set -- dist/*
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --notes-file notes.md
             gh release upload "$TAG" dist/* --clobber
-            echo "updated the existing release $TAG with $# files"
+            echo "updated the existing release $TAG with $# files, dispatched by $DISPATCHED_BY"
           else
-            gh release create "$TAG" --title "$TAG" --notes-file notes.md dist/*
-            echo "opened $TAG with its notes and $# files"
+            # The tag is made by this call, not by a push: GITHUB_TOKEN cannot push a
+            # commit that touches .github/workflows, and a release often does.
+            gh release create "$TAG" --title "$TAG" --target "$SHA" --notes-file notes.md dist/*
+            echo "opened $TAG on $SHA with its notes and $# files, dispatched by $DISPATCHED_BY"
           fi
