@@ -17,3 +17,6 @@
       person still has to unpack a `.tar.gz` by hand
 - [ ] (C) the `v0.1.0` tag predates per-package tags; it is the only tag that does
       not name a package, so it cannot be released by the pipeline as it stands
+- [ ] add git-cliff to fromat --check the changelog in CI
+- [ ] add a PR comment for every PR we check if changelog needs to be written during CI
+- [ ] add CI step to check basic release pipeline interface like files paths references etc.

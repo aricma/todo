@@ -23,7 +23,7 @@ env:
   PACKAGE: tui
 
 jobs:
-  resolve:
+  prepare:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
@@ -126,21 +126,21 @@ jobs:
           if-no-files-found: error
 
   ci:
-    needs: resolve
+    needs: prepare
     uses: ./.github/workflows/tui-ci.yaml
     with:
-      ref: ${{ needs.resolve.outputs.sha }}
+      ref: ${{ needs.prepare.outputs.sha }}
 
   # Its own job so the approval holds everything that writes, and only that.
   publish:
-    needs: [resolve, ci]
+    needs: [prepare, ci]
     if: ${{ !inputs.dryrun }}
     runs-on: ubuntu-latest
     environment: release
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ needs.resolve.outputs.sha }}
+          ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
 
       # After the checkout, which cleans untracked files out of the workspace.
@@ -149,10 +149,10 @@ jobs:
           name: changelog
 
       - name: Tag the commit, when the tag was new
-        if: ${{ needs.resolve.outputs.tagged == 'false' }}
+        if: ${{ needs.prepare.outputs.tagged == 'false' }}
         env:
-          TAG: ${{ needs.resolve.outputs.tag }}
-          SHA: ${{ needs.resolve.outputs.sha }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          SHA: ${{ needs.prepare.outputs.sha }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -162,7 +162,7 @@ jobs:
       - name: Open the release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.resolve.outputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --notes-file notes.md
@@ -171,7 +171,7 @@ jobs:
           fi
 
   binaries:
-    needs: [resolve, ci, publish]
+    needs: [prepare, ci, publish]
     # A dry run skips `publish`, and a skip is not a failure.
     if: ${{ !failure() && !cancelled() }}
     strategy:
@@ -190,7 +190,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ needs.resolve.outputs.sha }}
+          ref: ${{ needs.prepare.outputs.sha }}
 
       - run: rustup show
 
@@ -205,7 +205,7 @@ jobs:
       - name: Pack
         shell: bash
         env:
-          TAG: ${{ needs.resolve.outputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}
           TARGET: ${{ matrix.target }}
         run: |
           name="${TAG}-${TARGET}"
@@ -230,5 +230,5 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.resolve.outputs.tag }}
+          TAG: ${{ needs.prepare.outputs.tag }}
         run: gh release upload "$TAG" dist/*.tar.gz dist/*.sha256 --clobber
