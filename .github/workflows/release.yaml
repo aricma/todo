@@ -312,12 +312,14 @@ jobs:
         env:
           TAG: ${{ needs.prepare.outputs.tag }}
           SHA: ${{ needs.prepare.outputs.sha }}
+          ACTOR: ${{ github.actor }}
+          ACTOR_ID: ${{ github.actor_id }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "$ACTOR"
+          git config user.email "$ACTOR_ID+$ACTOR@users.noreply.github.com"
           git tag -a "$TAG" -m "$TAG" "$SHA"
           git push origin "refs/tags/$TAG"
-          echo "created tag $TAG on $SHA and pushed it"
+          echo "created tag $TAG on $SHA, and pushed it as $ACTOR <$ACTOR_ID+$ACTOR@users.noreply.github.com>"
 
       - name: Release the notes and the archives
         env:
