@@ -88,9 +88,9 @@ A clone builds and tests with `cargo test`; the toolchain is pinned in
 If this app is fun for you and you want to see the web app happen, you can support us
 here:
 
-<a href="https://www.buymeacoffee.com/aricma"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" width="217" height="60"></a>
+<a href="https://www.buymeacoffee.com/aricma"><img src="./bmc-full-logo.png" alt="Buy Me a Coffee" width="248" height="60"></a>
 
-<a href="https://ko-fi.com/N2N426RWKU"><img src="https://storage.ko-fi.com/cdn/brandasset/kofi_button_blue.png" alt="Support me on Ko-fi" width="382" height="60"></a>
+<a href="https://ko-fi.com/N2N426RWKU"><img src="https://storage.ko-fi.com/cdn/brandasset/v2/support_me_on_kofi_blue.png" alt="Support me on Ko-fi" width="297" height="60"></a>
 
 Tell us what you want next: the web app or the cli. For now we keep going with the TUI,
 `lazytodo`. Cheers.
