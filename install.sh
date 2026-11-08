@@ -1,19 +1,18 @@
 #!/bin/sh
 # Installs one of the aricma tools from its GitHub release.
 #
-# Meant to be served from aricma.app/install.sh and shared by every tool:
+#   curl -fsSL https://aricma.app/install.sh | sh -s -- --bin lazytodo
 #
-#   curl -fsSL https://aricma.app/install.sh | sh -s -- --bin lazytodo --repo aricma/todo
-#
-# Nothing here is specific to one program. It expects the release to follow the
-# conventions this repository's pipeline produces:
+# Which repository a tool comes from is not decided here: aricma.app/packages.json
+# maps a tool to its repository, so adding a tool changes that file and nothing in
+# this script. What each release must contain is fixed:
 #
 #   tag        <bin>-v<version>
 #   archive    <bin>-v<version>-<target>.tar.gz
 #   checksums  <bin>_<version>_checksums.txt, one sha256 per archive
 set -eu
 
-repo=""
+index_url="https://aricma.app/packages.json"
 bin=""
 version="latest"
 install_dir="${HOME}/.local/bin"
@@ -29,11 +28,13 @@ usage() {
 usage: install.sh --bin <name> [options]
 
   --bin <name>         the program to install, for example lazytodo (required)
-  --repo <owner/name>  the GitHub repository that releases it (required)
   --version <version>  the version to install, default: the latest release
   --install-dir <dir>  where the program goes, default: ~/.local/bin
   --dry-run            print what would be downloaded and where it would go
   -h, --help           this text
+
+The tool is looked up in https://aricma.app/packages.json, so there is nothing
+to say about where it is published.
 EOF
 }
 
@@ -42,11 +43,6 @@ while [ $# -gt 0 ]; do
     --bin)
       [ $# -ge 2 ] || die "--bin needs a value"
       bin=$2
-      shift 2
-      ;;
-    --repo)
-      [ $# -ge 2 ] || die "--repo needs a value"
-      repo=$2
       shift 2
       ;;
     --version)
@@ -75,18 +71,23 @@ while [ $# -gt 0 ]; do
 done
 
 [ -n "$bin" ] || die "--bin is required, for example --bin lazytodo"
-[ -n "$repo" ] || die "--repo is required: a release comes from a repository, for example aricma/todo"
 
-# These three build a URL and a file path, so nothing but their own alphabet.
+# Every accepted value ends up in a URL or a path, so nothing but its own alphabet.
 case "$bin" in
   "" | *[!a-z0-9-]*) die "not a program name: $bin" ;;
-esac
-case "$repo" in
-  *[!A-Za-z0-9._/-]*) die "not a repository: $repo" ;;
 esac
 case "$version" in
   latest) ;;
   "" | *[!0-9A-Za-z.-]*) die "not a version: $version" ;;
+esac
+
+index=$(curl -fsSL "$index_url") || die "cannot read $index_url"
+
+repo=$(printf '%s\n' "$index" |
+  sed -n "s/.*\"$bin\": *\"\([^\"]*\)\".*/\1/p" | head -1)
+[ -n "$repo" ] || die "$bin is not listed in $index_url"
+case "$repo" in
+  *[!A-Za-z0-9._/-]*) die "not a repository, in $index_url: $repo" ;;
 esac
 
 os=$(uname -s)
@@ -110,7 +111,9 @@ esac
 target="${arch_part}-${os_part}"
 
 if [ "$version" = "latest" ]; then
-  tag=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest" |
+  latest=$(curl -fsSL "https://api.github.com/repos/$repo/releases/latest") ||
+    die "cannot ask $repo what its latest release is"
+  tag=$(printf '%s\n' "$latest" |
     sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1)
   [ -n "$tag" ] || die "no published release at $repo"
   case "$tag" in
@@ -126,18 +129,21 @@ checksums="${bin}_${version}_checksums.txt"
 base="https://github.com/$repo/releases/download/$tag"
 
 if [ "$dry_run" = 1 ]; then
+  echo "$bin $version comes from $repo for $target"
   echo "would download $base/$archive"
   echo "would verify   $base/$checksums"
-  echo "would install  $bin $version for $target into $install_dir"
+  echo "would install  $install_dir/$bin"
   exit 0
 fi
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT INT TERM
 
-echo "downloading $archive"
-curl -fsSL -o "$tmp/$archive" "$base/$archive"
-curl -fsSL -o "$tmp/$checksums" "$base/$checksums"
+echo "downloading $archive from $repo"
+curl -fsSL -o "$tmp/$archive" "$base/$archive" ||
+  die "cannot download $base/$archive"
+curl -fsSL -o "$tmp/$checksums" "$base/$checksums" ||
+  die "cannot download $base/$checksums"
 
 # Only the line for this archive: the file lists every target, and this install
 # has one of them.
