@@ -237,7 +237,7 @@ jobs:
 
       - uses: actions/upload-artifact@v7
         with:
-          name: ${{ matrix.os }}-${{ matrix.target }}
+          name: ${{ matrix.os }}-${{ env.BINARY }}-${{ needs.prepare.outputs.version }}-${{ matrix.target }}
           path: dist/*.tar.gz
           if-no-files-found: error
 
@@ -248,8 +248,8 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          # Every archive is named <os>-<target>, and nothing else here has a dash.
-          pattern: "*-*"
+          # Every archive carries the binary's name, so this picks out all six and nothing else.
+          pattern: "*-${{ env.BINARY }}-*"
           merge-multiple: true
           path: dist
 
@@ -297,7 +297,7 @@ jobs:
       - name: The archive from each target
         uses: actions/download-artifact@v8
         with:
-          pattern: "*-*"
+          pattern: "*-${{ env.BINARY }}-*"
           merge-multiple: true
           path: dist
 
