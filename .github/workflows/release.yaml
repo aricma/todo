@@ -31,7 +31,7 @@ jobs:
       sha: ${{ steps.commit.outputs.sha }}
       tagged: ${{ steps.commit.outputs.tagged }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
@@ -151,7 +151,7 @@ jobs:
             target: aarch64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
 
@@ -203,7 +203,7 @@ jobs:
     runs-on: ubuntu-latest
     environment: release
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.prepare.outputs.sha }}
           fetch-depth: 0
