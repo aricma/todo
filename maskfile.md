@@ -44,15 +44,24 @@ cargo test --workspace --all-targets
 > Build `aricma-todo` and `lazytodo` into tmp/bin.
 
 ```sh
-cargo build --release
+cargo build --release --locked
 mkdir -p "$MASKFILE_DIR/tmp/bin"
 cp "$MASKFILE_DIR/target/release/aricma-todo" "$MASKFILE_DIR/tmp/bin/"
 cp "$MASKFILE_DIR/target/release/lazytodo" "$MASKFILE_DIR/tmp/bin/"
 ```
 
+## use
+
+> Ask the built screen what a person asks first. After `mask build`.
+
+```sh
+"$MASKFILE_DIR/tmp/bin/lazytodo" --version
+"$MASKFILE_DIR/tmp/bin/lazytodo" --help >/dev/null
+```
+
 ## ci
 
-> The local mirror of the CI gate: format, lint and test.
+> The local mirror of the CI gate: format, lint, test, build and use.
 
 **OPTIONS**
 
@@ -63,5 +72,5 @@ cp "$MASKFILE_DIR/target/release/lazytodo" "$MASKFILE_DIR/tmp/bin/"
 ```sh
 set --
 [ "${fix:-}" = "true" ] && set -- "$@" -f
-$MASK format "$@" && $MASK lint && $MASK test
+$MASK format "$@" && $MASK lint && $MASK test && $MASK build && $MASK use
 ```

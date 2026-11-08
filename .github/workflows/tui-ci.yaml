@@ -1,12 +1,7 @@
 name: TUI CI
 
-# The checks for `lazytodo`, in one job, in one file, run by both pipelines: the
-# push pipeline below it in `.github/workflows/ci.yaml`, and the release pipeline,
-# which calls it on the commit it is about to publish. One definition means a tag
-# cannot be released on a commit the push pipeline would have refused.
-#
-# `workflow_call` only: no triggers here. Each caller decides when these run and
-# which commit they run on.
+# The checks for `lazytodo`, in one job. `ci.yaml` runs them on a push;
+# `release.yaml` runs them on the commit it is about to publish.
 on:
   workflow_call:
     inputs:
@@ -23,45 +18,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The three the tool is expected to run on. Windows is here because the
-        # suites walk real temp paths and the screen draws real cells, so a
-        # separator or console difference has to fail here, not on a user's machine.
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      # the caller's commit unless it named one: a release checks out the tag it
-      # resolved, which is not the branch its button was pressed on
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.ref || github.sha }}
 
-      # `rustup show` installs the channel and components that rust-toolchain.toml
-      # names. `dtolnay/rust-toolchain@stable` would instead install today's stable,
-      # leaving `cargo fmt` with no component for the pinned toolchain.
-      - name: Install the pinned toolchain
-        run: rustup show
+      # rust-toolchain.toml is the pin; this installs it with its components.
+      - run: rustup show
 
       - uses: Swatinem/rust-cache@v2
 
       - name: Format
         run: cargo fmt --check
 
-      # The workspace denies every pedantic clippy lint, so this is the lint gate.
       - name: Lint
         run: cargo clippy --workspace --all-targets -- -D warnings
 
-      # The screen snapshots record the header's path, which masking normalizes back
-      # to `…/<tree>` on every machine, so the runners agree.
       - name: Test
         run: cargo test --workspace --all-targets
 
-      # `--locked` proves the committed Cargo.lock is what actually builds, which is
-      # the one thing `cargo install` used to catch here and caught only by accident.
       - name: Build
         run: cargo build --release --locked --package lazytodo
 
-      # The artifact the release ships, asked the two things a person asks first.
-      # `--help` also proves it can print a whole manual without a terminal.
       - name: Use
         shell: bash
         run: |

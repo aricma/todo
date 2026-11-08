@@ -1,12 +1,6 @@
 name: CI
 
-# When the checks run, and nothing else: the checks themselves are the template in
-# `.github/workflows/tui-ci.yaml`, which the release pipeline calls as well.
-#
-# `pull_request` and never `pull_request_target`: the latter runs a fork's code
-# with this repository's secrets in the environment, which is how a token gets
-# stolen. This repository needs no secret at all — every dependency is public —
-# so nothing here reads one, and nothing here should start to.
+# Never `pull_request_target`: it runs a fork's code with this repository's secrets.
 on:
   workflow_dispatch:
   push:

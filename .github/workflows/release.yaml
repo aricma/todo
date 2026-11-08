@@ -1,22 +1,8 @@
 name: Release
 
-# Run by hand for the `tui` package, and it always takes a tag: the pipeline
-# releases a version, it never chooses one.
-#
-# Only `lazytodo` is released today. `cli` and `lib` have their own versions and
-# changelogs, but no release path yet, so a `cli-*` or `lib-*` tag fails the run
-# instead of half-releasing something. When they are wired up, `PACKAGE` below is
-# what changes.
-#
-#   the tag names a commit   → that commit is built and released
-#   the tag names no commit  → the tip of the default branch is built, and the tag
-#                              is created on it
-#   no tag, or another package's tag → the run stops before anything is built
-#
-# Nothing is written until a person approves the `release` environment: the tag, the
-# release and every asset appear only after the review, so a run that looks wrong is
-# abandoned without a version to retract. `dryrun` builds and packs without asking
-# for that approval and without writing anything.
+# By hand, one `tui` tag at a time. A tag that exists names its commit; a tag that
+# does not is created on the default branch's tip. Everything is written only after
+# the `release` environment is approved, and `dryrun` writes nothing at all.
 on:
   workflow_dispatch:
     inputs:
@@ -32,15 +18,10 @@ on:
 permissions:
   contents: write
 
-# The one package this pipeline releases. Its directory is also its tag prefix and
-# its changelog's home; the binary inside is `lazytodo`.
 env:
   PACKAGE: tui
 
 jobs:
-  # Which commit is this version? A tag that exists answers it; one that does not
-  # means the default branch's tip, and the commit is pinned here so the review and
-  # the release are about the same one even if the branch moves during the wait.
   resolve:
     runs-on: ubuntu-latest
     outputs:
@@ -89,8 +70,6 @@ jobs:
             tagged=false
             echo "$tag names no commit: releasing $sha, the tip of $BRANCH"
           fi
-          # the archive carries the tag in its name, so a tag that disagrees with the
-          # package's own version would publish a binary whose --version says otherwise
           declared=$(git show "$sha:$PACKAGE/Cargo.toml" \
             | sed -n 's/^version = "\(.*\)"/\1/p' | head -1)
           if [ "$declared" != "$version" ]; then
@@ -104,10 +83,6 @@ jobs:
             echo "tagged=$tagged"
           } >> "$GITHUB_OUTPUT"
 
-      # The notes come from the package's own changelog, and a version without a
-      # section fails the run: a release with no changelog is the thing this job
-      # exists to prevent. Written before the approval so it can be read while
-      # deciding.
       - name: Name the changes
         env:
           SHA: ${{ steps.pick.outputs.sha }}
@@ -123,7 +98,6 @@ jobs:
             exit 1
           fi
           printf '%s\n' "$notes" > notes.md
-          echo "$PACKAGE $VERSION: $(grep -c '^- ' notes.md) entries"
           cat notes.md >> "$GITHUB_STEP_SUMMARY"
 
       - uses: actions/upload-artifact@v7
@@ -132,17 +106,13 @@ jobs:
           path: notes.md
           if-no-files-found: error
 
-  # The checks from `.github/workflows/tui-ci.yaml`, on the commit about to be
-  # released. They come before the approval, so what is being approved is already
-  # known to format, lint, test, build and run on all three platforms.
   ci:
     needs: resolve
     uses: ./.github/workflows/tui-ci.yaml
     with:
       ref: ${{ needs.resolve.outputs.sha }}
 
-  # The approval. Its steps are the first thing in the pipeline that writes, so the
-  # pause happens before a tag exists, not after.
+  # Its own job so the approval holds everything that writes, and only that.
   publish:
     needs: [resolve, ci]
     if: ${{ !inputs.dryrun }}
@@ -154,7 +124,7 @@ jobs:
           ref: ${{ needs.resolve.outputs.sha }}
           fetch-depth: 0
 
-      # after the checkout, which cleans untracked files out of the workspace
+      # After the checkout, which cleans untracked files out of the workspace.
       - uses: actions/download-artifact@v8
         with:
           name: changelog
@@ -165,7 +135,6 @@ jobs:
           TAG: ${{ needs.resolve.outputs.tag }}
           SHA: ${{ needs.resolve.outputs.sha }}
         run: |
-          # an annotated tag needs an identity, and the runner has none configured
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "$TAG" "$SHA"
@@ -176,7 +145,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.resolve.outputs.tag }}
         run: |
-          # a re-run refreshes the notes rather than leaving the first ones there
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release edit "$TAG" --notes-file notes.md
           else
@@ -185,13 +153,11 @@ jobs:
 
   binaries:
     needs: [resolve, ci, publish]
-    # a dry run skips `publish`, and a skip is not a failure: still build everything
+    # A dry run skips `publish`, and a skip is not a failure.
     if: ${{ !failure() && !cancelled() }}
     strategy:
       fail-fast: false
       matrix:
-        # Both macOS architectures: the runner is arm64, and the Intel binary is a
-        # cross-build rather than a second machine.
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
@@ -203,7 +169,6 @@ jobs:
             target: x86_64-pc-windows-msvc
     runs-on: ${{ matrix.os }}
     steps:
-      # the commit that was reviewed, not the branch it came from
       - uses: actions/checkout@v5
         with:
           ref: ${{ needs.resolve.outputs.sha }}
@@ -214,14 +179,10 @@ jobs:
         with:
           key: ${{ matrix.target }}
 
-      # A no-op where the target is the host, a download for the other macOS one.
       - run: rustup target add ${{ matrix.target }}
 
-      - run: cargo build --release --package lazytodo --target ${{ matrix.target }}
+      - run: cargo build --release --locked --package lazytodo --target ${{ matrix.target }}
 
-      # One format on every platform: `tar` is on all three runners, and Windows 10
-      # opens a `.tar.gz` without extra software. The archive is named after the tag,
-      # so `install.sh` can find it without a table of product names.
       - name: Pack
         shell: bash
         env:
