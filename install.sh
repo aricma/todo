@@ -16,6 +16,7 @@ registry_src="https://aricma.app/registry.json"
 bin=""
 version="latest"
 install_dir=""
+uninstall=0
 dry_run=0
 
 fail() {
@@ -33,7 +34,8 @@ usage: install.sh --bin <name> [options]
                        default_install_dir, or ~/.local/bin
   --registry <path|url>  where to read the tool registry, default:
                        https://aricma.app/registry.json
-  --dry-run            print what would be downloaded and where it would go
+  --uninstall          remove the tool instead of installing it
+  --dry-run            print what would be downloaded or removed
   -h, --help           this text
 
 The tool is looked up in the registry, so there is nothing to say about where
@@ -62,6 +64,10 @@ while [ $# -gt 0 ]; do
       [ $# -ge 2 ] || fail "--registry needs a value"
       registry_src=$2
       shift 2
+      ;;
+    --uninstall)
+      uninstall=1
+      shift
       ;;
     --dry-run)
       dry_run=1
@@ -162,6 +168,21 @@ case "$install_dir" in
   /?*) ;;
   *) fail "install dir is not an absolute path: $install_dir" ;;
 esac
+
+if [ "$uninstall" = 1 ]; then
+  installed="$install_dir/$binary"
+  if [ "$dry_run" = 1 ]; then
+    echo "would remove $installed"
+    exit 0
+  fi
+  if [ ! -e "$installed" ] && [ ! -L "$installed" ]; then
+    echo "not installed: $installed"
+    exit 0
+  fi
+  rm -f "$installed"
+  echo "removed $installed"
+  exit 0
+fi
 
 os=$(uname -s)
 arch=$(uname -m)
