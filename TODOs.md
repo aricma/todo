@@ -14,15 +14,17 @@
       another package needs its own workflow: `cli` and `lib` have versions and
       changelogs already, but nothing builds or tags them
 - [ ] (C) add release docs
-- [ ] (B) an install.sh per package: `cli` and `tui` release a binary each, and a
-      person still has to unpack a `.tar.gz` by hand
+- [ ] (B) install.sh: one general installer for the aricma tools is written and tested
+      (`--bin`, `--repo`, `--version`, `--install-dir`, verifies the released checksum,
+      clears the macOS quarantine), but nothing serves it yet and the `cli` package has
+      no release to download, so it is unproven against a real release. The plan is to
+      publish it at aricma.app/install.sh once the download URLs exist
 - [x] (C) the `v0.1.0` tag predates per-package tags; it is the only tag that does
       not name a package, so it cannot be released by the pipeline as it stands — gone,
       the remote carries no tags at all now
 - [ ] add git-cliff to fromat --check the changelog in CI
 - [ ] add a PR comment for every PR we check if changelog needs to be written during CI
 - [ ] add CI step to check basic release pipeline interface like files paths references etc.
-- [ ] add install.sh for tui
 - [ ] release 0.1.0 for tui on cargo + binaries on github — the binaries half is done and
       shipped by hand once; cargo is blocked before any pipeline can help. A
       `cargo publish --dry-run` step was tried in the release pipeline and removed again,
