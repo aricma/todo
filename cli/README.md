@@ -1,6 +1,6 @@
 # aricma-todo — the pipeline client
 
-The command a pipeline runs over the todo files a repository already has: no screen,
+The command a pipeline runs over the same todo files: no screen,
 no `ratatui`, the same `lib/` rules underneath. It and `lazytodo` are two interfaces
 over one core, and nothing else is shared.
 

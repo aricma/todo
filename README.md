@@ -7,25 +7,26 @@ pipelines, one for people.
 | --- | --- | --- |
 | `lib/` | the markdown todo rules: parse, edit, check, format, OPS export | a dependency |
 | `cli/` | `aricma-todo` — check, format, export, import; no screen, no `ratatui` | `cargo install --path cli` |
-| `tui/` | `lazytodo` — the terminal client, for reading and editing by hand | `cargo install --path tui` |
+| `tui/` | `lazytodo` — the todo client, a terminal UI for reading and editing by hand | `cargo install --path tui` |
 | `testkit/` | what the suites share: run a binary, read what it said, drive a use case | a dev-dependency |
 
 Everything it depends on is public — the crates, plus `ops-lib` from a public git
 repository — so a clone builds with `cargo test` and no credentials. The toolchain is
 pinned in `rust-toolchain.toml`, which `rustup` reads for you.
 
-## The terminal client
+## The todo client
 
 ![lazytodo open on a repository: panels down the left, the file on the right, keys
 across the bottom](./screenshot.png)
 
-`lazytodo` reads the todos the repository already has — the ones in its markdown files
-and the `TODO:` comments inside its source — and puts them on one screen to be worked
+`lazytodo` is a todo client as a terminal UI: an homage to `lazygit` — the same numbered
+panels and unmodified single-letter actions — pointed at todo lines instead of diffs,
+with [OPS](https://github.com/aricma/open-productivity-standard) as the document a todo
+becomes when it leaves. It reads the todos a repository keeps, in its markdown files and
+in the `TODO:` comments inside its source, and puts them on one screen to be worked
 through. What it is for is maintenance: a monorepo or a large repository collects todo
 lines nobody reads, because reading them costs a `grep` and rewriting one costs an
-editor and a jump. Here the work is one key away from the cursor, the way `lazygit`
-made staging one key away. It is an homage to it: the same numbered panels and
-unmodified single-letter actions, pointed at todo lines instead of diffs.
+editor and a jump. Here the work is one key away from the cursor.
 
 - Numbered panels: `0`–`3` reach the one you want, and a file's row says how much of
   it is done (`5/15`) and how many tags and people it mentions.
@@ -49,9 +50,9 @@ from source instead.
 
 ## Reading
 
-- [tui/README.md](./tui/README.md) — the terminal client's index: the manual, the RFCs,
+- [tui/README.md](./tui/README.md) — the todo client's index: the manual, the RFCs,
   the glossary, its changelog.
-- [tui/docs/manual.md](./tui/docs/manual.md) — the terminal client's manual: the line
+- [tui/docs/manual.md](./tui/docs/manual.md) — the todo client's manual: the line
   grammar, the keys, the frame, the limits, the history.
 - [tui/docs/rfc/](./tui/docs/rfc/README.md) — its [RFCs](./tui/docs/rfc/README.md), one
   per behaviour, with an index, and the [glossary](./tui/docs/glossary.md) of the words

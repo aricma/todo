@@ -1,13 +1,13 @@
 # lazytodo
 
-A terminal client for the todos a repository already has — the ones in its markdown
-files and the `TODO:` comments inside its source — built for going through them
-quickly: move, read, rewrite, check, move on. An homage to `lazygit`: the same
-numbered panels and unmodified single-letter actions, pointed at todo lines instead of
-diffs.
+A todo client as a terminal UI: an homage to `lazygit` — the same numbered panels and
+unmodified single-letter actions — pointed at todo lines instead of diffs, and
+[OPS](https://github.com/aricma/open-productivity-standard) for the document a todo
+becomes when it leaves. It reads the todos a repository keeps, in its markdown files and
+in the `TODO:` comments inside its source, and works through them one key at a time.
 
 ```sh
-lazytodo            # the TUI for the current directory
+lazytodo .           # the TUI for the current directory
 lazytodo path/to    # ... or this one
 ```
 
