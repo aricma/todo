@@ -236,6 +236,27 @@ jobs:
           if-no-files-found: error
 
   # Everything publish needs is an artifact by the time it runs.
+  # Uploads nothing: it asks crates.io what it would say if we did.
+  crates:
+    needs: [prepare, quality]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+
+      - run: rustup show
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Ask crates.io, without uploading anything
+        shell: bash
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          cargo publish --dry-run --locked --manifest-path "$PACKAGE/Cargo.toml"
+          echo "crates.io would accept $BINARY $VERSION: nothing was uploaded"
+
   checksums:
     needs: [prepare, archives]
     runs-on: ubuntu-24.04
