@@ -388,7 +388,7 @@ editor.
 │                                                  │
 │ notes/TODOs.md                                   │
 │  2 - [ ] call the plumber #home                  │
-╰────────────────────────────────────────── 2/3 # 1╯
+╰────────────────────────────────────────── 2/3 #1 ╯
 ```
 
 - **Order is file order.** Files as the panel lists them, and inside a file the order
