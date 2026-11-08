@@ -1,0 +1,11 @@
+{
+  "default_install_dir": "$HOME/.local/bin",
+  "tools": [
+    {
+      "name": "lazytodo",
+      "description": "The terminal client: read and edit the todo checkboxes in markdown files.",
+      "repo": "aricma/todo",
+      "binary_name": "lazytodo"
+    }
+  ]
+}

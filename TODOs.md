@@ -14,12 +14,12 @@
       another package needs its own workflow: `cli` and `lib` have versions and
       changelogs already, but nothing builds or tags them
 - [ ] (C) add release docs
-- [ ] (B) serve install.sh and packages.json at aricma.app: the installer is written and
+- [ ] (B) serve install.sh and registry.json at aricma.app: the installer is written and
       tested (`--bin`, `--version`, `--install-dir`, looks the repository up in the map,
       verifies the released checksum, clears the macOS quarantine), but both files still
       live only in this repository, so it is unproven against a real release and nothing
-      can be installed with the published URL. A new tool needs an entry in the map, not
-      a change to the script
+      can be installed with the published URL. A new tool needs an entry in registry.json,
+      not a change to the script
 - [x] (C) the `v0.1.0` tag predates per-package tags; it is the only tag that does
       not name a package, so it cannot be released by the pipeline as it stands — gone,
       the remote carries no tags at all now

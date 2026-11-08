@@ -3,19 +3,19 @@
 #
 #   curl -fsSL https://aricma.app/install.sh | sh -s -- --bin lazytodo
 #
-# Which repository a tool comes from is not decided here: aricma.app/packages.json
-# maps a tool to its repository, so adding a tool changes that file and nothing in
-# this script. What each release must contain is fixed:
+# Which repository a tool comes from, and what its binary is called, is not
+# decided here: aricma.app/registry.json says so, so adding a tool changes that
+# file and nothing in this script. Each release must then contain:
 #
-#   tag        <bin>-v<version>
-#   archive    <bin>-v<version>-<target>.tar.gz
-#   checksums  <bin>_<version>_checksums.txt, one sha256 per archive
+#   tag        <binary>-v<version>
+#   archive    <binary>-v<version>-<target>.tar.gz
+#   checksums  <binary>_<version>_checksums.txt, one sha256 per archive
 set -eu
 
-index_src="https://aricma.app/packages.json"
+registry_src="https://aricma.app/registry.json"
 bin=""
 version="latest"
-install_dir="${HOME}/.local/bin"
+install_dir=""
 dry_run=0
 
 fail() {
@@ -27,16 +27,17 @@ usage() {
   cat <<'EOF'
 usage: install.sh --bin <name> [options]
 
-  --bin <name>         the program to install, for example lazytodo (required)
+  --bin <name>         the tool to install, for example lazytodo (required)
   --version <version>  the version to install, default: the latest release
-  --install-dir <dir>  where the program goes, default: ~/.local/bin
-  --index <path|url>   where to read the tool map, default:
-                      https://aricma.app/packages.json
+  --install-dir <dir>  where the binary goes, default: the registry's
+                       default_install_dir, or ~/.local/bin
+  --registry <path|url>  where to read the tool registry, default:
+                       https://aricma.app/registry.json
   --dry-run            print what would be downloaded and where it would go
   -h, --help           this text
 
-The tool is looked up in https://aricma.app/packages.json, so there is nothing
-to say about where it is published.
+The tool is looked up in the registry, so there is nothing to say about where
+it is published.
 EOF
 }
 
@@ -57,9 +58,9 @@ while [ $# -gt 0 ]; do
       install_dir=$2
       shift 2
       ;;
-    --index)
-      [ $# -ge 2 ] || fail "--index needs a value"
-      index_src=$2
+    --registry)
+      [ $# -ge 2 ] || fail "--registry needs a value"
+      registry_src=$2
       shift 2
       ;;
     --dry-run)
@@ -88,19 +89,78 @@ case "$version" in
   "" | *[!0-9A-Za-z.-]*) fail "not a version: $version" ;;
 esac
 
-case "$index_src" in
-  *://*) index=$(curl -fsSL "$index_src") || fail "cannot read $index_src" ;;
+case "$registry_src" in
+  *://*) registry=$(curl -fsSL "$registry_src") || fail "cannot read $registry_src" ;;
   *)
-    [ -f "$index_src" ] || fail "no such file: $index_src"
-    index=$(cat "$index_src")
+    [ -f "$registry_src" ] || fail "no such file: $registry_src"
+    registry=$(cat "$registry_src")
     ;;
 esac
 
-repo=$(printf '%s\n' "$index" |
-  sed -n "s/.*\"$bin\": *\"\([^\"]*\)\".*/\1/p" | head -1)
-[ -n "$repo" ] || fail "$bin is not listed in $index_src"
+# One line per entry under "tools". A plain grep for brace pairs would split an
+# entry whose description contains a brace, so braces inside strings do not count.
+entry=$(printf '%s\n' "$registry" | awk '
+  {
+    n = length($0)
+    for (i = 1; i <= n; i++) {
+      c = substr($0, i, 1)
+      if (instr) {
+        if (esc) esc = 0
+        else if (c == "\\") esc = 1
+        else if (c == "\"") instr = 0
+        if (collect) buf = buf c
+        continue
+      }
+      if (c == "\"") { instr = 1; if (collect) buf = buf c; continue }
+      if (c == "{") {
+        depth++
+        if (depth == 2) { collect = 1; buf = "{" }
+        else if (collect) buf = buf c
+        continue
+      }
+      if (c == "}") {
+        if (collect && depth == 2) { print buf "}"; collect = 0; buf = "" }
+        else if (collect) buf = buf c
+        depth--
+        continue
+      }
+      if (collect) buf = buf c
+    }
+    if (collect) buf = buf " "
+  }' | grep "\"name\": *\"$bin\"" | head -1)
+[ -n "$entry" ] || fail "$bin is not in $registry_src"
+
+field() {
+  printf '%s\n' "$entry" | sed -n "s/.*\"$1\": *\"\([^\"]*\)\".*/\1/p" | head -1
+}
+
+repo=$(field repo)
+binary=$(field binary_name)
+[ -n "$repo" ] || fail "$bin has no repo in $registry_src"
+[ -n "$binary" ] || fail "$bin has no binary_name in $registry_src"
 case "$repo" in
-  *[!A-Za-z0-9._/-]*) fail "not a repository, in $index_src: $repo" ;;
+  *[!A-Za-z0-9._/-]*) fail "not a repository, in $registry_src: $repo" ;;
+esac
+case "$binary" in
+  "" | *[!A-Za-z0-9._-]*) fail "not a binary name, in $registry_src: $binary" ;;
+esac
+
+if [ -z "$install_dir" ]; then
+  install_dir=$(printf '%s\n' "$registry" |
+    sed -n 's/.*"default_install_dir": *"\([^\"]*\)".*/\1/p' | head -1)
+  # The registry writes the literal $HOME, which is expanded just below.
+  # shellcheck disable=SC2016
+  [ -n "$install_dir" ] || install_dir='$HOME/.local/bin'
+fi
+# shellcheck disable=SC2016
+case "$install_dir" in
+  '$HOME'/*) install_dir="${HOME}/${install_dir#\$HOME/}" ;;
+  '~'/*) install_dir="${HOME}/${install_dir#\~/}" ;;
+esac
+# It comes from a remote file, so it may name a directory but not somewhere odd.
+case "$install_dir" in
+  /?*) ;;
+  *) fail "install dir is not an absolute path: $install_dir" ;;
 esac
 
 os=$(uname -s)
@@ -110,7 +170,7 @@ case "$os" in
   Linux) os_part=unknown-linux-musl ;;
   Darwin) os_part=apple-darwin ;;
   MINGW* | MSYS* | CYGWIN*)
-    fail "Windows: download $bin-v<version>-x86_64-pc-windows-msvc.tar.gz from the release yourself"
+    fail "Windows: download $binary-v<version>-x86_64-pc-windows-msvc.tar.gz from the release yourself"
     ;;
   *) fail "no prebuilt binary for $os" ;;
 esac
@@ -130,22 +190,22 @@ if [ "$version" = "latest" ]; then
     sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1)
   [ -n "$tag" ] || fail "no published release at $repo"
   case "$tag" in
-    "$bin"-v*) version=${tag#"$bin-v"} ;;
-    *) fail "the latest release of $repo is $tag, which is not a $bin release" ;;
+    "$binary"-v*) version=${tag#"$binary-v"} ;;
+    *) fail "the latest release of $repo is $tag, which is not a $binary release" ;;
   esac
 else
-  tag="${bin}-v${version}"
+  tag="${binary}-v${version}"
 fi
 
-archive="${bin}-v${version}-${target}.tar.gz"
-checksums="${bin}_${version}_checksums.txt"
+archive="${binary}-v${version}-${target}.tar.gz"
+checksums="${binary}_${version}_checksums.txt"
 base="https://github.com/$repo/releases/download/$tag"
 
 if [ "$dry_run" = 1 ]; then
-  echo "$bin $version comes from $repo for $target"
+  echo "$bin is $binary from $repo, $version for $target"
   echo "would download $base/$archive"
   echo "would verify   $base/$checksums"
-  echo "would install  $install_dir/$bin"
+  echo "would install  $install_dir/$binary"
   exit 0
 fi
 
@@ -172,16 +232,16 @@ fi
 
 tar -xzf "$tmp/$archive" -C "$tmp"
 mkdir -p "$install_dir"
-cp "$tmp/${bin}-v${version}-${target}/$bin" "$install_dir/$bin"
-chmod 755 "$install_dir/$bin"
+cp "$tmp/${binary}-v${version}-${target}/$binary" "$install_dir/$binary"
+chmod 755 "$install_dir/$binary"
 
 # A downloaded program runs only after this on macOS, and the refusal reads as a
 # broken binary rather than as a security setting.
 if [ "$os" = "Darwin" ] && command -v xattr >/dev/null 2>&1; then
-  xattr -d com.apple.quarantine "$install_dir/$bin" 2>/dev/null || true
+  xattr -d com.apple.quarantine "$install_dir/$binary" 2>/dev/null || true
 fi
 
-echo "installed $install_dir/$bin, $bin $version for $target"
+echo "installed $install_dir/$binary, $version for $target"
 
 case ":${PATH}:" in
   *":${install_dir}:"*) ;;
