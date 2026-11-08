@@ -10,9 +10,8 @@ not the newest section here or in `tui/Cargo.toml`.
 ## 0.1.0
 
 The first release of `lazytodo`: a todo client as a terminal UI, inspired by `lazygit`,
-over the todos in your markdown files and in the comments inside your source. We are
-still pre-1.0, so expect features to arrive and rough edges to be sanded off as they
-turn up.
+reading the todos in your markdown files and in the comments inside your source. We are
+still pre-1.0 but we will add features and fix bugs as they come in.
 
 Start with the [README](https://github.com/aricma/todo/blob/main/README.md) for what it
 does and how to install it, then the
