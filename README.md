@@ -19,9 +19,9 @@ pinned in `rust-toolchain.toml`, which `rustup` reads for you.
 ![lazytodo open on a repository: panels down the left, the file on the right, keys
 across the bottom](./screenshot.png)
 
-`lazytodo` is a todo client as a terminal UI: an homage to `lazygit` — the same numbered
-panels and unmodified single-letter actions — pointed at todo lines instead of diffs,
-with [OPS](https://github.com/aricma/open-productivity-standard) as the document a todo
+`lazytodo` is a todo client as a terminal UI, inspired by `lazygit` for its numbered
+panels and unmodified single-letter actions, and by
+[OPS](https://github.com/aricma/open-productivity-standard) for the document a todo
 becomes when it leaves. It reads the todos a repository keeps, in its markdown files and
 in the `TODO:` comments inside its source, and puts them on one screen to be worked
 through. What it is for is maintenance: a monorepo or a large repository collects todo
