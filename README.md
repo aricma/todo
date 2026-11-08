@@ -21,20 +21,20 @@ across the bottom](./screenshot.png)
 
 `lazytodo` is a todo client as a terminal UI, inspired by `lazygit` for its numbered
 panels and unmodified single-letter actions, and by
-[OPS](https://github.com/aricma/open-productivity-standard) for the document a todo
-becomes when it leaves. It reads the todos a repository keeps, in its markdown files and
-in the `TODO:` comments inside its source, and puts them on one screen to be worked
-through. What it is for is maintenance: a monorepo or a large repository collects todo
-lines nobody reads, because reading them costs a `grep` and rewriting one costs an
-editor and a jump. Here the work is one key away from the cursor.
+[OPS](https://github.com/aricma/open-productivity-standard) for the document it copies a
+todo into. It reads the todos a repository keeps, in its markdown files and in the
+`TODO:` comments inside its source, and puts them on one screen to be worked through.
+What it is for is maintenance: a monorepo or a large repository collects todo lines
+nobody reads, because reading them costs a `grep` and rewriting one costs an editor and
+a jump. Here the work is one key away from the cursor.
 
 - Numbered panels: `0`–`3` reach the one you want, and a file's row says how much of
   it is done (`5/15`) and how many tags and people it mentions.
-- Priorities `A`–`D`, which are also an instruction you can hand an agent: the `A`s and
-  `B`s, or only what is assigned to `@kevin`.
+- Priorities `A`–`D`, which are also an instruction you can hand an agent: the `A`s
+  and `B`s, or only what is assigned to `@kevin`.
 - Every tag and every person as a collection to walk, biggest first.
-- Search across every todo, and `c` to copy whatever the cursor is on — a todo, a path,
-  a heading — with a todo leaving as an OPS document.
+- Search across every todo, and `c` to copy whatever the cursor is on — a todo, a
+  path, a heading — with a todo leaving as an OPS document.
 
 A release carries one archive per target, each holding the binary, `README.md`,
 `CHANGELOG.md`, `LICENSE` and the docs, with a single checksums file beside them:
@@ -54,9 +54,8 @@ from source instead.
   the glossary, its changelog.
 - [tui/docs/manual.md](./tui/docs/manual.md) — the todo client's manual: the line
   grammar, the keys, the frame, the limits, the history.
-- [tui/docs/rfc/](./tui/docs/rfc/README.md) — its [RFCs](./tui/docs/rfc/README.md), one
-  per behaviour, with an index, and the [glossary](./tui/docs/glossary.md) of the words
-  they use.
+- [tui/docs/rfc/](./tui/docs/rfc/README.md) — its RFCs, one per behaviour, with an
+  index, and the [glossary](./tui/docs/glossary.md) of the words they use.
 - [use-cases/](./use-cases/README.md) — the use cases as data: `core/` is the
   document's behaviour on any interface, `cli/` and `tui/` are what only that
   interface can be asked. Each interface declares a driver, and the driver is what

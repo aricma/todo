@@ -11,8 +11,8 @@ that is not the newest section here or in `tui/Cargo.toml`.
 
 The first release of `lazytodo`: a todo client as a terminal UI, inspired by `lazygit`
 for its keys and its panels and by
-[OPS](https://github.com/aricma/open-productivity-standard) for the document a todo
-becomes when it leaves.
+[OPS](https://github.com/aricma/open-productivity-standard) for the document it copies a
+todo into.
 
 What it does is in the [README](https://github.com/aricma/todo/blob/main/tui/README.md),
 and the behaviour of the screen — one decision at a time, with what it costs — is in

@@ -2,9 +2,9 @@
 
 A todo client as a terminal UI, inspired by `lazygit` for its numbered panels and
 unmodified single-letter actions, and by
-[OPS](https://github.com/aricma/open-productivity-standard) for the document a todo
-becomes when it leaves. It reads the todos a repository keeps, in its markdown files and
-in the `TODO:` comments inside its source, and works through them one key at a time.
+[OPS](https://github.com/aricma/open-productivity-standard) for the document it copies a
+todo into. It reads the todos a repository keeps, in its markdown files and in the
+`TODO:` comments inside its source, and works through them one key at a time.
 
 ```sh
 lazytodo .           # the TUI for the current directory
