@@ -1,7 +1,5 @@
 name: TUI CI
 
-# The checks for `lazytodo`, in one job. `ci.yaml` runs them on a push;
-# `release.yaml` runs them on the commit it is about to publish.
 on:
   workflow_call:
     inputs:
@@ -25,8 +23,11 @@ jobs:
         with:
           ref: ${{ inputs.ref || github.sha }}
 
-      # rust-toolchain.toml is the pin; this installs it with its components.
-      - run: rustup show
+      - name: Install the pinned toolchain
+        shell: bash
+        run: |
+          channel=$(sed -n 's/^channel = "\(.*\)"/\1/p' rust-toolchain.toml)
+          rustup toolchain install "$channel" --component rustfmt,clippy
 
       - uses: Swatinem/rust-cache@v2
 
