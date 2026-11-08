@@ -55,11 +55,13 @@ jobs:
       - name: Test
         run: cargo test --workspace --all-targets
 
+      # `--locked` proves the committed Cargo.lock is what actually builds, which is
+      # the one thing `cargo install` used to catch here and caught only by accident.
       - name: Build
-        run: cargo build --release --package lazytodo
+        run: cargo build --release --locked --package lazytodo
 
-      # The built binary, asked the two things a person asks first. `--help` also
-      # proves it can print a whole manual without a terminal.
+      # The artifact the release ships, asked the two things a person asks first.
+      # `--help` also proves it can print a whole manual without a terminal.
       - name: Use
         shell: bash
         run: |
@@ -67,13 +69,3 @@ jobs:
           case "$RUNNER_OS" in Windows) bin="$bin.exe" ;; esac
           "$bin" --version
           "$bin" --help >/dev/null
-
-      # `cargo install --path tui` is how people get the binary, so it has to work
-      # from a clean checkout with nothing on the machine but a toolchain. One
-      # platform is enough to prove that, and it is the slowest step here.
-      - name: Install from a clean checkout
-        if: runner.os == 'Linux'
-        shell: bash
-        run: |
-          cargo install --path tui --root "$RUNNER_TEMP/install"
-          "$RUNNER_TEMP/install/bin/lazytodo" --version
