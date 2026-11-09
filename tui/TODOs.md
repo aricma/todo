@@ -69,5 +69,13 @@ the record of how each one was decided.)
 
 - [ ] (D) a block comment that spans lines: `/* … */` and `<!-- … -->` are read on the line that opens them and nowhere else, so `/*\n   FIXME: the retry is wrong\n*/` is not a todo at all, and a two-line `TODO:` gets its first line only. The work is not the lexer — `doc::comment` already returns a `Comment { line, at }` and would grow an `end` — it is the write model: a todo is addressed by one line, so `edit`, `inverse`/undo, `delete` and copy-to-JSON would all have to splice a range. Decide first whether a multi-line todo must be *editable* or only *visible*: visible is a `Task` with an `end_line` and a read-only body, editable is a range through the whole write layer. RFC-020 rule 5 names it; RFC-022 is the reserved number
 - [ ] (D) we need to add hints for todos to be formatted correctly and the files to be formatted correctly and auto fix functions so the user can just accept them
-- [ ] in empty dirs we fail even though we could just open a default TODOs.md
-- [ ] in dirs without TODOs.md files we fail even though we could look for todo comments
+- [ ] (A) in empty dirs we fail even though we could just open a default TODOs.md
+- [ ] (A) in dirs without TODOs.md files we fail even though we could look for todo comments
+- [ ] (C) add a bar in the middle between the left and right panels and add a keybinding to select this bar and the key arrows left and right to move it to basically support resizing of the relation of left and right where the default is 1:2
+- [ ] (B) test long headings and see if we have proper truncation
+- [ ] (B) we need to check how file names aka paths behave when they get too long and add proper truncation in the middle + a way to see the full path
+- [ ] (B) we need proper truncation for tags that are too long or assignments that are too long
+- [ ] (B) we need to set Limits for tags, assignments and headings, a max line lenth or input length
+- [ ] (A) we need to display the version of lazytodo in the view
+- [ ] (D) add move keybindings to the keybindings modal so we can navigate the keybindings with the arrow keys and add decriptions to the mapping so we can display them on hover
+- [ ] (A) the bin is too slow on larger repos ... we might need to do a performance test setup where we checkout a large repo with a lot of todo files and todos and we expect to start in ms but load additional files in the bg
