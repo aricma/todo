@@ -3,9 +3,16 @@
 What changed in `lazytodo`, the todo client. Each package here has its own version and
 its own tag — this one is `lazytodo-v<version>` — independent of the others.
 
-The newest section is the version a release is cut from, so a release adds one at the
-top. There is no Unreleased section: the pipeline refuses to release a version that is
-not the newest section here or in `tui/Cargo.toml`.
+A change lands under `Unreleased`; a release renames that heading to the version and
+starts a new `Unreleased` above it. The pipeline reads the first `##` heading here and
+refuses to release a version it does not name, so the rename is part of cutting the
+release.
+
+## Unreleased
+
+## Added
+
+The version of `lazytodo` now stands in the lower right corner of the status bar.
 
 ## 0.1.1
 
