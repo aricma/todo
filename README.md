@@ -99,4 +99,3 @@ Tell us what you want next: the web app or the cli. For now we keep going with t
 
 MIT — see [LICENSE](./LICENSE).
 
-The browser app this library once grew out of is not part of this repository.
