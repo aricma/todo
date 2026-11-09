@@ -74,13 +74,15 @@ the record of how each one was decided.)
 - [ ] (C) add a bar in the middle between the left and right panels and add a keybinding to select this bar and the key arrows left and right to move it to basically support resizing of the relation of left and right where the default is 1:2
 - [ ] (B) test long headings and see if we have proper truncation
 - [ ] (B) we need to check how file names aka paths behave when they get too long and add proper truncation in the middle + a way to see the full path
-- [ ] (B) we need proper truncation for tags that are too long or assignments that are too long
-- [ ] (B) we need to set Limits for tags, assignments and headings, a max line lenth or input length
-- [ ] (A) we need to display the version of lazytodo in the view
-- [ ] (D) add move keybindings to the keybindings modal so we can navigate the keybindings with the arrow keys and add decriptions to the mapping so we can display them on hover
+- [x] (A) we need to display the version of lazytodo in the view — the lower right corner of the status bar shows the crate version in the text's own white (not dim), from `CARGO_PKG_VERSION` (`text::VERSION`), the same number `--version` prints. The bottom row gives the corner its columns, so a hint that no longer fits is left off whole; snapshots mask it as `<version>`
 - [ ] (A) the bin is too slow on larger repos ... we might need to do a performance test setup where we checkout a large repo with a lot of todo files and todos and we expect to start in ms but load additional files in the bg
 - [ ] (A) remove the v binding for files that has no value I think :D
-- [ ] (C) add a functionality for lazy to do to check if there is an update with the help of the install.sh and the aricma/registry.json, we should be able to see if there is an update and show the curl command to do the update
-- [ ] (A) add more vim bindings like k/j for moving
+- [ ] (B) we need proper truncation for tags that are too long or assignments that are too long
+- [ ] (B) we need to set Limits for tags, assignments and headings, a max line lenth or input length
 - [ ] (B) given we pass a path to a file that does not exist we let lazytodo just create the file
+- [ ] (C) add a functionality for lazy to do to check if there is an update with the help of the install.sh and the aricma/registry.json, we should be able to see if there is an update and show the curl command to do the update
 - [ ] (C) all events for global actions are displayed in the top right corner in the header ... all hints and local events need to be displayed right beneath the line it concerns
+- [ ] (D) add move keybindings to the keybindings modal so we can navigate the keybindings with the arrow keys and add decriptions to the mapping so we can display them on hover
+- [ ] (D) add more vim bindings like k/j for moving — deferred, not dropped: `j`/`k` were added and removed again because half a vim keymap teaches the wrong reflex (`h` is hide, `l` has nothing to be, `dd` would skip the question). RFC-025 fences the later work: vim comes as one opt-in keymap (`--vim` or a setting), in it a key is the vim command itself, and the default keys stay self-explaining for people who do not live in vim
+- [ ] (C) why does the history diappear some times, do we overwrite it when we refresh the state or re-read the files
+- [ ] make the diff view for changes a large model where we can jump through the changes and take either side or write our own
