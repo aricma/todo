@@ -98,4 +98,3 @@ Tell us what you want next: the web app or the cli. For now we keep going with t
 ## License
 
 MIT — see [LICENSE](./LICENSE).
-
