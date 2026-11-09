@@ -79,3 +79,8 @@ the record of how each one was decided.)
 - [ ] (A) we need to display the version of lazytodo in the view
 - [ ] (D) add move keybindings to the keybindings modal so we can navigate the keybindings with the arrow keys and add decriptions to the mapping so we can display them on hover
 - [ ] (A) the bin is too slow on larger repos ... we might need to do a performance test setup where we checkout a large repo with a lot of todo files and todos and we expect to start in ms but load additional files in the bg
+- [ ] (A) remove the v binding for files that has no value I think :D
+- [ ] add a functionality for lazy to do to check if there is an update with the help of the install.sh and the aricma/registry.json, we should be able to see if there is an update and show the curl command to do the update
+- [ ] (A) add more vim bindings like k/j for moving
+- [ ] given we pass a path to a file that does not exist we let lazytodo just create the file
+- [ ] all events for global actions are displayed in the top right corner in the header ... all hints and local events need to be displayed right beneath the line it concerns
