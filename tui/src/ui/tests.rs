@@ -134,6 +134,16 @@ fn masked(app: &crate::state::App, screen: &str) -> String {
                 None => line.trim_end().to_owned(),
             }
         })
+        // the version changes with a release and says nothing about the screen the
+        // snapshot is about: the corner keeps a placeholder
+        .map(|line| {
+            let corner = crate::text::VERSION;
+            if line.ends_with(corner) {
+                format!("{}<version>", &line[..line.len() - corner.len()])
+            } else {
+                line
+            }
+        })
         .collect::<Vec<_>>()
         .join("\n")
 }
@@ -200,6 +210,11 @@ fn the_border_is_rounded_and_the_header_says_where_we_are() {
     assert!(
         lines[0].contains("lazytodo · "),
         "the app's name, then where it is: {:?}",
+        lines[0]
+    );
+    assert!(
+        !lines[0].contains(env!("CARGO_PKG_VERSION")),
+        "the version is in the corner of the bar, not up here: {:?}",
         lines[0]
     );
     assert!(
@@ -1529,6 +1544,29 @@ fn only_a_file_with_history_shows_an_h() {
     assert!(rows[0].contains("  h1"), "{rows:?}");
     assert!(rows[1].contains("  h1"), "{rows:?}");
     assert!(!rows[2].contains("  h"), "{rows:?}");
+}
+
+#[test]
+fn the_version_stands_in_the_lower_right_corner() {
+    let (_tmp, app) = single("- [ ] a\n");
+    let lines = screen(&app);
+    let last = lines.last().expect("a status row");
+    assert!(
+        last.trim_end().ends_with(env!("CARGO_PKG_VERSION")),
+        "the version is the last thing on the bar: {last:?}"
+    );
+    // in the text's own colour, which is white on a dark terminal — never dim, because
+    // this is the number a bug report is asked for
+    let row = u16::try_from(lines.len() - 1).unwrap();
+    // the bar carries arrows and `·`, so the byte offset is not the cell: count what
+    // is in front of the version
+    let at = last.rfind(env!("CARGO_PKG_VERSION")).unwrap();
+    let column = u16::try_from(last[..at].chars().count()).unwrap();
+    let cell = terminal(&app, WIDTH, HEIGHT).backend().buffer()[(column, row)].clone();
+    assert!(
+        !cell.modifier.contains(Modifier::DIM),
+        "the version is readable, not dim"
+    );
 }
 
 #[test]
