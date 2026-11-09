@@ -18,7 +18,7 @@ The rest of this page is about `lazytodo`.
 ## lazytodo
 
 ![lazytodo open on a repository: panels down the left, the file on the right, keys
-across the bottom](./screenshot.png)
+across the bottom](./docs/assets/screenshot.png)
 
 `lazytodo` is a todo client as a terminal UI, inspired by `lazygit`. It reads the todos
 in markdown files and in comments inside source code. We do have a slight bias towards
