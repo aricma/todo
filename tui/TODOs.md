@@ -85,4 +85,4 @@ the record of how each one was decided.)
 - [ ] (D) add move keybindings to the keybindings modal so we can navigate the keybindings with the arrow keys and add decriptions to the mapping so we can display them on hover
 - [ ] (D) add more vim bindings like k/j for moving — deferred, not dropped: `j`/`k` were added and removed again because half a vim keymap teaches the wrong reflex (`h` is hide, `l` has nothing to be, `dd` would skip the question). RFC-025 fences the later work: vim comes as one opt-in keymap (`--vim` or a setting), in it a key is the vim command itself, and the default keys stay self-explaining for people who do not live in vim
 - [ ] (C) why does the history diappear some times, do we overwrite it when we refresh the state or re-read the files
-- [ ] make the diff view for changes a large model where we can jump through the changes and take either side or write our own
+- [ ] (C) make the diff view for changes a large model where we can jump through the changes and take either side or write our own
