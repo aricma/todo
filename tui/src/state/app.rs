@@ -103,7 +103,22 @@ impl App {
         // every path under it, is the real tree. A path that cannot be resolved is
         // left as it is, so the scan says what is wrong in its own words.
         let path = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
-        let scan = discover::scan(&path)?;
+        let mut scan = discover::scan(&path)?;
+        // the named scan found nothing and this is a folder: the todos may live in
+        // files the convention does not name (`backlog.md`), so the walk widens
+        // before a new file is made — the same widening `h` does, and the panel says
+        // so — and only a folder with no todo anywhere gets the file the scan looks
+        // for, because an empty folder is where todos start, not a reason to refuse
+        let mut widened = false;
+        if scan.entries.is_empty() && !path.is_file() {
+            scan = discover::scan_scope(&path, discover::Scope::EveryMarkdown)?;
+            widened = !scan.entries.is_empty();
+            if scan.entries.is_empty() {
+                let file = path.join(FILE_NAME);
+                disk::create(&file, &text::new_file(&Self::title_for(&path)))?;
+                scan = discover::scan(&path)?;
+            }
+        }
         if scan.entries.is_empty() {
             return Err(Error::Ops(format!(
                 "{}: no todo files found",
@@ -163,7 +178,7 @@ impl App {
             history_idx: 0,
             root: path,
             single,
-            show_all: false,
+            show_all: widened,
             // where `←` goes back to: the sidebar, which in a single-file session is
             // the index and the history
             last_sidebar: if single { Pane::Outline } else { Pane::Files },

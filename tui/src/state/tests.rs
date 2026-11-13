@@ -105,6 +105,41 @@ fn a_session_on_a_file_says_what_it_cannot_read() {
 }
 
 #[test]
+fn an_empty_folder_gets_a_todo_file_instead_of_an_error() {
+    let scratch = tempfile::tempdir().unwrap();
+    let app = crate::state::App::open(scratch.path()).expect("an empty folder opens");
+    let path = scratch.path().join("TODOs.md");
+    let title = scratch
+        .path()
+        .file_name()
+        .unwrap()
+        .to_string_lossy()
+        .into_owned();
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        crate::text::new_file(&title)
+    );
+    // a folder session on the file that was just made, with nothing in it yet
+    assert!(!app.single);
+    assert_eq!(app.current().path, path);
+    assert!(app.tasks().is_empty());
+    assert_eq!(app.files.len(), 1);
+    assert!(!app.show_all, "nothing was widened to open it");
+}
+
+#[test]
+fn a_folder_with_its_todos_in_an_unnamed_file_opens_that_file() {
+    // no `TODOs.md` and no todo comment, but `backlog.md` holds todos: the walk
+    // widens to every markdown file instead of making a new one, and the panel says
+    // it is showing them all
+    let (tmp, app) = app(&[("backlog.md", "- [ ] a\n")]);
+    assert_eq!(app.current().path, tmp.path().join("backlog.md"));
+    assert!(app.show_all);
+    assert_eq!(app.tasks().len(), 1);
+    assert!(!tmp.path().join("TODOs.md").exists());
+}
+
+#[test]
 fn a_single_file_session_starts_on_its_todos_and_has_no_file_list() {
     let (_tmp, mut app) = single("- [ ] a\n");
     assert_eq!(
