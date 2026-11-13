@@ -12,7 +12,16 @@ release.
 
 ## Added
 
-The version of `lazytodo` now stands in the lower right corner of the status bar.
+The version of `lazytodo` now stands in the lower right corner of the status bar, spelled
+the way a release tag spells it: `v0.1.1`. `--version` and `--help` print the same
+string, so one number answers all three.
+
+## Fixed
+
+Opening `lazytodo` on a folder with no todo file in it no longer fails. The walk widens
+to every markdown file in the tree, so a tree that keeps its todos in `backlog.md`
+opens on `backlog.md` with the `h` switch already on, and a folder where even that
+finds nothing gets a `TODOs.md` named after it — the file `n` would have made.
 
 ## 0.1.1
 
