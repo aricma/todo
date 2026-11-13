@@ -31,4 +31,10 @@ fn help_exits_zero() {
     assert_eq!(output.status.code(), Some(0));
     let text = String::from_utf8_lossy(&output.stdout).into_owned();
     assert!(text.contains("lazytodo"), "{text}");
+    // the version a bug report is asked for, in the same spelling the status bar's
+    // corner and `--version` use
+    assert!(
+        text.starts_with(concat!("lazytodo v", env!("CARGO_PKG_VERSION"))),
+        "{text}"
+    );
 }

@@ -1551,16 +1551,18 @@ fn the_version_stands_in_the_lower_right_corner() {
     let (_tmp, app) = single("- [ ] a\n");
     let lines = screen(&app);
     let last = lines.last().expect("a status row");
+    // a release tag's spelling of the number, `v` and all
+    let tagged = format!("v{}", env!("CARGO_PKG_VERSION"));
     assert!(
-        last.trim_end().ends_with(env!("CARGO_PKG_VERSION")),
-        "the version is the last thing on the bar: {last:?}"
+        last.trim_end().ends_with(&tagged),
+        "the version is the last thing on the bar, spelling {tagged:?}: {last:?}"
     );
     // in the text's own colour, which is white on a dark terminal — never dim, because
     // this is the number a bug report is asked for
     let row = u16::try_from(lines.len() - 1).unwrap();
     // the bar carries arrows and `·`, so the byte offset is not the cell: count what
     // is in front of the version
-    let at = last.rfind(env!("CARGO_PKG_VERSION")).unwrap();
+    let at = last.rfind(&tagged).unwrap();
     let column = u16::try_from(last[..at].chars().count()).unwrap();
     let cell = terminal(&app, WIDTH, HEIGHT).backend().buffer()[(column, row)].clone();
     assert!(

@@ -11,9 +11,9 @@
 /// `aricma-todo` is the project; this is its screen, `lazytodo`.
 pub const APP: &str = "✅ lazytodo";
 
-/// The version the header shows and `--version` prints: one number, from the crate
-/// that is the binary.
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// The version the status bar's corner shows and `--version` prints: one number,
+/// from the crate that is the binary, with the `v` a release tag carries.
+pub const VERSION: &str = concat!("v", env!("CARGO_PKG_VERSION"));
 
 pub const FILES: &str = "files";
 pub const INDEX: &str = "index";
