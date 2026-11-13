@@ -82,7 +82,11 @@ the record of how each one was decided.)
 - [ ] (B) given we pass a path to a file that does not exist we let lazytodo just create the file
 - [ ] (C) add a functionality for lazy to do to check if there is an update with the help of the install.sh and the aricma/registry.json, we should be able to see if there is an update and show the curl command to do the update
 - [ ] (C) all events for global actions are displayed in the top right corner in the header ... all hints and local events need to be displayed right beneath the line it concerns
-- [ ] (D) add move keybindings to the keybindings modal so we can navigate the keybindings with the arrow keys and add decriptions to the mapping so we can display them on hover
-- [ ] (D) add more vim bindings like k/j for moving — deferred, not dropped: `j`/`k` were added and removed again because half a vim keymap teaches the wrong reflex (`h` is hide, `l` has nothing to be, `dd` would skip the question). RFC-025 fences the later work: vim comes as one opt-in keymap (`--vim` or a setting), in it a key is the vim command itself, and the default keys stay self-explaining for people who do not live in vim
 - [ ] (C) why does the history diappear some times, do we overwrite it when we refresh the state or re-read the files
 - [ ] (C) make the diff view for changes a large model where we can jump through the changes and take either side or write our own
+- [ ] (C) highlighted tags and assignments have a colored bg with  dark text color ... let's make this a function given a text and a color and highlighted state we either get the highloghted ro unhighlighlighted render
+- [ ] (D) add move keybindings to the keybindings modal so we can navigate the keybindings with the arrow keys and add decriptions to the mapping so we can display them on hover
+- [ ] (D) add more vim bindings like k/j for moving — deferred, not dropped: `j`/`k` were added and removed again because half a vim keymap teaches the wrong reflex (`h` is hide, `l` has nothing to be, `dd` would skip the question). RFC-025 fences the later work: vim comes as one opt-in keymap (`--vim` or a setting), in it a key is the vim command itself, and the default keys stay self-explaining for people who do not live in vim
+- [ ] (D) VIM let's add a vim mode where we basically read the vimrc and replace all our current keybindings with the vim  equivilant maybe we find a vim lib in rust that translates the keybinding into an action
+- [ ] (D) can we allow vim to open in a subprocess for the edit function at the line of the todo we highlighted
+- [ ] (D) can the new todo modal also be a vim render reading the vimrc?
