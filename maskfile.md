@@ -59,6 +59,20 @@ cp "$MASKFILE_DIR/target/release/lazytodo" "$MASKFILE_DIR/tmp/bin/"
 "$MASKFILE_DIR/tmp/bin/lazytodo" --help >/dev/null
 ```
 
+## preview
+
+> Build one part of the project and open it the way a person meets it.
+
+### tui [file]
+
+> Build the release target, then open the screen in this terminal.
+
+```sh
+$MASK build || exit 1
+# an interactive screen only makes sense with a terminal attached
+exec "$MASKFILE_DIR/tmp/bin/lazytodo" ${file:+"$file"}
+```
+
 ## ci
 
 > The local mirror of the CI gate: format, lint, test, build and use.
