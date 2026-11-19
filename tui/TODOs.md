@@ -90,3 +90,5 @@ the record of how each one was decided.)
 - [ ] (D) VIM let's add a vim mode where we basically read the vimrc and replace all our current keybindings with the vim  equivilant maybe we find a vim lib in rust that translates the keybinding into an action
 - [ ] (D) can we allow vim to open in a subprocess for the edit function at the line of the todo we highlighted
 - [ ] (D) can the new todo modal also be a vim render reading the vimrc?
+- [ ] the -V shorthand flag for --version should be -v
+- [ ] can we allow jumps from todo tags and assignments to the todo collection
