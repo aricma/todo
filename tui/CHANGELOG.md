@@ -3,9 +3,25 @@
 What changed in `lazytodo`, the todo client. Each package here has its own version and
 its own tag — this one is `lazytodo-v<version>` — independent of the others.
 
-The newest section is the version a release is cut from, so a release adds one at the
-top. There is no Unreleased section: the pipeline refuses to release a version that is
-not the newest section here or in `tui/Cargo.toml`.
+A change lands under `Unreleased`; a release renames that heading to the version and
+starts a new `Unreleased` above it. The pipeline reads the first `##` heading here and
+refuses to release a version it does not name, so the rename is part of cutting the
+release.
+
+## Unreleased
+
+## Added
+
+The version of `lazytodo` now stands in the lower right corner of the status bar, spelled
+the way a release tag spells it: `v0.1.1`. `--version` and `--help` print the same
+string, so one number answers all three.
+
+## Fixed
+
+Opening `lazytodo` on a folder with no todo file in it no longer fails. The walk widens
+to every markdown file in the tree, so a tree that keeps its todos in `backlog.md`
+opens on `backlog.md` with the `h` switch already on, and a folder where even that
+finds nothing gets a `TODOs.md` named after it — the file `n` would have made.
 
 ## 0.1.1
 

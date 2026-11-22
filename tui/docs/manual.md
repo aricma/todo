@@ -122,6 +122,11 @@ are not todos, and a list that hides the useful ones behind ninety useless ones 
 a worse list. Pushing it through the same scan means the search, the collections and
 the panel all widen together — one switch, one meaning.
 
+**A folder with nothing to open does not fail.** When the named scan finds no TODOs or
+TASKs file, we simply look for other md files or todo comments. If absolutly no todo
+is found we fallback to creating a TODOs.md file with an h1 heading, ready to be filled
+with todos.
+
 ## The frame
 
 The top line is what this is and where it is — `aricma-todo` is the project, and this

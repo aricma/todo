@@ -3,9 +3,6 @@ name: CI
 # Never `pull_request_target`: it runs a fork's code with this repository's secrets.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main

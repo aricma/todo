@@ -69,5 +69,38 @@ the record of how each one was decided.)
 
 - [ ] (D) a block comment that spans lines: `/* … */` and `<!-- … -->` are read on the line that opens them and nowhere else, so `/*\n   FIXME: the retry is wrong\n*/` is not a todo at all, and a two-line `TODO:` gets its first line only. The work is not the lexer — `doc::comment` already returns a `Comment { line, at }` and would grow an `end` — it is the write model: a todo is addressed by one line, so `edit`, `inverse`/undo, `delete` and copy-to-JSON would all have to splice a range. Decide first whether a multi-line todo must be *editable* or only *visible*: visible is a `Task` with an `end_line` and a read-only body, editable is a range through the whole write layer. RFC-020 rule 5 names it; RFC-022 is the reserved number
 - [ ] (D) we need to add hints for todos to be formatted correctly and the files to be formatted correctly and auto fix functions so the user can just accept them
-- [ ] in empty dirs we fail even though we could just open a default TODOs.md
-- [ ] in dirs without TODOs.md files we fail even though we could look for todo comments
+- [x] (A) in empty dirs we fail even though we could just open a default TODOs.md — a folder with nothing to read gets `TODOs.md` with the folder's own name as its h1, made by the same `disk::create` + `text::new_file` the `n` field uses, and the session opens on it (`an_empty_folder_gets_a_todo_file_instead_of_an_error`). The write is the same `create_new` one, so nothing is overwritten; a folder that cannot be written still fails with the IO error rather than a session that cannot save
+- [x] (A) in dirs without TODOs.md files we fail even though we could look for todo comments — a todo comment was already looked for in every text file (RFC-016), and the scan now widens when the named one finds nothing: the walk falls back to every `*.md` (the scan `h` asks for, so `show_all` is on and the bar says `h hide *.md`), and only a tree with no todo anywhere gets the new `TODOs.md` (`a_folder_with_its_todos_in_an_unnamed_file_opens_that_file`). Comment files were never the gap: `App::open` on a folder of nothing but `// TODO:` lines opened the file before and still does
+- [ ] (C) add a bar in the middle between the left and right panels and add a keybinding to select this bar and the key arrows left and right to move it to basically support resizing of the relation of left and right where the default is 1:2
+- [ ] (B) test long headings and see if we have proper truncation
+- [ ] (B) we need to check how file names aka paths behave when they get too long and add proper truncation in the middle + a way to see the full path
+- [x] (A) we need to display the version of lazytodo in the view — the lower right corner of the status bar shows the crate version in the text's own white (not dim), from `CARGO_PKG_VERSION` (`text::VERSION`), the same number `--version` prints. The bottom row gives the corner its columns, so a hint that no longer fits is left off whole; snapshots mask it as `<version>`
+- [ ] (A) the bin is too slow on larger repos ... we might need to do a performance test setup where we checkout a large repo with a lot of todo files and todos and we expect to start in ms but load additional files in the bg
+- [ ] (A) remove the v binding for files that has no value I think :D
+- [ ] (B) we need proper truncation for tags that are too long or assignments that are too long
+- [ ] (B) we need to set Limits for tags, assignments and headings, a max line lenth or input length
+- [ ] (B) given we pass a path to a file that does not exist we let lazytodo just create the file
+- [ ] (C) add a functionality for lazy to do to check if there is an update with the help of the install.sh and the aricma/registry.json, we should be able to see if there is an update and show the curl command to do the update
+- [ ] (C) all events for global actions are displayed in the top right corner in the header ... all hints and local events need to be displayed right beneath the line it concerns
+- [ ] (C) why does the history diappear some times, do we overwrite it when we refresh the state or re-read the files
+- [ ] (C) make the diff view for changes a large model where we can jump through the changes and take either side or write our own
+- [ ] (C) highlighted tags and assignments have a colored bg with  dark text color ... let's make this a function given a text and a color and highlighted state we either get the highloghted ro unhighlighlighted render
+- [ ] (D) add move keybindings to the keybindings modal so we can navigate the keybindings with the arrow keys and add decriptions to the mapping so we can display them on hover
+- [ ] (D) add more vim bindings like k/j for moving — deferred, not dropped: `j`/`k` were added and removed again because half a vim keymap teaches the wrong reflex (`h` is hide, `l` has nothing to be, `dd` would skip the question). RFC-025 fences the later work: vim comes as one opt-in keymap (`--vim` or a setting), in it a key is the vim command itself, and the default keys stay self-explaining for people who do not live in vim
+- [ ] (D) VIM let's add a vim mode where we basically read the vimrc and replace all our current keybindings with the vim  equivilant maybe we find a vim lib in rust that translates the keybinding into an action
+- [ ] (D) can we allow vim to open in a subprocess for the edit function at the line of the todo we highlighted
+- [ ] (D) can the new todo modal also be a vim render reading the vimrc?
+- [ ] (B) the -V shorthand flag for --version should be -v
+- [ ] (C) can we allow jumps from todo tags and assignments to the todo collection
+- [ ] (C) look into signing the releases
+- [ ] (B) swap f with / keybinding, / is established in many tuis for search
+- [ ] need to look into sorting todos based on prio and alphanumeric, which might be the same :D
+- [ ] (C) add color coding to the prios A:red B:yellow C:blue D:grey
+- [ ] (C) we should be able to read any case insensitive /tasks.md/ and /todos.md/
+- [ ] (D) add a config for lazytodo like a .lazytodorc which ist part of the installation and which hold prefilled config opeions for the files and comment todo patters we can read
+- [ ] (D) when we copy a todo we should add the origin as metadata an absolute path on the current machine with the line number
+- [ ] (C) mimic the scroll bars in lazygit do not wast an entire column
+- [ ] (C) change cursor for search input, optimise search input to have better UX
+- [ ] (B) we should see if todos are done in search
+- [ ] (C) add a quick filter for done and undone todos in search
+- [ ] (B) refactor history to be more global actions and remove dependencies as this is just unnecessary complexity
