@@ -90,5 +90,17 @@ the record of how each one was decided.)
 - [ ] (D) VIM let's add a vim mode where we basically read the vimrc and replace all our current keybindings with the vim  equivilant maybe we find a vim lib in rust that translates the keybinding into an action
 - [ ] (D) can we allow vim to open in a subprocess for the edit function at the line of the todo we highlighted
 - [ ] (D) can the new todo modal also be a vim render reading the vimrc?
-- [ ] the -V shorthand flag for --version should be -v
-- [ ] can we allow jumps from todo tags and assignments to the todo collection
+- [ ] (B) the -V shorthand flag for --version should be -v
+- [ ] (C) can we allow jumps from todo tags and assignments to the todo collection
+- [ ] (C) look into signing the releases
+- [ ] (B) swap f with / keybinding, / is established in many tuis for search
+- [ ] need to look into sorting todos based on prio and alphanumeric, which might be the same :D
+- [ ] (C) add color coding to the prios A:red B:yellow C:blue D:grey
+- [ ] (C) we should be able to read any case insensitive /tasks.md/ and /todos.md/
+- [ ] (D) add a config for lazytodo like a .lazytodorc which ist part of the installation and which hold prefilled config opeions for the files and comment todo patters we can read
+- [ ] (D) when we copy a todo we should add the origin as metadata an absolute path on the current machine with the line number
+- [ ] (C) mimic the scroll bars in lazygit do not wast an entire column
+- [ ] (C) change cursor for search input, optimise search input to have better UX
+- [ ] (B) we should see if todos are done in search
+- [ ] (C) add a quick filter for done and undone todos in search
+- [ ] (B) refactor history to be more global actions and remove dependencies as this is just unnecessary complexity
