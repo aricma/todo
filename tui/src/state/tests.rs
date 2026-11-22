@@ -108,7 +108,8 @@ fn a_session_on_a_file_says_what_it_cannot_read() {
 fn an_empty_folder_gets_a_todo_file_instead_of_an_error() {
     let scratch = tempfile::tempdir().unwrap();
     let app = crate::state::App::open(scratch.path()).expect("an empty folder opens");
-    let path = scratch.path().join("TODOs.md");
+    // `open` resolves the path, and on macOS `/var` is a symlink to `/private/var`
+    let path = scratch.path().canonicalize().unwrap().join("TODOs.md");
     let title = scratch
         .path()
         .file_name()
@@ -133,7 +134,10 @@ fn a_folder_with_its_todos_in_an_unnamed_file_opens_that_file() {
     // widens to every markdown file instead of making a new one, and the panel says
     // it is showing them all
     let (tmp, app) = app(&[("backlog.md", "- [ ] a\n")]);
-    assert_eq!(app.current().path, tmp.path().join("backlog.md"));
+    assert_eq!(
+        app.current().path,
+        tmp.path().canonicalize().unwrap().join("backlog.md")
+    );
     assert!(app.show_all);
     assert_eq!(app.tasks().len(), 1);
     assert!(!tmp.path().join("TODOs.md").exists());
